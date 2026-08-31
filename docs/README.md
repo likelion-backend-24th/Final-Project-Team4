@@ -6,7 +6,7 @@
 
 | 문서 | Notion 원본 URL | 담당자 | 최근 Git Snapshot(보존본) |
 |---|---|---|---|
-| 요구사항 | https://app.notion.com/p/3cd73873401a80e59000e89c427db40e?source=copy_link | 이동건,김재혁,정의찬,김다 | 없음 — Sprint Review 뒤 `docs/요구사항.md` 생성 |
+| 요구사항 | https://app.notion.com/p/3cd73873401a80e59000e89c427db40e?source=copy_link | 이동건,김재혁,정의찬,김다솜 | 없음 — Sprint Review 뒤 `docs/요구사항.md` 생성 |
 | 공통 완료 기준 | https://app.notion.com/p/3cd73873401a803cbaaec461a427f442?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/Definition_of_Done.md` 생성 |
 | 화면 설계 | https://app.notion.com/p/3cd73873401a807b9654f9b50c944ba2?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/화면설계.md` 생성 |
 | 서비스 경계 | https://app.notion.com/p/3cd73873401a805b90ecda8807198280?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/서비스경계.md` 생성 |
