@@ -28,3 +28,13 @@
 - [ ] 각 페이지 URL과 담당자가 위 표에 등록되어 있습니다.
 - [ ] 팀 Repository의 `README.md`가 이 인덱스와 GitHub Project·Issue를 연결합니다.
 - [ ] Git `docs/`에는 아직 15개 본문을 만들지 않았습니다.
+
+## Sprint Review 뒤 동기화
+
+1. Review 결과를 먼저 Notion 원본에 반영합니다.
+2. 확정된 15종 현재 내용을 같은 `docs/*.md` 경로에 복사합니다.
+3. 각 Snapshot 상단에 Notion 원본 URL·Snapshot 기준 시점·동기화 시각·직접 편집 금지를 기록합니다.
+4. 위 표의 최근 Git Snapshot을 실제 상대 링크로 바꾸고 문서 PR을 만듭니다.
+5. 수정이 필요하면 Git 파일을 직접 고치지 않고 `Notion 수정 → Git 재동기화` 순서를 지킵니다.
+
+별도 Sprint 폴더를 만들지 않습니다. Sprint별 내용은 Git commit 이력으로 보존하고 Week 4에 최종 Notion 내용을 다시 동기화합니다. Secret·Token·Cookie·개인정보는 Notion과 Git 어디에도 기록하지 않습니다.
