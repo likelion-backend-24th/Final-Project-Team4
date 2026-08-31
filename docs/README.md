@@ -6,21 +6,21 @@
 
 | 문서 | Notion 원본 URL | 담당자 | 최근 Git Snapshot(보존본) |
 |---|---|---|---|
-| 요구사항 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/요구사항.md` 생성 |
-| 공통 완료 기준 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/Definition_of_Done.md` 생성 |
-| 화면 설계 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/화면설계.md` 생성 |
-| 서비스 경계 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/서비스경계.md` 생성 |
-| 아키텍처 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/아키텍처.md` 생성 |
-| ERD | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/ERD.md` 생성 |
-| API | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/API.md` 생성 |
-| 권한 Matrix | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/권한매트릭스.md` 생성 |
-| 시퀀스 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/시퀀스.md` 생성 |
-| 테스트 전략 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/테스트전략.md` 생성 |
-| 테스트 체크리스트 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/테스트체크리스트.md` 생성 |
-| 실행·배포 가이드 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/배포가이드.md` 생성 |
-| 트러블슈팅 | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/트러블슈팅.md` 생성 |
-| Sprint Review | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/스프린트리뷰.md` 생성 |
-| Sprint Retrospective | [여기에 Notion URL] | [이름] | 없음 — Sprint Review 뒤 `docs/retrospective.md` 생성 |
+| 요구사항 | https://app.notion.com/p/3cd73873401a80e59000e89c427db40e?source=copy_link | 이동건,김재혁,정의찬,김다 | 없음 — Sprint Review 뒤 `docs/요구사항.md` 생성 |
+| 공통 완료 기준 | https://app.notion.com/p/3cd73873401a803cbaaec461a427f442?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/Definition_of_Done.md` 생성 |
+| 화면 설계 | https://app.notion.com/p/3cd73873401a807b9654f9b50c944ba2?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/화면설계.md` 생성 |
+| 서비스 경계 | https://app.notion.com/p/3cd73873401a805b90ecda8807198280?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/서비스경계.md` 생성 |
+| 아키텍처 | https://app.notion.com/p/3cd73873401a80548fb2d1119c438b46?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/아키텍처.md` 생성 |
+| ERD | https://app.notion.com/p/ERD-3cd73873401a808bb016d6d508e6f950?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/ERD.md` 생성 |
+| API | https://app.notion.com/p/API-3cd73873401a80aaaa46d81c82aeba2b?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/API.md` 생성 |
+| 권한 Matrix | https://app.notion.com/p/3cd73873401a80aeb2ecda6fa3af6e17?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/권한매트릭스.md` 생성 |
+| 시퀀스 | https://app.notion.com/p/3cd73873401a809a86b9c911a6caf4b9?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/시퀀스.md` 생성 |
+| 테스트 전략 | https://app.notion.com/p/3cd73873401a8048a40afe206d430037?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/테스트전략.md` 생성 |
+| 테스트 체크리스트 | https://app.notion.com/p/3cd73873401a80daa257c530e92a5c9a?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/테스트체크리스트.md` 생성 |
+| 실행·배포 가이드 | https://app.notion.com/p/3cd73873401a80289a67f4f0c4ad3713?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/배포가이드.md` 생성 |
+| 트러블슈팅 | https://app.notion.com/p/3cd73873401a8003a0f3c8ebc33151bb?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/트러블슈팅.md` 생성 |
+| Sprint Review | https://app.notion.com/p/Sprint-Review-3cd73873401a8035bfa5c25b45451049?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/스프린트리뷰.md` 생성 |
+| Sprint Retrospective | https://app.notion.com/p/Sprint-Retrospective-3cd73873401a800780abce673be5f16d?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/retrospective.md` 생성 |
 
 ## 첫날 확인
 
