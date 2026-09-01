@@ -1,5 +1,6 @@
 rootProject.name = 'car-expo-backend'
 
+include 'common'
 include 'gateway'
 include 'identity'
 include 'expo'

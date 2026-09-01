@@ -1,0 +1,14 @@
+apply plugin: 'java-library'
+
+tasks.named('bootJar') { enabled = false }
+tasks.named('jar') { enabled = true }
+
+dependencies {
+    api 'com.fasterxml.jackson.core:jackson-annotations'
+
+    compileOnly 'org.springframework:spring-web'
+    compileOnly 'org.springframework:spring-webmvc'
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+    compileOnly 'org.slf4j:slf4j-api'
+    compileOnly 'org.projectlombok:lombok'
+}
