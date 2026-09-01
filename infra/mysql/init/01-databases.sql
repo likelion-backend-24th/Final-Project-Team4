@@ -1,0 +1,14 @@
+CREATE DATABASE IF NOT EXISTS identity      CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS identity_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS expo          CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS expo_test     CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS payment       CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS payment_test  CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+GRANT ALL PRIVILEGES ON identity.*      TO 'app'@'%';
+GRANT ALL PRIVILEGES ON identity_test.* TO 'app'@'%';
+GRANT ALL PRIVILEGES ON expo.*          TO 'app'@'%';
+GRANT ALL PRIVILEGES ON expo_test.*     TO 'app'@'%';
+GRANT ALL PRIVILEGES ON payment.*       TO 'app'@'%';
+GRANT ALL PRIVILEGES ON payment_test.*  TO 'app'@'%';
+FLUSH PRIVILEGES;
