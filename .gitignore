@@ -4,3 +4,6 @@ target/
 build/
 node_modules/
 .env
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+HELP.md
