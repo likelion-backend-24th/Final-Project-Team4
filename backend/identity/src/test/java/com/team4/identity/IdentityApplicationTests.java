@@ -28,9 +28,8 @@ class IdentityApplicationTests {
     @Test
     void flywayCreatesIdentitySchema() {
         Integer tables = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM information_schema.tables " +
-                        "WHERE table_schema = 'identity_test' AND table_name IN ('users', 'user_roles')",
-                Integer.class);
+                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'identity_test' AND table_name IN ('users', 'flyway_schema_history')", Integer.class
+        );
 
         assertThat(tables).isEqualTo(2);
     }
