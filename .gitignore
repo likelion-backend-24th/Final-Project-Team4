@@ -3,7 +3,9 @@
 target/
 build/
 node_modules/
+dist/
 .env
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
 HELP.md
+CLAUDE.md

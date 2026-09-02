@@ -17,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+// 참가업체(exhibitor) 전용 API. 신원은 X-User-Id 헤더로 받는다.
 @RestController
 @RequestMapping("/api/exhibitor")
 public class ExpoExhibitorController {
@@ -31,6 +32,8 @@ public class ExpoExhibitorController {
      * TODO: 신원 처리 @RequestHeader + requireExhibitor()에서 이후 Gateway 구현할 때 SecurityContext 기반으로 전환 예정!!!
      *  + 문서 수정
      */
+  
+    // 부스 참가 신청 접수
     @PostMapping("/booth-applications")
     public ResponseEntity<ApiResponse<BoothApplicationResponse>> applyBooth(
             @RequestHeader("X-User-Id") Long exhibitorId,
