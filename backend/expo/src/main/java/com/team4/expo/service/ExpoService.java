@@ -114,7 +114,7 @@ public class ExpoService {
         List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
         boolean withinApplyPeriod = isWithinApplyPeriod(expo, LocalDateTime.now());
 
-        // 부스 수 집계
+        // 예약 가능 부스 수
         int availableCount = (int) allBooths.stream()
                 .filter(b -> b.getStatus() == BoothStatus.AVAILABLE)
                 .count();
