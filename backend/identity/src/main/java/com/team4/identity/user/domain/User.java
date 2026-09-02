@@ -79,6 +79,10 @@ public class User {
         return user;
     }
 
+    public static User createAdmin(String email, String passwordHash) {
+        return new User(email, passwordHash, Role.ADMIN);
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
