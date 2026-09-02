@@ -5,14 +5,19 @@ spring:
   application:
     name: expo
   datasource:
-    url: jdbc:h2:mem:expodb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/expo?serverTimezone=UTC&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:app_local_only}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+    open-in-view: false
     show-sql: true
-  h2:
-    console:
-      enabled: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false

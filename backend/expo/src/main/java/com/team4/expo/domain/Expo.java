@@ -28,4 +28,22 @@ public class Expo {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public Expo(String title, String venue, LocalDateTime startsAt, LocalDateTime endsAt,
+                LocalDateTime applyStartsAt, LocalDateTime applyEndsAt) {
+        this.title = title;
+        this.venue = venue;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
+        this.applyStartsAt = applyStartsAt;
+        this.applyEndsAt = applyEndsAt;
+        this.status = ExpoStatus.DRAFT;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void open() {
+        this.status = ExpoStatus.OPEN;
+        this.updatedAt = LocalDateTime.now();
+    }
 }
