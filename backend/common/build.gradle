@@ -12,6 +12,7 @@ dependencies {
 
     compileOnly 'org.springframework:spring-web'
     compileOnly 'org.springframework:spring-webmvc'
+    compileOnly 'org.springframework.data:spring-data-commons'
     compileOnly 'jakarta.servlet:jakarta.servlet-api'
     compileOnly 'org.slf4j:slf4j-api'
     compileOnly 'org.projectlombok:lombok'
