@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+// 개별 부스 엔티티.
 @Entity
 @Table(name = "booths")
 @Getter

@@ -7,3 +7,4 @@ node_modules/
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
 HELP.md
+CLAUDE.md

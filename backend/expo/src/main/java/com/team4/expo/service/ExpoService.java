@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ExpoService {
-
     private static final List<ApplicationStatus> ACTIVE_APPLICATION_STATUSES =
             List.of(ApplicationStatus.SUBMITTED, ApplicationStatus.PAYMENT_PENDING, ApplicationStatus.CONFIRMED);
 
@@ -41,6 +40,7 @@ public class ExpoService {
         this.boothApplicationRepository = boothApplicationRepository;
     }
 
+    // 박람회와 부스 목록을 등록 (관리자용, 등록 직후엔 비공개 DRAFT 상태).
     public ExpoResponse registerExpo(ExpoRegisterRequest request) {
         validateDateOrder(request);
         validateNoDuplicateBoothNo(request.getBooths());
@@ -63,6 +63,7 @@ public class ExpoService {
         return new ExpoResponse(expo.getId(), expo.getStatus(), booths.size());
     }
 
+    // 등록된 박람회를 공개로 변경 (DRAFT -> OPEN, 공개되어야 참가업체가 신청 가능).
     public ExpoResponse openExpo(Long expoId) {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
@@ -76,6 +77,7 @@ public class ExpoService {
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
     }
 
+    // 참가업체가 특정 부스 자리에 참가를 신청 (검증 통과 시 SUBMITTED 상태로 저장).
     public BoothApplicationResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
         Booth booth = boothRepository.findById(request.getBoothId())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
@@ -88,16 +90,19 @@ public class ExpoService {
         BoothApplication application = new BoothApplication(
                 booth,
                 exhibitorId,
-                request.getCompanyInfo().getCompanyName(),
-                request.getCompanyInfo().getManagerName(),
-                request.getCompanyInfo().getContact(),
-                request.getCompanyInfo().getIntro()
+                request.getExhibitionItem(),
+                request.getConceptDescription(),
+                request.isPowerRequested(),
+                request.isWaterSupplyRequested(),
+                request.isInternetRequested(),
+                request.getAdditionalRequest()
         );
         boothApplicationRepository.save(application);
 
         return BoothApplicationResponse.from(application);
     }
 
+    // 박람회가 공개 상태이고 지금이 신청 접수 기간인지 확인
     private void validateApplicationPeriod(Expo expo) {
         if (expo.getStatus() != ExpoStatus.OPEN) {
             throw new CustomException(ErrorCode.INVALID_STATE, "공개되지 않은 박람회입니다.");
@@ -109,12 +114,14 @@ public class ExpoService {
         }
     }
 
+    // 신청 대상 부스 자리가 아직 확정 배정되지 않았는지 확인
     private void validateBoothAvailable(Booth booth) {
         if (booth.getStatus() != BoothStatus.AVAILABLE) {
             throw new CustomException(ErrorCode.INVALID_STATE, "신청 가능한 잔여 부스가 없습니다.");
         }
     }
 
+    // 같은 업체가 같은 부스에 이미 진행 중인 신청을 넣었는지 확인
     private void validateNoDuplicateApplication(Long boothId, Long exhibitorId) {
         boolean exists = boothApplicationRepository.existsByBooth_IdAndExhibitorIdAndStatusIn(
                 boothId, exhibitorId, ACTIVE_APPLICATION_STATUSES);
@@ -124,6 +131,7 @@ public class ExpoService {
         }
     }
 
+    // 신청기간 <= 행사시작 < 행사종료 순서로 날짜가 맞는지 확인
     private void validateDateOrder(ExpoRegisterRequest request) {
         boolean valid = request.getApplyStartsAt().isBefore(request.getApplyEndsAt())
                 && !request.getApplyEndsAt().isAfter(request.getStartsAt())
@@ -134,6 +142,7 @@ public class ExpoService {
         }
     }
 
+    // 같은 박람회 안에서 부스 번호(boothNo)가 겹치지 않는지 확인
     private void validateNoDuplicateBoothNo(List<BoothRegisterRequest> booths) {
         long distinctCount = booths.stream()
                 .map(BoothRegisterRequest::getBoothNo)
