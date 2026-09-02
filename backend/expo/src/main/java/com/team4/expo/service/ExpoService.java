@@ -8,14 +8,12 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
-import com.team4.expo.dto.BoothApplicationRequest;
-import com.team4.expo.dto.BoothApplicationResponse;
-import com.team4.expo.dto.BoothRegisterRequest;
-import com.team4.expo.dto.ExpoRegisterRequest;
-import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,16 +100,51 @@ public class ExpoService {
         return BoothApplicationResponse.from(application);
     }
 
+    // open 박람회 목록 페이징 조회
+    @Transactional(readOnly = true)
+    public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
+        Page<Expo> openExpos = expoRepository.findByStatus(ExpoStatus.OPEN, pageable);
+
+        return openExpos.map(ExpoSummaryResponse::from);
+    }
+
+    // 특정 박람회의 부스 목록 조회. DRAFT(비공개) 및 없는 박람회는 404
+    @Transactional(readOnly = true)
+    public ExpoBoothsResponse getExpoBooths(Long expoId, BoothStatus status) {
+        Expo expo = expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
+        boolean withinApplyPeriod = isWithinApplyPeriod(expo, LocalDateTime.now());
+
+        // 예약 가능 부스 수
+        int availableCount = (int) allBooths.stream()
+                .filter(b -> b.getStatus() == BoothStatus.AVAILABLE)
+                .count();
+
+        List<BoothDetail> views = allBooths.stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .map(b -> BoothDetail.of(b, withinApplyPeriod))
+                .toList();
+
+        return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
+    }
+
     // 박람회가 공개 상태이고 지금이 신청 접수 기간인지 확인
     private void validateApplicationPeriod(Expo expo) {
         if (expo.getStatus() != ExpoStatus.OPEN) {
             throw new CustomException(ErrorCode.INVALID_STATE, "공개되지 않은 박람회입니다.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(expo.getApplyStartsAt()) || now.isAfter(expo.getApplyEndsAt())) {
+        if (!isWithinApplyPeriod(expo, LocalDateTime.now())) {
             throw new CustomException(ErrorCode.INVALID_STATE, "부스 참가 신청 기간이 아닙니다.");
         }
+    }
+
+    // 신청 가능 기간 내
+    private boolean isWithinApplyPeriod(Expo expo, LocalDateTime now) {
+        return !now.isBefore(expo.getApplyStartsAt()) && !now.isAfter(expo.getApplyEndsAt());
     }
 
     // 신청 대상 부스 자리가 아직 확정 배정되지 않았는지 확인
