@@ -1,6 +1,7 @@
 package com.team4.identity.auth.controller;
 
 import com.team4.common.response.ApiResponse;
+import com.team4.identity.auth.dto.RefreshRequest;
 import com.team4.identity.auth.dto.SignInExhibitorRequest;
 import com.team4.identity.auth.dto.SignInRequest;
 import com.team4.identity.auth.dto.SignUpExhibitorRequest;
@@ -40,5 +41,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<TokenResponse>> signInExhibitor(@Valid @RequestBody SignInExhibitorRequest request) {
         TokenResponse token = signInService.signInExhibitor(request.getBusinessNo(), request.getPassword());
         return ResponseEntity.ok(ApiResponse.success(token));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody RefreshRequest request) {
+        TokenResponse token = signInService.reissue(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success(token));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshRequest request) {
+        signInService.logout(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

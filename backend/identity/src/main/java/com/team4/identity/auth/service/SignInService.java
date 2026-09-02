@@ -6,6 +6,7 @@ import com.team4.common.jwt.JwtProvider;
 import com.team4.identity.auth.dto.TokenResponse;
 import com.team4.identity.user.domain.User;
 import com.team4.identity.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,14 +42,41 @@ public class SignInService {
         return issue(user);
     }
 
-    // 비밀번호 검증
+    // 재발급
+    @Transactional(readOnly = true)
+    public TokenResponse reissue(String refreshToken) {
+        Long userId = parseUserId(refreshToken);
+
+        if (!refreshTokenStore.matches(userId, refreshToken)) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "만료된 리프레시 토큰입니다.");
+        }
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "유효하지 않은 리프레시 토큰입니다."));
+
+        return issue(user);
+    }
+
+    // 로그아웃
+    public void logout(String refreshToken) {
+        try {
+            refreshTokenStore.delete(parseUserId(refreshToken));
+        } catch (CustomException ignored) {}
+    }
+
     private void verifyPassword(String rawPassword, User user, String message) {
         if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, message);
         }
     }
 
-    // 토큰 발급
+    private Long parseUserId(String refreshToken) {
+        try {
+            return Long.valueOf(jwtProvider.parseRefreshToken(refreshToken).getSubject());
+        } catch (JwtException | NumberFormatException e) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "유효하지 않은 리프레시 토큰입니다.");
+        }
+    }
+
     private TokenResponse issue(User user) {
         String role = user.getRole().name();
         String accessToken = jwtProvider.createAccessToken(user.getId(), role);
