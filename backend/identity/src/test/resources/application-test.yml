@@ -16,3 +16,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+jwt:
+  access-key: test-access-key-0123456789-0123456789
+  refresh-key: test-refresh-key-0123456789-0123456789
+  accessTokenExp: 900000
+  refreshTokenExp: 1209600000
+
+admin:
+  email: admin@test.local
+  password: testadmin

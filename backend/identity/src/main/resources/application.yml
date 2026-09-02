@@ -32,3 +32,7 @@ jwt:
   refresh-key: ${REFRESH_KEY}
   accessTokenExp: 900000 # 15분
   refreshTokenExp: 1209600000 # 2주
+
+admin:
+  email: ${ADMIN_EMAIL:admin@admin.com}
+  password: ${ADMIN_PASSWORD:admin}
