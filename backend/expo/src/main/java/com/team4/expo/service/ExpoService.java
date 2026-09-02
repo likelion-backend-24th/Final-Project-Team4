@@ -8,14 +8,12 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
-import com.team4.expo.dto.BoothApplicationRequest;
-import com.team4.expo.dto.BoothApplicationResponse;
-import com.team4.expo.dto.BoothRegisterRequest;
-import com.team4.expo.dto.ExpoRegisterRequest;
-import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,6 +94,14 @@ public class ExpoService {
         boothApplicationRepository.save(application);
 
         return BoothApplicationResponse.from(application);
+    }
+
+    // open 박람회 목록 페이징 조회
+    @Transactional(readOnly = true)
+    public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
+        Page<Expo> openExpos = expoRepository.findByStatus(ExpoStatus.OPEN, pageable);
+
+        return openExpos.map(ExpoSummaryResponse::from);
     }
 
     private void validateApplicationPeriod(Expo expo) {

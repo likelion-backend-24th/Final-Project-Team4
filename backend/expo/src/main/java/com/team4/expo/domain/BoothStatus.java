@@ -1,6 +1,6 @@
 package com.team4.expo.domain;
 
 public enum BoothStatus {
-    AVAILABLE,
-    ASSIGNED
+    AVAILABLE, // 예약 가능
+    ASSIGNED // 예약됨
 }
