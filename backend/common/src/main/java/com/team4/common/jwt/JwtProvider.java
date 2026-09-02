@@ -66,4 +66,12 @@ public class JwtProvider {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+
+    public long getAccessTokenExp() {
+        return accessTokenExp;
+    }
+
+    public long getRefreshTokenExp() {
+        return refreshTokenExp;
+    }
 }
