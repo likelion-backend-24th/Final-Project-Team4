@@ -104,15 +104,42 @@ public class ExpoService {
         return openExpos.map(ExpoSummaryResponse::from);
     }
 
+    // 특정 박람회의 부스 목록 조회. DRAFT(비공개) 및 없는 박람회는 404
+    @Transactional(readOnly = true)
+    public ExpoBoothsResponse getExpoBooths(Long expoId, BoothStatus status) {
+        Expo expo = expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
+        boolean withinApplyPeriod = isWithinApplyPeriod(expo, LocalDateTime.now());
+
+        // 부스 수 집계
+        int availableCount = (int) allBooths.stream()
+                .filter(b -> b.getStatus() == BoothStatus.AVAILABLE)
+                .count();
+
+        List<BoothDetail> views = allBooths.stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .map(b -> BoothDetail.of(b, withinApplyPeriod))
+                .toList();
+
+        return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
+    }
+
     private void validateApplicationPeriod(Expo expo) {
         if (expo.getStatus() != ExpoStatus.OPEN) {
             throw new CustomException(ErrorCode.INVALID_STATE, "공개되지 않은 박람회입니다.");
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(expo.getApplyStartsAt()) || now.isAfter(expo.getApplyEndsAt())) {
+        if (!isWithinApplyPeriod(expo, LocalDateTime.now())) {
             throw new CustomException(ErrorCode.INVALID_STATE, "부스 참가 신청 기간이 아닙니다.");
         }
+    }
+
+    // 신청 가능 기간 내
+    private boolean isWithinApplyPeriod(Expo expo, LocalDateTime now) {
+        return !now.isBefore(expo.getApplyStartsAt()) && !now.isAfter(expo.getApplyEndsAt());
     }
 
     private void validateBoothAvailable(Booth booth) {
