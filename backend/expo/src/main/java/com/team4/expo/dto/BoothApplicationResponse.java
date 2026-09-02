@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+// 부스 참가 신청 성공 응답.
 @Getter
 public class BoothApplicationResponse {
 

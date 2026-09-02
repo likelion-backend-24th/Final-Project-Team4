@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.team4.expo.domain.ExpoStatus;
 import lombok.Getter;
 
+// 박람회 등록/공개 API 공통 응답.
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Getter
 public class ExpoResponse {

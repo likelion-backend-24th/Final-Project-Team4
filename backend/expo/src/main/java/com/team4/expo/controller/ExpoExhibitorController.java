@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+// 참가업체(exhibitor) 전용 API. 신원은 X-User-Id 헤더로 받는다.
 @RestController
 @RequestMapping("/api/exhibitor/booth-applications")
 public class ExpoExhibitorController {
@@ -23,6 +24,7 @@ public class ExpoExhibitorController {
         this.expoService = expoService;
     }
 
+    // 부스 참가 신청 접수
     @PostMapping
     public ResponseEntity<ApiResponse<BoothApplicationResponse>> applyBooth(
             @RequestHeader("X-User-Id") Long exhibitorId,
