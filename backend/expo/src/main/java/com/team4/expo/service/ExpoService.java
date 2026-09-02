@@ -88,10 +88,12 @@ public class ExpoService {
         BoothApplication application = new BoothApplication(
                 booth,
                 exhibitorId,
-                request.getCompanyInfo().getCompanyName(),
-                request.getCompanyInfo().getManagerName(),
-                request.getCompanyInfo().getContact(),
-                request.getCompanyInfo().getIntro()
+                request.getExhibitItem(),
+                request.getConceptDescription(),
+                request.isFacilityPower(),
+                request.isFacilityWater(),
+                request.isFacilityInternet(),
+                request.getAdditionalRequest()
         );
         boothApplicationRepository.save(application);
 

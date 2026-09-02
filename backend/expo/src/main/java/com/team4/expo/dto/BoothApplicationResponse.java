@@ -11,12 +11,15 @@ public class BoothApplicationResponse {
 
     private final Long applicationId;
     private final Long boothId;
+    private final String exhibitItem;
     private final ApplicationStatus status;
     private final LocalDateTime submittedAt;
 
-    public BoothApplicationResponse(Long applicationId, Long boothId, ApplicationStatus status, LocalDateTime submittedAt) {
+    public BoothApplicationResponse(Long applicationId, Long boothId, String exhibitItem,
+                                     ApplicationStatus status, LocalDateTime submittedAt) {
         this.applicationId = applicationId;
         this.boothId = boothId;
+        this.exhibitItem = exhibitItem;
         this.status = status;
         this.submittedAt = submittedAt;
     }
@@ -25,6 +28,7 @@ public class BoothApplicationResponse {
         return new BoothApplicationResponse(
                 application.getId(),
                 application.getBooth().getId(),
+                application.getExhibitItem(),
                 application.getStatus(),
                 application.getSubmittedAt()
         );

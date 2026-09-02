@@ -21,10 +21,14 @@ public class BoothApplication {
 
     private Long exhibitorId;
 
-    private String companyName;
-    private String managerName;
-    private String contact;
-    private String intro;
+    private String exhibitItem;
+    private String conceptDescription;
+
+    private boolean facilityPower;
+    private boolean facilityWater;
+    private boolean facilityInternet;
+
+    private String additionalRequest;
 
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status;
@@ -33,14 +37,17 @@ public class BoothApplication {
 
     private LocalDateTime submittedAt;
 
-    public BoothApplication(Booth booth, Long exhibitorId, String companyName,
-                            String managerName, String contact, String intro) {
+    public BoothApplication(Booth booth, Long exhibitorId, String exhibitItem, String conceptDescription,
+                            boolean facilityPower, boolean facilityWater, boolean facilityInternet,
+                            String additionalRequest) {
         this.booth = booth;
         this.exhibitorId = exhibitorId;
-        this.companyName = companyName;
-        this.managerName = managerName;
-        this.contact = contact;
-        this.intro = intro;
+        this.exhibitItem = exhibitItem;
+        this.conceptDescription = conceptDescription;
+        this.facilityPower = facilityPower;
+        this.facilityWater = facilityWater;
+        this.facilityInternet = facilityInternet;
+        this.additionalRequest = additionalRequest;
         this.status = ApplicationStatus.SUBMITTED;
         this.submittedAt = LocalDateTime.now();
     }
