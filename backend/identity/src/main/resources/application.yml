@@ -36,3 +36,10 @@ jwt:
 admin:
   email: ${ADMIN_EMAIL:admin@admin.com}
   password: ${ADMIN_PASSWORD:admin}
+
+cookie:
+  secure: ${COOKIE_SECURE:false} # 운영 환경에서 true
+  same-site: ${COOKIE_SAMESITE:Strict}
+
+cors:
+  additional-origins: ${CORS_ADDITIONAL_ORIGINS:}

@@ -1,6 +1,7 @@
 package com.team4.identity.auth;
 
 import com.team4.identity.user.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,19 +10,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-// TASK 1-2 - 참가업체 로그인 테스트
+// 토큰 재발급 / 로그아웃
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ExhibitorSignInTest {
+class RefreshLogoutTest {
 
     private static final String SIGNUP_BODY = """
             {
@@ -48,34 +49,52 @@ class ExhibitorSignInTest {
                 .content(SIGNUP_BODY));
     }
 
-    @Test
-    void 정상_로그인시_accessToken은_body_refreshToken은_HttpOnly쿠키로_반환한다() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
+    private Cookie signInAndGetRefreshCookie() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/auth/exhibitors/signin")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"businessNo\":\"1234567890\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
+                .andReturn();
+        Cookie cookie = result.getResponse().getCookie("refreshToken");
+        assertThat(cookie).isNotNull();
+        return cookie;
+    }
+
+    @Test
+    void 쿠키로_재발급하면_새_accessToken과_refresh쿠키를_반환한다() throws Exception {
+        Cookie refreshCookie = signInAndGetRefreshCookie();
+
+        MvcResult reissued = mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
-                .andExpect(jsonPath("$.data.role").value("EXHIBITOR"))
                 .andExpect(jsonPath("$.data.refreshToken").doesNotExist())
                 .andExpect(cookie().exists("refreshToken"))
-                .andExpect(cookie().httpOnly("refreshToken", true))
-                .andExpect(cookie().value("refreshToken", org.hamcrest.Matchers.not(org.hamcrest.Matchers.emptyString())));
+                .andReturn();
+
+        assertThat(reissued.getResponse().getCookie("refreshToken").getValue()).isNotBlank();
     }
 
     @Test
-    void 비밀번호가_틀리면_401_WWW_Authenticate_헤더() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"1234567890\",\"password\":\"wrongpassword\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(header().string("WWW-Authenticate", "Bearer"));
-    }
-
-    @Test
-    void 없는_사업자번호는_401() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"9999999999\",\"password\":\"password123\"}"))
+    void 쿠키가_없으면_재발급은_401() throws Exception {
+        mockMvc.perform(post("/api/auth/refresh"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 로그아웃하면_쿠키가_만료되고_이후_재발급은_401() throws Exception {
+        Cookie refreshCookie = signInAndGetRefreshCookie();
+
+        mockMvc.perform(post("/api/auth/logout").cookie(refreshCookie))
+                .andExpect(status().isOk())
+                .andExpect(cookie().maxAge("refreshToken", 0));
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 쿠키가_없어도_로그아웃은_200() throws Exception {
+        mockMvc.perform(post("/api/auth/logout"))
+                .andExpect(status().isOk());
     }
 }
