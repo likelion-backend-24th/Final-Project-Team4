@@ -26,3 +26,9 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: false
+
+jwt:
+  access-key: ${ACCESS_KEY}
+  refresh-key: ${REFRESH_KEY}
+  accessTokenExp: 900000 # 15분
+  refreshTokenExp: 1209600000 # 2주
