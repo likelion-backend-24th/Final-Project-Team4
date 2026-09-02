@@ -10,7 +10,11 @@ public enum ErrorCode {
     DUPLICATE(409, "이미 존재합니다."),
     PAYMENT_EXPIRED(409, "결제 기한이 지났습니다."),
     DEPENDENCY_TIMEOUT(202, "처리 중입니다. 잠시 후 다시 확인해 주세요."),
-    INTERNAL_ERROR(500, "서버 내부 오류입니다.");
+    INTERNAL_ERROR(500, "서버 내부 오류입니다."),
+
+    // 결제(payment) 전용 에러코드
+    PAYMENT_ALREADY_COMPLETED(409, "이미 결제가 완료된 예약입니다."),
+    PAYMENT_AMOUNT_MISMATCH(400, "결제 금액이 참가비와 일치하지 않습니다.");
 
     private final int httpStatus;
     private final String defaultMessage;
