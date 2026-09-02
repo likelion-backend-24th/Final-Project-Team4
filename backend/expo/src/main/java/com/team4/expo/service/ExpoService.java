@@ -2,13 +2,18 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
+import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
+import com.team4.expo.dto.BoothApplicationRequest;
+import com.team4.expo.dto.BoothApplicationResponse;
 import com.team4.expo.dto.BoothRegisterRequest;
 import com.team4.expo.dto.ExpoRegisterRequest;
 import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import org.springframework.stereotype.Service;
@@ -22,12 +27,18 @@ import java.util.stream.Collectors;
 @Transactional
 public class ExpoService {
 
+    private static final List<ApplicationStatus> ACTIVE_APPLICATION_STATUSES =
+            List.of(ApplicationStatus.SUBMITTED, ApplicationStatus.PAYMENT_PENDING, ApplicationStatus.CONFIRMED);
+
     private final ExpoRepository expoRepository;
     private final BoothRepository boothRepository;
+    private final BoothApplicationRepository boothApplicationRepository;
 
-    public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository) {
+    public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
+                        BoothApplicationRepository boothApplicationRepository) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
+        this.boothApplicationRepository = boothApplicationRepository;
     }
 
     public ExpoResponse registerExpo(ExpoRegisterRequest request) {
@@ -63,6 +74,54 @@ public class ExpoService {
         expo.open();
 
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
+    }
+
+    public BoothApplicationResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
+        Booth booth = boothRepository.findById(request.getBoothId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        Expo expo = booth.getExpo();
+
+        validateApplicationPeriod(expo);
+        validateBoothAvailable(booth);
+        validateNoDuplicateApplication(booth.getId(), exhibitorId);
+
+        BoothApplication application = new BoothApplication(
+                booth,
+                exhibitorId,
+                request.getCompanyInfo().getCompanyName(),
+                request.getCompanyInfo().getManagerName(),
+                request.getCompanyInfo().getContact(),
+                request.getCompanyInfo().getIntro()
+        );
+        boothApplicationRepository.save(application);
+
+        return BoothApplicationResponse.from(application);
+    }
+
+    private void validateApplicationPeriod(Expo expo) {
+        if (expo.getStatus() != ExpoStatus.OPEN) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "공개되지 않은 박람회입니다.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(expo.getApplyStartsAt()) || now.isAfter(expo.getApplyEndsAt())) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "부스 참가 신청 기간이 아닙니다.");
+        }
+    }
+
+    private void validateBoothAvailable(Booth booth) {
+        if (booth.getStatus() != BoothStatus.AVAILABLE) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "신청 가능한 잔여 부스가 없습니다.");
+        }
+    }
+
+    private void validateNoDuplicateApplication(Long boothId, Long exhibitorId) {
+        boolean exists = boothApplicationRepository.existsByBooth_IdAndExhibitorIdAndStatusIn(
+                boothId, exhibitorId, ACTIVE_APPLICATION_STATUSES);
+
+        if (exists) {
+            throw new CustomException(ErrorCode.DUPLICATE, "이미 해당 부스에 참가 신청한 이력이 있습니다.");
+        }
     }
 
     private void validateDateOrder(ExpoRegisterRequest request) {
