@@ -6,6 +6,7 @@ import com.team4.common.response.ObjectMapperWriter;
 import com.team4.expo.security.GatewayAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -16,6 +17,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         http
+                .cors(Customizer.withDefaults()) // WebConfig의 CORS 매핑을 시큐리티 필터에서 존중 (로컬 직접 호출용)
                 .csrf(csrf -> csrf.disable())
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
