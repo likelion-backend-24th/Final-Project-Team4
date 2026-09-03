@@ -8,5 +8,5 @@ import org.springframework.stereotype.Component;
 public class PortOnePaymentGateway {
 
     private final String apiSecret;
-    
+
 }
