@@ -2,66 +2,39 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
-import com.team4.expo.domain.ApplicationStatus;
-import com.team4.expo.domain.Booth;
-import com.team4.expo.domain.BoothApplication;
-import com.team4.expo.domain.BoothStatus;
-import com.team4.expo.domain.Expo;
-import com.team4.expo.domain.ExpoStatus;
-import com.team4.expo.domain.Post;
-import com.team4.expo.dto.BoothApplicationRequest;
-import com.team4.expo.dto.BoothApplicationResponse;
-import com.team4.expo.dto.BoothContentRequest;
-import com.team4.expo.dto.BoothContentResponse;
-import com.team4.expo.dto.BoothRegisterRequest;
-import com.team4.expo.dto.ExpoRegisterRequest;
-import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.domain.*;
+import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
-import com.team4.expo.repository.PostRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+// 박람회·부스 자체의 등록/공개/조회. 부스 참가 신청(그룹) 관련 로직은 BoothApplicationService 계열 참고.
 @Service
 @Transactional
 public class ExpoService {
 
-    private static final List<ApplicationStatus> ACTIVE_APPLICATION_STATUSES =
-            List.of(ApplicationStatus.SUBMITTED, ApplicationStatus.PAYMENT_PENDING, ApplicationStatus.CONFIRMED);
-    private static final List<ApplicationStatus> CONFIRMED_STATUS_ONLY =
-            List.of(ApplicationStatus.CONFIRMED);
-    private static final Set<String> ALLOWED_BANNER_IMAGE_TYPES =
-            Set.of("image/png", "image/jpeg", "image/webp");
-    private static final long MAX_BANNER_IMAGE_SIZE = 5 * 1024 * 1024;
-    private static final Path BANNER_UPLOAD_DIR = Paths.get("uploads", "banner");
-
     private final ExpoRepository expoRepository;
     private final BoothRepository boothRepository;
     private final BoothApplicationRepository boothApplicationRepository;
-    private final PostRepository postRepository;
+    private final BoothApplicationValidator validator;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
                         BoothApplicationRepository boothApplicationRepository,
-                        PostRepository postRepository) {
+                        BoothApplicationValidator validator) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
-        this.postRepository = postRepository;
+        this.validator = validator;
     }
 
+    // 박람회와 부스 목록을 등록 (관리자용, 등록 직후엔 비공개 DRAFT 상태).
     public ExpoResponse registerExpo(ExpoRegisterRequest request) {
         validateDateOrder(request);
         validateNoDuplicateBoothNo(request.getBooths());
@@ -84,6 +57,7 @@ public class ExpoService {
         return new ExpoResponse(expo.getId(), expo.getStatus(), booths.size());
     }
 
+    // 등록된 박람회를 공개로 변경 (DRAFT -> OPEN, 공개되어야 참가업체가 신청 가능).
     public ExpoResponse openExpo(Long expoId) {
         Expo expo = expoRepository.findById(expoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
@@ -97,122 +71,75 @@ public class ExpoService {
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
     }
 
-    public BoothApplicationResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
-        Booth booth = boothRepository.findById(request.getBoothId())
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-        Expo expo = booth.getExpo();
+    // Admin - 전체 박람회 목록(상태 무관) + 박람회별 부스·신청 현황 집계
+    @Transactional(readOnly = true)
+    public Page<ExpoAdminSummaryResponse> listExposForAdmin(Pageable pageable) {
+        Page<Expo> expos = expoRepository.findAll(pageable);
+        return expos.map(expo -> {
+            List<Booth> booths = boothRepository.findByExpo_IdOrderByBoothNo(expo.getId());
+            int availableBooths = (int) booths.stream().filter(b -> b.getStatus() == BoothStatus.AVAILABLE).count();
 
-        validateApplicationPeriod(expo);
-        validateBoothAvailable(booth);
-        validateNoDuplicateApplication(booth.getId(), exhibitorId);
+            List<BoothApplication> applications = boothApplicationRepository.findByBooth_Expo_Id(expo.getId());
+            int pending = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.SUBMITTED).count();
+            int approved = (int) applications.stream().filter(a ->
+                    a.getStatus() == ApplicationStatus.PAYMENT_PENDING || a.getStatus() == ApplicationStatus.CONFIRMED).count();
+            int rejected = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.REJECTED).count();
 
-        BoothApplication application = new BoothApplication(
-                booth,
-                exhibitorId,
-                request.getCompanyInfo().getCompanyName(),
-                request.getCompanyInfo().getManagerName(),
-                request.getCompanyInfo().getContact(),
-                request.getCompanyInfo().getIntro()
-        );
-        boothApplicationRepository.save(application);
-
-        return BoothApplicationResponse.from(application);
+            return new ExpoAdminSummaryResponse(
+                    expo.getId(), expo.getTitle(), expo.getStatus(),
+                    expo.getApplyStartsAt(), expo.getApplyEndsAt(),
+                    booths.size(), availableBooths,
+                    applications.size(), pending, approved, rejected
+            );
+        });
     }
 
-    public BoothContentResponse registerOrUpdateBoothContent(Long exhibitorId, Long boothId, BoothContentRequest request) {
-        Booth booth = boothRepository.findById(boothId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+    // Admin - 박람회 부스 배치 현황 (공개 여부와 무관하게 조회 가능, EXHIBITOR용 getExpoBooths와 달리 OPEN 필터 없음)
+    @Transactional(readOnly = true)
+    public ExpoBoothsResponse getExpoBoothsForAdmin(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        validateBoothOwnershipConfirmed(boothId, exhibitorId);
+        List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
+        boolean withinApplyPeriod = validator.isWithinApplyPeriod(expo, LocalDateTime.now());
+        int availableCount = (int) allBooths.stream().filter(b -> b.getStatus() == BoothStatus.AVAILABLE).count();
+        List<BoothDetail> views = allBooths.stream().map(b -> BoothDetail.of(b, withinApplyPeriod)).toList();
 
-        Post post = postRepository.findByBooth_Id(boothId)
-                .orElse(null);
-
-        if (post == null) {
-            post = new Post(booth, request.getTitle(), request.getContent());
-        } else {
-            post.update(request.getTitle(), request.getContent());
-        }
-        postRepository.save(post);
-
-        return BoothContentResponse.from(post);
+        return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
     }
 
-    public String updateBannerImage(Long exhibitorId, Long boothId, MultipartFile image) {
-        Booth booth = boothRepository.findById(boothId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+    // open 박람회 목록 페이징 조회
+    @Transactional(readOnly = true)
+    public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
+        Page<Expo> openExpos = expoRepository.findByStatus(ExpoStatus.OPEN, pageable);
 
-        validateBoothOwnershipConfirmed(boothId, exhibitorId);
-        validateBannerImage(image);
-
-        String bannerImageUrl = storeBannerImage(image);
-        booth.updateBannerImage(bannerImageUrl);
-
-        return bannerImageUrl;
+        return openExpos.map(ExpoSummaryResponse::from);
     }
 
-    private void validateBoothOwnershipConfirmed(Long boothId, Long exhibitorId) {
-        boolean confirmed = boothApplicationRepository.existsByBooth_IdAndExhibitorIdAndStatusIn(
-                boothId, exhibitorId, CONFIRMED_STATUS_ONLY);
+    // 특정 박람회의 부스 목록 조회. DRAFT(비공개) 및 없는 박람회는 404
+    @Transactional(readOnly = true)
+    public ExpoBoothsResponse getExpoBooths(Long expoId, BoothStatus status) {
+        Expo expo = expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        if (!confirmed) {
-            throw new CustomException(ErrorCode.FORBIDDEN, "참가 확정된 담당 부스만 관리할 수 있습니다.");
-        }
+        List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
+        boolean withinApplyPeriod = validator.isWithinApplyPeriod(expo, LocalDateTime.now());
+
+        // 예약 가능 부스 수
+        int availableCount = (int) allBooths.stream()
+                .filter(b -> b.getStatus() == BoothStatus.AVAILABLE)
+                .count();
+
+        List<BoothDetail> views = allBooths.stream()
+                .filter(b -> status == null || b.getStatus() == status)
+                .map(b -> BoothDetail.of(b, withinApplyPeriod))
+                .toList();
+
+        return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
     }
 
-    private void validateBannerImage(MultipartFile image) {
-        if (image == null || image.isEmpty()) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "이미지 파일이 필요합니다.");
-        }
-        if (!ALLOWED_BANNER_IMAGE_TYPES.contains(image.getContentType())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "PNG, JPEG, WEBP 형식의 이미지만 업로드할 수 있습니다.");
-        }
-        if (image.getSize() > MAX_BANNER_IMAGE_SIZE) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "이미지 파일은 5MB를 초과할 수 없습니다.");
-        }
-    }
-
-    private String storeBannerImage(MultipartFile image) {
-        try {
-            Files.createDirectories(BANNER_UPLOAD_DIR);
-
-            String extension = StringUtils.getFilenameExtension(image.getOriginalFilename());
-            String fileName = UUID.randomUUID() + "." + extension;
-            Path target = BANNER_UPLOAD_DIR.resolve(fileName);
-            image.transferTo(target);
-
-            return "/uploads/banner/" + fileName;
-        } catch (IOException e) {
-            throw new CustomException(ErrorCode.INTERNAL_ERROR, "이미지 저장에 실패했습니다.");
-        }
-    }
-
-    private void validateApplicationPeriod(Expo expo) {
-        if (expo.getStatus() != ExpoStatus.OPEN) {
-            throw new CustomException(ErrorCode.INVALID_STATE, "공개되지 않은 박람회입니다.");
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        if (now.isBefore(expo.getApplyStartsAt()) || now.isAfter(expo.getApplyEndsAt())) {
-            throw new CustomException(ErrorCode.INVALID_STATE, "부스 참가 신청 기간이 아닙니다.");
-        }
-    }
-
-    private void validateBoothAvailable(Booth booth) {
-        if (booth.getStatus() != BoothStatus.AVAILABLE) {
-            throw new CustomException(ErrorCode.INVALID_STATE, "신청 가능한 잔여 부스가 없습니다.");
-        }
-    }
-
-    private void validateNoDuplicateApplication(Long boothId, Long exhibitorId) {
-        boolean exists = boothApplicationRepository.existsByBooth_IdAndExhibitorIdAndStatusIn(
-                boothId, exhibitorId, ACTIVE_APPLICATION_STATUSES);
-
-        if (exists) {
-            throw new CustomException(ErrorCode.DUPLICATE, "이미 해당 부스에 참가 신청한 이력이 있습니다.");
-        }
-    }
-
+    // 신청기간 <= 행사시작 < 행사종료 순서로 날짜가 맞는지 확인
     private void validateDateOrder(ExpoRegisterRequest request) {
         boolean valid = request.getApplyStartsAt().isBefore(request.getApplyEndsAt())
                 && !request.getApplyEndsAt().isAfter(request.getStartsAt())
@@ -223,6 +150,7 @@ public class ExpoService {
         }
     }
 
+    // 같은 박람회 안에서 부스 번호(boothNo)가 겹치지 않는지 확인
     private void validateNoDuplicateBoothNo(List<BoothRegisterRequest> booths) {
         long distinctCount = booths.stream()
                 .map(BoothRegisterRequest::getBoothNo)
@@ -232,5 +160,16 @@ public class ExpoService {
         if (distinctCount != booths.size()) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "부스 번호가 중복되었습니다.");
         }
+    }
+
+    // 결제 서비스 등에서 신청 그룹 단건 상세를 조회할 때 사용
+    @Transactional(readOnly = true)
+    public BoothApplicationGroupDetailResponse getBoothApplicationGroupDetail(Long exhibitorId, String groupId){
+        BoothApplicationGroup group = boothApplicationRepository.findById(groupId)
+                .orElseThrow(() new -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+        validateGroupOwnership(group, exhibitorId);
+
+        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+        return BoothApplicationGroupDetailResponse.of(group. applications);
     }
 }

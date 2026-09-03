@@ -3,7 +3,7 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.BoothContentRequest;
 import com.team4.expo.dto.BoothContentResponse;
-import com.team4.expo.service.ExpoService;
+import com.team4.expo.service.BoothContentService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +22,10 @@ import java.util.Map;
 @RequestMapping("/api/exhibitor/booths")
 public class BoothContentController {
 
-    private final ExpoService expoService;
+    private final BoothContentService boothContentService;
 
-    public BoothContentController(ExpoService expoService) {
-        this.expoService = expoService;
+    public BoothContentController(BoothContentService boothContentService) {
+        this.boothContentService = boothContentService;
     }
 
     @PutMapping("/{boothId}/content")
@@ -33,7 +33,7 @@ public class BoothContentController {
             @RequestHeader("X-User-Id") Long exhibitorId,
             @PathVariable Long boothId,
             @Valid @RequestBody BoothContentRequest request) {
-        BoothContentResponse response = expoService.registerOrUpdateBoothContent(exhibitorId, boothId, request);
+        BoothContentResponse response = boothContentService.registerOrUpdateContent(exhibitorId, boothId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -42,7 +42,7 @@ public class BoothContentController {
             @RequestHeader("X-User-Id") Long exhibitorId,
             @PathVariable Long boothId,
             @RequestParam("image") MultipartFile image) {
-        String bannerImageUrl = expoService.updateBannerImage(exhibitorId, boothId, image);
+        String bannerImageUrl = boothContentService.updateBannerImage(exhibitorId, boothId, image);
         return ResponseEntity.ok(ApiResponse.success(Map.of("bannerImageUrl", bannerImageUrl)));
     }
 }

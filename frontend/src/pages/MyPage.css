@@ -1,0 +1,285 @@
+.mypage__detail {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 8px 16px;
+  padding: 16px;
+  margin: 4px 0;
+  background: #f8f9fb;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.mypage__detail dt {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.mypage__detail dd {
+  margin: 0;
+  color: #1f2937;
+}
+
+.mypage {
+  display: flex;
+  flex-direction: column;
+}
+
+.mypage__main {
+  box-sizing: border-box;
+  padding: 40px 80px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.mypage__card {
+  box-sizing: border-box;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.mypage__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mypage__card h2 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 23px;
+  color: #0f172a;
+  margin: 0 0 20px;
+}
+
+.mypage__card-header h2 {
+  margin: 0;
+}
+
+.mypage__edit-btn {
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.mypage__divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 20px 0;
+}
+
+.mypage__profile-grid {
+  display: flex;
+  gap: 40px;
+}
+
+.mypage__profile-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mypage__profile-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+.mypage__profile-label {
+  width: 120px;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #475569;
+}
+
+.mypage__profile-value {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.mypage__profile-value--regular {
+  font-weight: 400;
+}
+
+.mypage__table-scroll {
+  overflow-x: auto;
+}
+
+.mypage__table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+}
+
+.mypage__table thead tr {
+  background: #f8fafc;
+}
+
+.mypage__table th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 13px;
+  color: #475569;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mypage__table td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+  color: #475569;
+}
+
+.mypage__cell-strong {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.mypage__cell-muted {
+  color: #94a3b8;
+}
+
+.mypage__col-flex {
+  width: auto;
+}
+
+.mypage__col-120 {
+  width: 120px;
+}
+
+.mypage__col-140 {
+  width: 140px;
+}
+
+.mypage__col-150 {
+  width: 150px;
+}
+
+.mypage__col-100 {
+  width: 100px;
+}
+
+.mypage__col-right {
+  text-align: right;
+}
+
+.mypage__badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 15px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.badge--pending {
+  background: #fffbeb;
+  color: #f59e0b;
+}
+
+.badge--approved {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.badge--unpaid {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.badge--paid {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.badge--done {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.mypage__link {
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+
+.mypage__banner {
+  box-sizing: border-box;
+  padding: 48px 80px;
+  background: #0f172a;
+}
+
+.mypage__banner-eyebrow {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 15px;
+  color: #2563eb;
+  margin: 0 0 12px;
+}
+
+.mypage__banner-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 35px;
+  color: #fff;
+  margin: 0 0 12px;
+}
+
+.mypage__banner-desc {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .mypage__main {
+    padding: 24px 20px 40px;
+  }
+
+  .mypage__card {
+    padding: 20px;
+  }
+
+  .mypage__profile-grid {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .mypage__banner {
+    padding: 32px 20px;
+  }
+
+  .mypage__banner-title {
+    font-size: 22px;
+    line-height: 28px;
+  }
+}
