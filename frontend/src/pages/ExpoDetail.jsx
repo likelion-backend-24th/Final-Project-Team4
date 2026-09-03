@@ -80,8 +80,8 @@ function ExpoDetail() {
               <div className="expo-detail__booths-scroll">
                 <BoothGrid
                   booths={expo.booths}
-                  selectedBoothId={selectedBoothId}
-                  onSelect={setSelectedBoothId}
+                  selectedBoothIds={selectedBoothId ? [selectedBoothId] : []}
+                  onToggle={(id) => setSelectedBoothId(id === selectedBoothId ? null : id)}
                 />
               </div>
             </section>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { mockExpos } from '../mock/data';
+import { getExpoBooths, applyBooth } from '../api/expo';
 import BoothGrid from '../components/BoothGrid';
 import './BoothApplication.css';
 
@@ -11,9 +11,13 @@ function BoothApplication() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const expo = mockExpos.find((e) => String(e.id) === expoId);
+  const [expoBooths, setExpoBooths] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [step, setStep] = useState(2);
-  const [selectedBoothId, setSelectedBoothId] = useState(searchParams.get('boothId') || null);
+  const initialBoothId = searchParams.get('boothId');
+  const [selectedBoothIds, setSelectedBoothIds] = useState(
+    initialBoothId ? [Number(initialBoothId)] : []
+  );
   const [form, setForm] = useState({
     exhibitionItem: '',
     conceptDescription: '',
@@ -23,12 +27,24 @@ function BoothApplication() {
     additionalRequest: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
-  if (!expo) {
-    return <p className="booth-application__status">박람회를 찾을 수 없습니다.</p>;
+  useEffect(() => {
+    getExpoBooths(expoId)
+      .then(setExpoBooths)
+      .catch((err) => setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.'));
+  }, [expoId]);
+
+  if (loadError) {
+    return <p className="booth-application__status">{loadError}</p>;
+  }
+  if (!expoBooths) {
+    return <p className="booth-application__status">불러오는 중...</p>;
   }
 
-  const selectedBooth = expo.booths.find((b) => b.id === selectedBoothId);
+  const selectedBooths = expoBooths.booths.filter((b) => selectedBoothIds.includes(b.boothId));
+  const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
 
   const handleChange = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -36,13 +52,46 @@ function BoothApplication() {
   const handleCheck = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.checked }));
 
+  const toggleBooth = (boothId) => {
+    setSelectedBoothIds((prev) =>
+      prev.includes(boothId) ? prev.filter((id) => id !== boothId) : [...prev, boothId]
+    );
+  };
+
+  const buildPayload = (saveMode) => ({
+    expoId: Number(expoId),
+    boothIds: selectedBoothIds,
+    exhibitionItem: form.exhibitionItem,
+    conceptDescription: form.conceptDescription,
+    powerRequested: form.powerRequested,
+    waterSupplyRequested: form.waterSupplyRequested,
+    internetRequested: form.internetRequested,
+    additionalRequest: form.additionalRequest,
+    saveMode,
+  });
+
   const handleSubmit = () => {
-    if (!selectedBoothId) return;
+    if (selectedBoothIds.length === 0) return;
+    setSubmitError(null);
     setSubmitting(true);
-    setTimeout(() => {
-      setSubmitting(false);
-      setStep(3);
-    }, 500);
+    applyBooth(buildPayload('SUBMIT'))
+      .then(() => setStep(3))
+      .catch((err) =>
+        setSubmitError(err.response?.data?.error?.message ?? '신청 처리 중 오류가 발생했습니다.')
+      )
+      .finally(() => setSubmitting(false));
+  };
+
+  const handleSaveDraft = () => {
+    if (selectedBoothIds.length === 0) return;
+    setSubmitError(null);
+    setSavingDraft(true);
+    applyBooth(buildPayload('DRAFT'))
+      .then(() => navigate('/mypage'))
+      .catch((err) =>
+        setSubmitError(err.response?.data?.error?.message ?? '임시저장 중 오류가 발생했습니다.')
+      )
+      .finally(() => setSavingDraft(false));
   };
 
   return (
@@ -65,7 +114,7 @@ function BoothApplication() {
           <div className="booth-application__left">
             <section className="booth-application__map-card">
               <div className="booth-application__map-header">
-                <h2>부스 도면에서 위치 선택</h2>
+                <h2>부스 도면에서 위치 선택 (다중 선택 가능)</h2>
                 <div className="booth-application__legend">
                   <span><i className="booth-application__dot booth-application__dot--available" />선택가능</span>
                   <span><i className="booth-application__dot booth-application__dot--reserved" />예약됨</span>
@@ -74,9 +123,9 @@ function BoothApplication() {
               </div>
               <div className="booth-application__grid-scroll">
                 <BoothGrid
-                  booths={expo.booths}
-                  selectedBoothId={selectedBoothId}
-                  onSelect={setSelectedBoothId}
+                  booths={expoBooths.booths}
+                  selectedBoothIds={selectedBoothIds}
+                  onToggle={toggleBooth}
                 />
               </div>
             </section>
@@ -86,17 +135,19 @@ function BoothApplication() {
                 <p className="booth-application__selected-eyebrow">선택한 부스 정보</p>
                 <div className="booth-application__selected-title-row">
                   <span className="booth-application__selected-id">
-                    {selectedBooth ? selectedBooth.boothNo : '-'}
+                    {selectedBooths.length > 0
+                      ? selectedBooths.map((b) => b.boothNo).join(', ')
+                      : '-'}
                   </span>
                   <span className="booth-application__selected-specs">
-                    {selectedBooth ? `${selectedBooth.type} 부스 (3m x 3m)` : '부스를 선택해주세요'}
+                    {selectedBooths.length > 0 ? `${selectedBooths.length}개 부스 선택됨` : '부스를 선택해주세요'}
                   </span>
                 </div>
               </div>
               <div className="booth-application__selected-right">
-                <p className="booth-application__selected-price-label">최종 부스 임차료</p>
+                <p className="booth-application__selected-price-label">최종 부스 임차료 합계</p>
                 <p className="booth-application__selected-price">
-                  {selectedBooth ? `${selectedBooth.fee.toLocaleString()} 원` : '-'}
+                  {selectedBooths.length > 0 ? `${totalFee.toLocaleString()} 원` : '-'}
                 </p>
               </div>
             </section>
@@ -170,19 +221,26 @@ function BoothApplication() {
               </label>
             </div>
 
+            {submitError && <p className="booth-application__error">{submitError}</p>}
+
             <div className="booth-application__form-divider" />
 
             <div className="booth-application__form-actions">
               <button
                 type="button"
                 className="booth-application__submit"
-                disabled={!selectedBoothId || submitting}
+                disabled={selectedBoothIds.length === 0 || submitting || savingDraft}
                 onClick={handleSubmit}
               >
                 {submitting ? '신청 중...' : '신청 완료하기'}
               </button>
-              <button type="button" className="booth-application__save">
-                임시 저장
+              <button
+                type="button"
+                className="booth-application__save"
+                disabled={selectedBoothIds.length === 0 || submitting || savingDraft}
+                onClick={handleSaveDraft}
+              >
+                {savingDraft ? '저장 중...' : '임시 저장'}
               </button>
             </div>
           </section>

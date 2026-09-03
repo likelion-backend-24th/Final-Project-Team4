@@ -108,6 +108,7 @@ public class ExpoService {
         for (Long boothId : request.getBoothIds()) {
             Booth booth = boothRepository.findById(boothId)
                     .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+            validateBoothBelongsToExpo(booth, expo);
 
             ApplicationStatus status;
             if (isSubmit) {
@@ -150,6 +151,7 @@ public class ExpoService {
         for (Long boothId : request.getBoothIds()) {
             Booth booth = boothRepository.findById(boothId)
                     .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+            validateBoothBelongsToExpo(booth, group.getExpo());
             applications.add(new BoothApplication(booth, group, exhibitorId, ApplicationStatus.DRAFT));
         }
         boothApplicationRepository.saveAll(applications);
@@ -211,6 +213,59 @@ public class ExpoService {
         }
     }
 
+    // 마이페이지 - 본인이 신청한 부스 신청 그룹 목록(그룹 단위, 부스별 상태 포함)
+    @Transactional(readOnly = true)
+    public Page<BoothApplicationGroupDetailResponse> listMyBoothApplications(Long exhibitorId, Pageable pageable) {
+        Page<BoothApplicationGroup> groups = boothApplicationGroupRepository.findByExhibitorIdOrderByCreatedAtDesc(exhibitorId, pageable);
+        return groups.map(group -> BoothApplicationGroupDetailResponse.of(
+                group, boothApplicationRepository.findByGroup_Id(group.getId())));
+    }
+
+    // Admin - 전체 부스 신청 그룹 목록(그룹 단위, 부스별 상태 포함)
+    @Transactional(readOnly = true)
+    public Page<BoothApplicationGroupDetailResponse> listBoothApplications(Pageable pageable) {
+        Page<BoothApplicationGroup> groups = boothApplicationGroupRepository.findAllByOrderByCreatedAtDesc(pageable);
+        return groups.map(group -> BoothApplicationGroupDetailResponse.of(
+                group, boothApplicationRepository.findByGroup_Id(group.getId())));
+    }
+
+    // Admin - 전체 박람회 목록(상태 무관) + 박람회별 부스·신청 현황 집계
+    @Transactional(readOnly = true)
+    public Page<ExpoAdminSummaryResponse> listExposForAdmin(Pageable pageable) {
+        Page<Expo> expos = expoRepository.findAll(pageable);
+        return expos.map(expo -> {
+            List<Booth> booths = boothRepository.findByExpo_IdOrderByBoothNo(expo.getId());
+            int availableBooths = (int) booths.stream().filter(b -> b.getStatus() == BoothStatus.AVAILABLE).count();
+
+            List<BoothApplication> applications = boothApplicationRepository.findByBooth_Expo_Id(expo.getId());
+            int pending = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.SUBMITTED).count();
+            int approved = (int) applications.stream().filter(a ->
+                    a.getStatus() == ApplicationStatus.PAYMENT_PENDING || a.getStatus() == ApplicationStatus.CONFIRMED).count();
+            int rejected = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.REJECTED).count();
+
+            return new ExpoAdminSummaryResponse(
+                    expo.getId(), expo.getTitle(), expo.getStatus(),
+                    expo.getApplyStartsAt(), expo.getApplyEndsAt(),
+                    booths.size(), availableBooths,
+                    applications.size(), pending, approved, rejected
+            );
+        });
+    }
+
+    // Admin - 박람회 부스 배치 현황 (공개 여부와 무관하게 조회 가능, EXHIBITOR용 getExpoBooths와 달리 OPEN 필터 없음)
+    @Transactional(readOnly = true)
+    public ExpoBoothsResponse getExpoBoothsForAdmin(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
+        boolean withinApplyPeriod = isWithinApplyPeriod(expo, LocalDateTime.now());
+        int availableCount = (int) allBooths.stream().filter(b -> b.getStatus() == BoothStatus.AVAILABLE).count();
+        List<BoothDetail> views = allBooths.stream().map(b -> BoothDetail.of(b, withinApplyPeriod)).toList();
+
+        return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
+    }
+
     // open 박람회 목록 페이징 조회
     @Transactional(readOnly = true)
     public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
@@ -256,6 +311,13 @@ public class ExpoService {
     // 신청 가능 기간 내
     private boolean isWithinApplyPeriod(Expo expo, LocalDateTime now) {
         return !now.isBefore(expo.getApplyStartsAt()) && !now.isAfter(expo.getApplyEndsAt());
+    }
+
+    // 신청하려는 부스가 이 신청 그룹이 속한 박람회의 부스가 맞는지 확인 (다른 박람회 부스 섞임 방지)
+    private void validateBoothBelongsToExpo(Booth booth, Expo expo) {
+        if (!booth.getExpo().getId().equals(expo.getId())) {
+            throw new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다.");
+        }
     }
 
     // 신청 대상 부스 자리가 아직 확정 배정되지 않았는지 확인
