@@ -119,7 +119,7 @@ public class ExpoExhibitorController {
             @AuthenticationPrincipal GatewayUser exhibitor,
             @PathVariable String groupId) {
 
-        BoothApplicationGroupDetailResponse response = expoService.getBoothApplicationGroupDetail(exhibitor.getId(), groupId);
+        BoothApplicationGroupDetailResponse response = boothApplicationService.getBoothApplicationGroupDetail(exhibitor.getId(), groupId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }
