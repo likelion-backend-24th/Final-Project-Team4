@@ -19,3 +19,6 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/admin/expos/**,/api/exhibitor/**
+
+jwt:
+  access-key: ${ACCESS_KEY}
