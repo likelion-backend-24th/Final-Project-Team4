@@ -5,8 +5,10 @@ import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.domain.BoothStatus;
+import com.team4.expo.dto.BoothApplicationDraftUpdateRequest;
+import com.team4.expo.dto.BoothApplicationGroupCancelResponse;
+import com.team4.expo.dto.BoothApplicationGroupResponse;
 import com.team4.expo.dto.BoothApplicationRequest;
-import com.team4.expo.dto.BoothApplicationResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
 import com.team4.expo.service.ExpoService;
@@ -33,17 +35,57 @@ public class ExpoExhibitorController {
      *  + 문서 수정
      */
   
-    // 부스 참가 신청 접수
+    // 부스 참가 신청 접수(다중 선택) / 임시저장
     @PostMapping("/booth-applications")
-    public ResponseEntity<ApiResponse<BoothApplicationResponse>> applyBooth(
+    public ResponseEntity<ApiResponse<BoothApplicationGroupResponse>> applyBooth(
             @RequestHeader("X-User-Id") Long exhibitorId,
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @Valid @RequestBody BoothApplicationRequest request) {
 
         requireExhibitor(role);
 
-        BoothApplicationResponse response = expoService.applyBooth(exhibitorId, request);
+        BoothApplicationGroupResponse response = expoService.applyBooth(exhibitorId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    // 임시저장 그룹 수정
+    @PatchMapping("/booth-applications/groups/{groupId}")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupResponse>> updateBoothApplicationDraft(
+            @RequestHeader("X-User-Id") Long exhibitorId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String groupId,
+            @Valid @RequestBody BoothApplicationDraftUpdateRequest request) {
+
+        requireExhibitor(role);
+
+        BoothApplicationGroupResponse response = expoService.updateBoothApplicationDraft(exhibitorId, groupId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // 임시저장 그룹 최종 제출 (DRAFT -> SUBMITTED)
+    @PostMapping("/booth-applications/groups/{groupId}/submit")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupResponse>> submitBoothApplicationDraft(
+            @RequestHeader("X-User-Id") Long exhibitorId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String groupId) {
+
+        requireExhibitor(role);
+
+        BoothApplicationGroupResponse response = expoService.submitBoothApplicationDraft(exhibitorId, groupId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // 신청 그룹 취소
+    @DeleteMapping("/booth-applications/groups/{groupId}")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupCancelResponse>> deleteBoothApplicationGroup(
+            @RequestHeader("X-User-Id") Long exhibitorId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String groupId) {
+
+        requireExhibitor(role);
+
+        BoothApplicationGroupCancelResponse response = expoService.deleteBoothApplicationGroup(exhibitorId, groupId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     // open 박람회 목록 페이징 조회
