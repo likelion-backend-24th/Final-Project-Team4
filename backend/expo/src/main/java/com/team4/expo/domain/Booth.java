@@ -39,4 +39,14 @@ public class Booth {
     public void reserve() {
         this.status = BoothStatus.RESERVED;
     }
+
+    // ExpoService.confirmBoothApplicationGroup()에서 결제 완료 확인 후 호출. RESERVED -> ASSIGNED(최종 확정).
+    public void assign() {
+        this.status = BoothStatus.ASSIGNED;
+    }
+
+    // ExpoService.releaseBoothApplicationGroup()에서 결제 실패/시간초과 시 호출. RESERVED -> AVAILABLE(잠금 해제).
+    public void release() {
+        this.status = BoothStatus.AVAILABLE;
+    }
 }

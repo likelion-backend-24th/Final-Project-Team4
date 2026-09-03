@@ -11,6 +11,8 @@ import com.team4.expo.dto.ExpoAdminSummaryResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoRegisterRequest;
 import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.service.BoothApplicationReviewService;
+import com.team4.expo.service.BoothApplicationService;
 import com.team4.expo.service.ExpoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
@@ -24,9 +26,14 @@ import org.springframework.web.bind.annotation.*;
 public class ExpoAdminController {
 
     private final ExpoService expoService;
+    private final BoothApplicationService boothApplicationService;
+    private final BoothApplicationReviewService boothApplicationReviewService;
 
-    public ExpoAdminController(ExpoService expoService) {
+    public ExpoAdminController(ExpoService expoService, BoothApplicationService boothApplicationService,
+                                BoothApplicationReviewService boothApplicationReviewService) {
         this.expoService = expoService;
+        this.boothApplicationService = boothApplicationService;
+        this.boothApplicationReviewService = boothApplicationReviewService;
     }
 
     @PostMapping("/api/admin/expos")
@@ -72,7 +79,7 @@ public class ExpoAdminController {
 
         requireAdmin(role);
 
-        return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listBoothApplications(pageable))));
+        return ResponseEntity.ok(ApiResponse.success(PageMeta.from(boothApplicationService.listBoothApplications(pageable))));
     }
 
     // Admin - 부스 참가 신청 승인
@@ -83,7 +90,7 @@ public class ExpoAdminController {
 
         requireAdmin(role);
 
-        return ResponseEntity.ok(ApiResponse.success(expoService.approveBoothApplication(applicationId)));
+        return ResponseEntity.ok(ApiResponse.success(boothApplicationReviewService.approveBoothApplication(applicationId)));
     }
 
     // Admin - 부스 참가 신청 반려
@@ -95,7 +102,7 @@ public class ExpoAdminController {
 
         requireAdmin(role);
 
-        return ResponseEntity.ok(ApiResponse.success(expoService.rejectBoothApplication(applicationId, request.getReason())));
+        return ResponseEntity.ok(ApiResponse.success(boothApplicationReviewService.rejectBoothApplication(applicationId, request.getReason())));
     }
 
     private void requireAdmin(String role) {

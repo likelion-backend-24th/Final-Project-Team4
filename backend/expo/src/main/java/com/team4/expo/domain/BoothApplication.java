@@ -69,4 +69,14 @@ public class BoothApplication {
         this.status = ApplicationStatus.REJECTED;
         this.rejectReason = reason;
     }
+
+    // confirmBoothApplicationGroup()에서 결제 완료 확인 후 호출. PAYMENT_PENDING -> CONFIRMED.
+    public void confirm() {
+        this.status = ApplicationStatus.CONFIRMED;
+    }
+
+    // confirmBoothApplicationGroup()에서 부스가 이미 다른 곳에 배정돼 확정 불가할 때 호출(방어 로직, 정상 흐름에선 발생 안 함).
+    public void requireRefund() {
+        this.status = ApplicationStatus.REFUND_REQUIRED;
+    }
 }
