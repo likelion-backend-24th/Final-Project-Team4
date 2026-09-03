@@ -25,11 +25,17 @@ public class Booth {
     @Enumerated(EnumType.STRING)
     private BoothStatus status;
 
+    private String bannerImageUrl;
+
     public Booth(Expo expo, String boothNo, String type, Integer fee) {
         this.expo = expo;
         this.boothNo = boothNo;
         this.type = type;
         this.fee = fee;
         this.status = BoothStatus.AVAILABLE;
+    }
+
+    public void updateBannerImage(String bannerImageUrl) {
+        this.bannerImageUrl = bannerImageUrl;
     }
 }
