@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getAdminBoothApplications, getAdminExpoBooths } from '../../api/expo';
+import {
+  approveBoothApplication,
+  getAdminBoothApplications,
+  getAdminExpoBooths,
+  rejectBoothApplication,
+} from '../../api/expo';
 import BoothGrid from '../../components/BoothGrid';
 import './AdminApplications.css';
 
@@ -26,7 +31,7 @@ const FILTER_TABS = ['전체', '심사중', '승인', '반려'];
 
 // 그룹별 보기 / 부스별 보기 양쪽에서 재사용하는 "부스 선택 → 메모 → 승인/반려" 패널.
 // applicants: 선택 대상 목록. renderLabel(app): 리스트 항목에 보여줄 라벨(부스번호만 vs 업체+부스번호).
-function BoothDecisionPanel({ applicants, renderLabel, selectedApplicationId, onSelect, memo, setMemo }) {
+function BoothDecisionPanel({ applicants, renderLabel, selectedApplicationId, onSelect, memo, setMemo, onApprove, onReject, isSubmitting, actionError }) {
   const selectedApp = applicants.find((a) => a.applicationId === selectedApplicationId);
 
   return (
@@ -74,14 +79,21 @@ function BoothDecisionPanel({ applicants, renderLabel, selectedApplicationId, on
         rows={4}
         disabled={!selectedApp}
       />
-      <p className="admin-applications__memo-notice">
-        ※ 승인/반려 API는 아직 구현되지 않았습니다(TASK 2-1). 부스 선택까지만 동작합니다.
-      </p>
+      {actionError && <p className="admin-applications__memo-notice">{actionError}</p>}
       <div className="admin-applications__decision">
-        <button className="admin-applications__reject" disabled title="TASK 2-1 미구현">
+        <button
+          className="admin-applications__reject"
+          disabled={!selectedApp || !memo.trim() || isSubmitting}
+          title={!selectedApp ? '부스를 먼저 선택하세요' : !memo.trim() ? '반려 사유를 입력하세요' : undefined}
+          onClick={() => onReject(selectedApp, memo)}
+        >
           {selectedApp ? `${renderLabel(selectedApp)} 반려` : '신청 반려'}
         </button>
-        <button className="admin-applications__approve" disabled title="TASK 2-1 미구현">
+        <button
+          className="admin-applications__approve"
+          disabled={!selectedApp || isSubmitting}
+          onClick={() => onApprove(selectedApp)}
+        >
           {selectedApp ? `${renderLabel(selectedApp)} 승인` : '신청 승인 완료'}
         </button>
       </div>
@@ -100,6 +112,8 @@ function AdminExpoDetail() {
   const [openBoothKey, setOpenBoothKey] = useState(null);
   const [selectedApplicationId, setSelectedApplicationId] = useState(null);
   const [memo, setMemo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionError, setActionError] = useState(null);
 
   const selectDefault = (applications) => {
     const firstPending = applications.find((a) => a.statusLabel === '심사중');
@@ -110,6 +124,7 @@ function AdminExpoDetail() {
     const isOpen = openId === group.groupId;
     setOpenId(isOpen ? null : group.groupId);
     setMemo('');
+    setActionError(null);
     // 펼칠 때 심사 대기중인 부스를 기본 선택, 없으면 첫 부스
     if (!isOpen) {
       selectDefault(group.applications);
@@ -122,6 +137,7 @@ function AdminExpoDetail() {
     const isOpen = openBoothKey === row.key;
     setOpenBoothKey(isOpen ? null : row.key);
     setMemo('');
+    setActionError(null);
     if (!isOpen) {
       selectDefault(row.applicants);
     } else {
@@ -131,11 +147,7 @@ function AdminExpoDetail() {
   const [filter, setFilter] = useState('전체');
   const [view, setView] = useState('group'); // 'group' | 'booth'
 
-  useEffect(() => {
-    getAdminExpoBooths(expoId)
-      .then(setExpoBooths)
-      .catch((err) => setLoadError(err.response?.data?.error?.message ?? '부스 배치 정보를 불러오지 못했습니다.'));
-
+  const loadApplications = () => {
     getAdminBoothApplications({ size: 200 })
       .then((res) => {
         const scoped = res.content
@@ -150,7 +162,45 @@ function AdminExpoDetail() {
         setGroups(scoped);
       })
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '신청 목록을 불러오지 못했습니다.'));
+  };
+
+  const loadBooths = () => {
+    getAdminExpoBooths(expoId)
+      .then(setExpoBooths)
+      .catch((err) => setLoadError(err.response?.data?.error?.message ?? '부스 배치 정보를 불러오지 못했습니다.'));
+  };
+
+  useEffect(() => {
+    loadBooths();
+    loadApplications();
   }, [expoId]);
+
+  const handleApprove = (app) => {
+    if (!app) return;
+    setIsSubmitting(true);
+    setActionError(null);
+    approveBoothApplication(app.applicationId)
+      .then(() => {
+        setMemo('');
+        loadApplications();
+        loadBooths();
+      })
+      .catch((err) => setActionError(err.response?.data?.error?.message ?? '승인 처리 중 오류가 발생했습니다.'))
+      .finally(() => setIsSubmitting(false));
+  };
+
+  const handleReject = (app, reason) => {
+    if (!app || !reason.trim()) return;
+    setIsSubmitting(true);
+    setActionError(null);
+    rejectBoothApplication(app.applicationId, reason.trim())
+      .then(() => {
+        setMemo('');
+        loadApplications();
+      })
+      .catch((err) => setActionError(err.response?.data?.error?.message ?? '반려 처리 중 오류가 발생했습니다.'))
+      .finally(() => setIsSubmitting(false));
+  };
 
   const allApplications = useMemo(
     () => groups.flatMap((g) => g.applications.map((app) => ({ ...app, group: g }))),
@@ -325,6 +375,10 @@ function AdminExpoDetail() {
                                   onSelect={setSelectedApplicationId}
                                   memo={memo}
                                   setMemo={setMemo}
+                                  onApprove={handleApprove}
+                                  onReject={handleReject}
+                                  isSubmitting={isSubmitting}
+                                  actionError={actionError}
                                 />
                               </div>
                             </div>
@@ -431,6 +485,10 @@ function AdminExpoDetail() {
                                   onSelect={setSelectedApplicationId}
                                   memo={memo}
                                   setMemo={setMemo}
+                                  onApprove={handleApprove}
+                                  onReject={handleReject}
+                                  isSubmitting={isSubmitting}
+                                  actionError={actionError}
                                 />
                               </div>
                             </div>
