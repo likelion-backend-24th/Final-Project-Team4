@@ -10,6 +10,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +30,19 @@ class OpenExpoListTest {
     ExpoRepository expoRepository;
     @Autowired
     BoothRepository boothRepository;
+
+    // 게이트웨이가 주입하는 신원 헤더 흉내
+    private static RequestPostProcessor exhibitor() {
+        return role("EXHIBITOR");
+    }
+
+    private static RequestPostProcessor role(String role) {
+        return request -> {
+            request.addHeader("X-User-Id", "1");
+            request.addHeader("X-User-Role", role);
+            return request;
+        };
+    }
 
     @BeforeEach
     void clean() {
@@ -52,7 +66,7 @@ class OpenExpoListTest {
         saveExpo("부산 국제 모터쇼", true);
         saveExpo("비공개 준비중 박람회", false);
 
-        mockMvc.perform(get("/api/exhibitor/expos").header("X-User-Role", "EXHIBITOR"))
+        mockMvc.perform(get("/api/exhibitor/expos").with(exhibitor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(2))
                 .andExpect(jsonPath("$.data.totalElements").value(2))
@@ -68,7 +82,7 @@ class OpenExpoListTest {
 
         mockMvc.perform(get("/api/exhibitor/expos")
                         .param("page", "0").param("size", "10")
-                        .header("X-User-Role", "EXHIBITOR"))
+                        .with(exhibitor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(10))
                 .andExpect(jsonPath("$.data.totalElements").value(15))
@@ -78,13 +92,13 @@ class OpenExpoListTest {
 
     @Test
     void EXHIBITOR가_아니면_403() throws Exception {
-        mockMvc.perform(get("/api/exhibitor/expos").header("X-User-Role", "ADMIN"))
+        mockMvc.perform(get("/api/exhibitor/expos").with(role("ADMIN")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void 역할_헤더가_없으면_403() throws Exception {
+    void 인증_정보가_없으면_401() throws Exception {
         mockMvc.perform(get("/api/exhibitor/expos"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }
