@@ -161,15 +161,4 @@ public class ExpoService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "부스 번호가 중복되었습니다.");
         }
     }
-
-    // 결제 서비스 등에서 신청 그룹 단건 상세를 조회할 때 사용
-    @Transactional(readOnly = true)
-    public BoothApplicationGroupDetailResponse getBoothApplicationGroupDetail(Long exhibitorId, String groupId){
-        BoothApplicationGroup group = boothApplicationRepository.findById(groupId)
-                .orElseThrow(() new -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
-        validateGroupOwnership(group, exhibitorId);
-
-        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
-        return BoothApplicationGroupDetailResponse.of(group. applications);
-    }
 }

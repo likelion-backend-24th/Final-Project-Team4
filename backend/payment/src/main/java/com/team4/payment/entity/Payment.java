@@ -27,7 +27,7 @@ public class Payment {
     // Booking 엔티티 참조 대신, ID만 보관 (다른 서비스 소유 데이터라서)
     // 중복 방지, unique 제약으로 예약 1건당 결제 1건만 존재하도록 강제
     @Column(name = "booking_id", nullable = false, unique = true)
-    private Long bookingId;
+    private String bookingId;
 
     // 결제한 참가 업체
     @Column(name = "user_id", nullable = false)

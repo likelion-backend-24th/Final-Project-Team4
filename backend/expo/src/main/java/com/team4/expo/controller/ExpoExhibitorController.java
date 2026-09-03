@@ -147,7 +147,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        BoothApplicationGroupDetailResponse response = expoService.getBoothApplicationGroupDetail(exhibitorId, groupId);
+        BoothApplicationGroupDetailResponse response = boothApplicationService.getBoothApplicationGroupDetail(exhibitorId, groupId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

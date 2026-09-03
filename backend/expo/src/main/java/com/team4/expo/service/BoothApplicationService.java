@@ -178,4 +178,15 @@ public class BoothApplicationService {
         return groups.map(group -> BoothApplicationGroupDetailResponse.of(
                 group, boothApplicationRepository.findByGroup_Id(group.getId())));
     }
+
+    // 결제 서비스 등에서 신청 그룹 단건 상세를 조회할 때 사용
+    @Transactional(readOnly = true)
+    public BoothApplicationGroupDetailResponse getBoothApplicationGroupDetail(Long exhibitorId, String groupId) {
+        BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+        validator.validateGroupOwnership(group, exhibitorId);
+
+        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+        return BoothApplicationGroupDetailResponse.of(group, applications);
+    }
 }

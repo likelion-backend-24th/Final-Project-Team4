@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 public class MockPaymentGateway implements PaymentGateway{
 
     @Override
-    public PaymentGatewayResult requestPayment(String paymentId, Long bookingId, Long amount){
+    public PaymentGatewayResult requestPayment(String paymentId, String bookingId, Long amount){
         return PaymentGatewayResult.succeeded();
     }
 }

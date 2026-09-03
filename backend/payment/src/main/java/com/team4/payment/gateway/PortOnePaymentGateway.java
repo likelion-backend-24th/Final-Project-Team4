@@ -16,7 +16,7 @@ import java.time.Duration;
 
 @Component
 @Primary
-public class PortOnePaymentGateway {
+public class PortOnePaymentGateway implements PaymentGateway {
 
     private final String apiSecret;
     private final ObjectMapper objectMapper;
@@ -25,49 +25,49 @@ public class PortOnePaymentGateway {
             .build();
 
     public PortOnePaymentGateway(
-            @Value(("${portone.api-secret}") String apiSecret,
+            @Value("${portone.api-secret}") String apiSecret,
             ObjectMapper objectMapper
     ) {
-                this.apiSecret = apiSecret;
-                this.objectMapper = objectMapper;
+        this.apiSecret = apiSecret;
+        this.objectMapper = objectMapper;
     }
 
     @Override
-    public PaymentGateway.PaymentGatewayResult requestPayment(String paymentId, Long bookingId, Long amount) {
-                try{
-                    String encodedId = URLEncoder.encode(paymentId, StandardCharsets.UTF_8);
+    public PaymentGatewayResult requestPayment(String paymentId, String bookingId, Long amount) {
+        try {
+            String encodedId = URLEncoder.encode(paymentId, StandardCharsets.UTF_8);
 
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create("https://api.portone.io/payments/" + encodedId))
-                        .header("Authorization", "PortOne " + apiSecret)
-                        .timeout(Duration.ofSeconds(5))
-                        .GET()
-                        .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.portone.io/payments/" + encodedId))
+                    .header("Authorization", "PortOne " + apiSecret)
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
 
-                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-                    if (response.statusCode() != 200) {
-                        return PaymentGateway.PaymentGatewayResult.failure(
-                                "포트원 결제 조회 실패 (status=" + response.statusCode() + "): " + response.body());
-                    }
+            if (response.statusCode() != 200) {
+                return PaymentGatewayResult.failure(
+                        "포트원 결제 조회 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
 
-                    JsonNode body = objectMapper.readTree(response.body());
-                    String status = body.path("status").asText();
+            JsonNode body = objectMapper.readTree(response.body());
+            String status = body.path("status").asText();
 
-                    if (!"PAID".equals(status)) {
-                        return PaymentGateway.PaymentGatewayResult.failure("결제가 완료된 상태가 아닙니다. (status=" + status + ")");
-                    }
+            if (!"PAID".equals(status)) {
+                return PaymentGatewayResult.failure("결제가 완료된 상태가 아닙니다. (status=" + status + ")");
+            }
 
-                    long paidAmount = body.path("amount").path("total").asLong();
-                    if (paidAmount != amount) {
-                        return PaymentGateway.PaymentGatewayResult.failure(
-                                "결제 금액이 일치하지 않습니다. 요청: " + amount + "원, 실제 결제: " + paidAmount + "원");
-                    }
+            long paidAmount = body.path("amount").path("total").asLong();
+            if (paidAmount != amount) {
+                return PaymentGatewayResult.failure(
+                        "결제 금액이 일치하지 않습니다. 요청: " + amount + "원, 실제 결제: " + paidAmount + "원");
+            }
 
-                    return PaymentGateway.PaymentGatewayResult.succeeded();
+            return PaymentGatewayResult.succeeded();
 
-                } catch (Exception e) {
-                    return PaymentGateway.PaymentGatewayResult.failure("포트원 결제 검증 중 오류 발생: " + e.getMessage());
-                }
+        } catch (Exception e) {
+            return PaymentGatewayResult.failure("포트원 결제 검증 중 오류 발생: " + e.getMessage());
+        }
     }
 }

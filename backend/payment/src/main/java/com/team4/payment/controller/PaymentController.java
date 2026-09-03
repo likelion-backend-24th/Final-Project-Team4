@@ -21,19 +21,20 @@ public class PaymentController {
                 request.bookingId(),
                 request.userId(),
                 request.amount(),
-                request.payMethod()
+                request.payMethod(),
+                request.paymentId()
         );
-
     }
-    // 다른 서비스(Expo)가 예약 완료 되었는지 확인하는 API
+
     @GetMapping("/{bookingId}/status")
-    public PaymentStatusResponse getStatus(@PathVariable Long bookingId){
+    public PaymentStatusResponse getStatus(@PathVariable String bookingId){
         Payment payment = paymentService.findByBookingId(bookingId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND,
                         "결제 내역이 없습니다. bookingId=" + bookingId));
 
         return new PaymentStatusResponse(payment.getBookingId(), payment.getStatus());
     }
-    public record PaymentRequest(Long bookingId, Long userId, Long amount, String payMethod) {}
-    public record PaymentStatusResponse(Long bookingId, PaymentStatus status) {}
+
+    public record PaymentRequest(String bookingId, Long userId, Long amount, String payMethod, String paymentId) {}
+    public record PaymentStatusResponse(String bookingId, PaymentStatus status) {}
 }
