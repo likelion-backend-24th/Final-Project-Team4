@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 부스 참가비 결제 정보
@@ -34,10 +36,6 @@ public class Payment {
     // 박람회 Id
     @Column(name = "expo_id", nullable = false)
     private Long expoId;
-
-    // 부스
-    @Column(name = "booth_id", nullable = false)
-    private Long boothId;
 
     // 포트원 거래 고유 번호
     @Column(nullable = false, unique = true)
@@ -71,6 +69,18 @@ public class Payment {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PaymentItem> items = new ArrayList<>();
+
+    public void addItem(Long boothId, Long amount){
+        items.add(PaymentItem.builder()
+                .payment(this)
+                .boothId(boothId)
+                .amount(amount)
+                .build());
+    }
 
     // 결제 성공 처리.
     public void approve(String portonePaymentId, LocalDateTime approvedAt){

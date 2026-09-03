@@ -22,12 +22,12 @@ public class PaymentRepositoryTest {
                 .bookingId(1L)
                 .userId(100L)
                 .expoId(1L)
-                .boothId(10L)
                 .portonePaymentId("MOCK-TEST-1")
                 .payMethod("CARD")
                 .amount(300_000L)
                 .status(PaymentStatus.PENDING)
                 .build();
+        payment.addItem(10L, 300_000L);
 
         paymentRepository.save(payment);
 
@@ -36,6 +36,7 @@ public class PaymentRepositoryTest {
         assertThat(found).isPresent();
         assertThat(found.get().getAmount()).isEqualTo(300_000L);
         assertThat(found.get().getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(found.get().getItems()).hasSize(1);
     }
 
     @Test
@@ -44,12 +45,12 @@ public class PaymentRepositoryTest {
                 .bookingId(2L)
                 .userId(100L)
                 .expoId(1L)
-                .boothId(10L)
                 .portonePaymentId("MOCK-TEST-2")
                 .payMethod("CARD")
                 .amount(300_000L)
                 .status(PaymentStatus.PENDING)
                 .build();
+        payment.addItem(11L, 300_000L);
         paymentRepository.save(payment);
 
         assertThat(paymentRepository.existsByBookingId(2L)).isTrue();
