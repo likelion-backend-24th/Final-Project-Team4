@@ -52,3 +52,15 @@ export const getAdminExpoList = (params) =>
 // GET /api/admin/expos/{expoId}/booths — Admin: 특정 박람회 실시간 부스 배치 현황
 export const getAdminExpoBooths = (expoId) =>
   apiClient.get(`/api/admin/expos/${expoId}/booths`).then((res) => res.data.data);
+
+// POST /api/admin/booth-applications/{applicationId}/approve — Admin: 부스 신청 승인
+export const approveBoothApplication = (applicationId) =>
+  apiClient
+    .post(`/api/admin/booth-applications/${applicationId}/approve`)
+    .then((res) => res.data.data);
+
+// POST /api/admin/booth-applications/{applicationId}/reject — Admin: 부스 신청 반려
+export const rejectBoothApplication = (applicationId, reason) =>
+  apiClient
+    .post(`/api/admin/booth-applications/${applicationId}/reject`, { reason })
+    .then((res) => res.data.data);

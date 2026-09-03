@@ -148,7 +148,7 @@ function MyPage() {
                         </td>
                         <td className="mypage__col-right">
                           {app.status === '신청 승인' ? (
-                            <button className="mypage__link" onClick={() => navigate('/payment/1')}>
+                            <button className="mypage__link" onClick={() => navigate(`/payment/${app.id}`)}>
                               결제하기
                             </button>
                           ) : (

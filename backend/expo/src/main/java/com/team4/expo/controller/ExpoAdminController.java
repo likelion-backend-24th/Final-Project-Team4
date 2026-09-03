@@ -4,7 +4,9 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
+import com.team4.expo.dto.BoothApplicationDecisionResponse;
 import com.team4.expo.dto.BoothApplicationGroupDetailResponse;
+import com.team4.expo.dto.BoothApplicationRejectRequest;
 import com.team4.expo.dto.ExpoAdminSummaryResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoRegisterRequest;
@@ -71,6 +73,29 @@ public class ExpoAdminController {
         requireAdmin(role);
 
         return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listBoothApplications(pageable))));
+    }
+
+    // Admin - 부스 참가 신청 승인
+    @PostMapping("/api/admin/booth-applications/{applicationId}/approve")
+    public ResponseEntity<ApiResponse<BoothApplicationDecisionResponse>> approveBoothApplication(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable Long applicationId) {
+
+        requireAdmin(role);
+
+        return ResponseEntity.ok(ApiResponse.success(expoService.approveBoothApplication(applicationId)));
+    }
+
+    // Admin - 부스 참가 신청 반려
+    @PostMapping("/api/admin/booth-applications/{applicationId}/reject")
+    public ResponseEntity<ApiResponse<BoothApplicationDecisionResponse>> rejectBoothApplication(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable Long applicationId,
+            @Valid @RequestBody BoothApplicationRejectRequest request) {
+
+        requireAdmin(role);
+
+        return ResponseEntity.ok(ApiResponse.success(expoService.rejectBoothApplication(applicationId, request.getReason())));
     }
 
     private void requireAdmin(String role) {
