@@ -9,7 +9,8 @@ import Signup from './pages/Signup';
 import MyPage from './pages/MyPage';
 import Payment from './pages/Payment';
 import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminApplications from './pages/admin/AdminApplications';
+import AdminExpoList from './pages/admin/AdminExpoList';
+import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 
 function ExhibitorLayout({ children }) {
   return (
@@ -42,7 +43,8 @@ function App() {
       <Route path="/payment/:applicationId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-      <Route path="/admin/applications" element={<AdminLayout><AdminApplications /></AdminLayout>} />
+      <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
+      <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
     </Routes>
   );
 }

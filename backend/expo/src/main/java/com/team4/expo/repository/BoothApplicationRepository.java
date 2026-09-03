@@ -13,4 +13,7 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
 
     // 그룹에 속한 모든 부스 신청 조회 (제출/취소 시 그룹 단위 처리에 사용)
     List<BoothApplication> findByGroup_Id(String groupId);
+
+    // 박람회 하나에 속한 모든 부스 신청 조회 (Admin 통계·부스 배치도 집계용)
+    List<BoothApplication> findByBooth_Expo_Id(Long expoId);
 }
