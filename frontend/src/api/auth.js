@@ -18,3 +18,15 @@ export const clearAuth = () => {
 };
 
 export const isLoggedIn = () => Boolean(getToken());
+
+// accessToken(JWT) payload의 sub = 로그인한 사용자 id.
+// payment API가 body로 userId를 요구해서 임시로 프론트에서 꺼내 씀 (게이트웨이 X-User-Id 전환 전).
+export const getUserId = () => {
+  const token = getToken();
+  if (!token) return null;
+  try {
+    return Number(JSON.parse(atob(token.split('.')[1])).sub);
+  } catch {
+    return null;
+  }
+};

@@ -1,11 +1,16 @@
-import axios from 'axios';
+import apiClient from "./client";
+import { getUserId } from "./auth";
 
-// 게이트웨이 라우팅 없이, 지금은 결제 서비스에 직접 요청 (포트 8083)
-const paymentClient = axios.create({
-  baseURL: import.meta.env.VITE_PAYMENT_API_BASE_URL ?? 'http://localhost:8083',
-});
-
-export const payBooking = ({ bookingId, userId, amount, payMethod }) =>
-  paymentClient
-    .post('/api/exhibitor/payments', { bookingId, userId, amount, payMethod })
+// POST /api/exhibitor/payments - 부스 참가비 결제 (게이트웨이 경유)
+// bookingId = 신청 그룹 id. amount = payment-context의 결제 대상 합계와 정확히 일치해야 함.
+// Mock 게이트웨이 흐름이라 paymentId는 임의 문자열.
+export const payGroup = ({ groupId, amount, payMethod }) =>
+  apiClient
+    .post("/api/exhibitor/payments", {
+      bookingId: groupId,
+      userId: getUserId(),
+      amount,
+      payMethod,
+      paymentId: `demo-${Date.now()}`,
+    })
     .then((res) => res.data);

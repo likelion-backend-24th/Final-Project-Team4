@@ -40,7 +40,7 @@ function App() {
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />
-      <Route path="/payment/:applicationId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
+      <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />

@@ -3,6 +3,7 @@ import { getToken, clearAuth } from './auth';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
+  withCredentials: true, // refreshToken HttpOnly 쿠키 송수신 (로그인 저장 / 로그아웃 만료)
 });
 
 // 로그인 시 저장한 accessToken을 모든 요청에 Bearer로 실음.
