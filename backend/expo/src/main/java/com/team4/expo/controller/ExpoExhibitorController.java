@@ -112,4 +112,14 @@ public class ExpoExhibitorController {
 
         return ResponseEntity.ok(ApiResponse.success(expoService.getExpoBooths(expoId, statusFilter)));
     }
+
+    // 신청 그룹 단건 상세 조회 (결제 화면에서 사용)
+    @GetMapping("/booth-applications/groups/{groupId}")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupDetailResponse>> getBoothApplicationGroupDetail(
+            @AuthenticationPrincipal GatewayUser exhibitor,
+            @PathVariable String groupId) {
+
+        BoothApplicationGroupDetailResponse response = expoService.getBoothApplicationGroupDetail(exhibitor.getId(), groupId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
