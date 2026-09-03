@@ -12,7 +12,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     // 예약 고유 번호 중복 여부 확인
     boolean existsByBookingId(Long bookingId);
 
-
     // 포트원 거래 고유 번호로 조회
     Optional<Payment> findByPortonePaymentId(String portonePaymentId);
     // 거래 고유 번호 중복 여부 확인

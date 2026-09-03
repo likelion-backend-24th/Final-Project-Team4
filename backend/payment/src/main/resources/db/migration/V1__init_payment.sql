@@ -1,9 +1,8 @@
 Create table payments (
     id          BIGINT      NOT NULL  AUTO_INCREMENT,
     booking_id  BIGINT      NOT NULL                           COMMENT '결제 대상 예약(참가 신청) ID',
-    user_id     BIGINT      NOT NULL                           COMMENT '결제한 참가업체(사용자)'
+    user_id     BIGINT      NOT NULL                           COMMENT '결제한 참가업체(사용자)',
     expo_id              BIGINT        NOT NULL                COMMENT '박람회 ID',
-    booth_id             BIGINT        NOT NULL                COMMENT '부스 ID',
     portone_payment_id   VARCHAR(64)   NOT NULL                COMMENT '포트원(또는 MOCK) 거래 고유 번호',
     pay_method           VARCHAR(30)   NULL,
     amount               BIGINT        NOT NULL,
