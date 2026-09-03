@@ -1,21 +1,44 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { payBooking } from '../api/payment';
 import './Payment.css';
 
 const METHODS = ['신용카드', '실시간 계좌이체', '가상계좌 발급'];
+const METHOD_CODE = {
+  신용카드: 'CARD',
+  '실시간 계좌이체': 'TRANSFER',
+  '가상계좌 발급': 'VBANK',
+};
+
+// 백엔드가 아직 가짜 예약 데이터(StubBookingClient)를 쓰고 있어서,
+// applicationId(=bookingId)는 1, 2, 3 중 하나여야 응답이 와요.
+// 1번: 승인됨, 합계 500,000원 (정상 결제 데모용)
+const DEMO_AMOUNT = 500000;
 
 function Payment() {
   const navigate = useNavigate();
+  const { applicationId } = useParams();
   const [method, setMethod] = useState('신용카드');
   const [paying, setPaying] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     setPaying(true);
-    setTimeout(() => {
-      setPaying(false);
+    setError(null);
+    try {
+      await payBooking({
+        bookingId: Number(applicationId),
+        userId: 100, // 로그인 연동 전이라 임시 고정값
+        amount: DEMO_AMOUNT,
+        payMethod: METHOD_CODE[method],
+      });
       alert('테스트 결제가 완료되었습니다. (Mock)');
       navigate('/mypage');
-    }, 600);
+    } catch (err) {
+      setError(err.response?.data?.error?.message ?? '결제 처리 중 오류가 발생했습니다.');
+    } finally {
+      setPaying(false);
+    }
   };
 
   return (
@@ -95,11 +118,17 @@ function Payment() {
 
           <div className="payment__total">
             <span>최종 청구 금액</span>
-            <strong>₩2,500,000</strong>
+            <strong>₩{DEMO_AMOUNT.toLocaleString()}</strong>
           </div>
 
+          {error && (
+            <p className="payment__notice" style={{ color: '#d33' }}>
+              {error}
+            </p>
+          )}
+
           <button type="button" className="payment__cta" onClick={handlePay} disabled={paying}>
-            {paying ? '결제 처리 중...' : '₩2,500,000 안전 결제하기'}
+            {paying ? '결제 처리 중...' : `₩${DEMO_AMOUNT.toLocaleString()} 안전 결제하기`}
           </button>
           <button type="button" className="payment__cancel" onClick={() => navigate('/mypage')}>
             결제 취소

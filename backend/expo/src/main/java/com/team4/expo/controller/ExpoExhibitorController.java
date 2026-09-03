@@ -137,4 +137,17 @@ public class ExpoExhibitorController {
             throw new CustomException(ErrorCode.FORBIDDEN, "참가업체만 접근할 수 있습니다.");
         }
     }
+
+    // 신청 그룹 단건 상세 조회 (결제 화면에서 사용)
+    @GetMapping("/booth-applications/groups/{groupId}")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupDetailResponse>> getBoothApplicationGroupDetail(
+            @RequestHeader("X-User-Id") Long exhibitorId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable String groupId) {
+
+        requireExhibitor(role);
+
+        BoothApplicationGroupDetailResponse response = expoService.getBoothApplicationGroupDetail(exhibitorId, groupId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }
