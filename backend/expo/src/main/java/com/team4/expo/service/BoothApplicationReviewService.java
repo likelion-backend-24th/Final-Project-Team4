@@ -25,7 +25,7 @@ public class BoothApplicationReviewService {
     }
 
     // 부스 참가 신청 승인 (SUBMITTED -> PAYMENT_PENDING).
-    // 같은 부스에 이미 승인 진행 중/확정된 다른 신청이 있으면 차단(2026-09-03 확정: 승자는 관리자가 승인 시점에 결정).
+    // 같은 부스에 이미 승인 진행 중/확정된 다른 신청이 있으면 차단.
     public BoothApplicationDecisionResponse approveBoothApplication(Long applicationId) {
         BoothApplication application = boothApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청을 찾을 수 없습니다."));

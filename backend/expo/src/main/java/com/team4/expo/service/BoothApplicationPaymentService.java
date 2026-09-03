@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// Payment -> Expo 내부 API 로직 (TASK 2-5). Gateway·OpenAPI에 미노출, ExpoInternalController에서만 호출.
+// Payment -> Expo 내부 API 로직 (TASK 2-5).
 @Service
 @Transactional
 public class BoothApplicationPaymentService {
@@ -44,9 +44,7 @@ public class BoothApplicationPaymentService {
     }
 
     // 결제 완료 확인 후 그룹 내 승인된 부스들을 부스별 독립적으로 확정.
-    // 결제 완료 순(선착순)이 아니라 이미 관리자 승인 시점에 부스가 RESERVED로 잠겨있으므로,
-    // 여기서는 그 잠금을 최종 확정(ASSIGNED)으로 바꾸기만 하면 된다. paymentId/paidAt은 현재
-    // 감사 로그성 정보로만 받음(별도 저장 안 함, Payment 쪽 결제 원장이 원본).
+    // 감사 로그성 정보로만 받음(별도 저장 안 함, Payment 쪽 결제가 원본).
     public BoothApplicationGroupConfirmResponse confirmBoothApplicationGroup(String groupId, String paymentId, LocalDateTime paidAt) {
         BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
@@ -73,8 +71,7 @@ public class BoothApplicationPaymentService {
                 booth.assign();
                 application.confirm();
             } else {
-                // 방어 로직: 정상 흐름이면 승인 시점에 RESERVED로 잠겨 있어야 함. 그렇지 않다면 데이터 불일치이므로
-                // 확정 대신 환불 대상으로 표시.
+                // 방어 로직: 정상 흐름이면 승인 시점에 RESERVED로 잠겨 있어야 함. 그렇지 않다면 데이터 불일치이므로 확정 대신 환불 대상으로 표시.
                 application.requireRefund();
             }
             results.add(new BoothApplicationGroupConfirmResponse.Result(
@@ -85,8 +82,8 @@ public class BoothApplicationPaymentService {
     }
 
     // 결제 실패/시간 초과 시 호출. 승인(PAYMENT_PENDING)됐던 부스를 다시 풀어줘서
-    // (RESERVED -> AVAILABLE) 다른 업체가 재신청할 수 있게 하고, 신청은 REJECTED로 되돌린다.
-    // 이미 CONFIRMED/REJECTED 등 최종 상태인 건은 건드리지 않음(멱등, 결제 완료와 실패 통보가 겹쳐 와도 안전).
+    // (RESERVED -> AVAILABLE) 다른 업체가 재신청할 수 있게 하고, 신청은 REJECTED로 되돌림.
+    // 이미 CONFIRMED/REJECTED 등 최종 상태인 건은 건드리지 않음(멱등).
     public BoothApplicationGroupReleaseResponse releaseBoothApplicationGroup(String groupId, String reason) {
         BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));

@@ -47,7 +47,7 @@ public class BoothApplicationService {
     }
 
     // 참가업체가 부스 하나 이상을 골라 그룹으로 신청 (다중 선택). saveMode=SUBMIT이면 검증 후 SUBMITTED,
-    // DRAFT면 검증 없이 임시저장. 검증 실패 시 그룹 전체가 롤백됨(부분 제출 불허, 2026-09-03 확정).
+    // DRAFT면 검증 없이 임시저장. 검증 실패 시 그룹 전체가 롤백됨(부분 제출 불허).
     public BoothApplicationGroupResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
         Expo expo = expoRepository.findById(request.getExpoId())
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
