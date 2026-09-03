@@ -25,7 +25,7 @@ class PaymentServiceTest {
         PaymentService paymentService = new PaymentService(paymentRepository, bookingClient, paymentGateway);
 
         Payment payment = Payment.builder()
-                .bookingId(1L)
+                .bookingId("group-1")
                 .userId(100L)
                 .expoId(1L)
                 .portonePaymentId("MOCK-1")

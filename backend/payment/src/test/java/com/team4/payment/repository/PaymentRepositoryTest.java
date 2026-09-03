@@ -19,7 +19,7 @@ public class PaymentRepositoryTest {
     @Test
     void 결제를_저장하고_bookingId로_조회할_수_있다() {
         Payment payment = Payment.builder()
-                .bookingId(1L)
+                .bookingId("group-1")
                 .userId(100L)
                 .expoId(1L)
                 .portonePaymentId("MOCK-TEST-1")
@@ -31,7 +31,7 @@ public class PaymentRepositoryTest {
 
         paymentRepository.save(payment);
 
-        Optional<Payment> found = paymentRepository.findByBookingId(1L);
+        Optional<Payment> found = paymentRepository.findByBookingId("group-1");
 
         assertThat(found).isPresent();
         assertThat(found.get().getAmount()).isEqualTo(300_000L);
@@ -42,7 +42,7 @@ public class PaymentRepositoryTest {
     @Test
     void 같은_bookingId로_저장하면_중복여부를_확인할_수_있다() {
         Payment payment = Payment.builder()
-                .bookingId(2L)
+                .bookingId("group-2")
                 .userId(100L)
                 .expoId(1L)
                 .portonePaymentId("MOCK-TEST-2")
@@ -53,6 +53,6 @@ public class PaymentRepositoryTest {
         payment.addItem(11L, 300_000L);
         paymentRepository.save(payment);
 
-        assertThat(paymentRepository.existsByBookingId(2L)).isTrue();
+        assertThat(paymentRepository.existsByBookingId("group-2")).isTrue();
     }
 }

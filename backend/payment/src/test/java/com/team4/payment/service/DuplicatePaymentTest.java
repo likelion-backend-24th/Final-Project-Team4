@@ -31,17 +31,17 @@ class DuplicatePaymentTest {
     void 이미_결제완료된_신청은_재결제가_차단된다() {
         PaymentService paymentService = new PaymentService(paymentRepository, bookingClient, paymentGateway);
 
-        when(bookingClient.getBooking(1L)).thenReturn(Optional.of(
-                new BookingInfoResponse(1L, 1L, List.of(new BookingInfoResponse.BoothFeeInfo(10L, 300_000L)), true)
+        when(bookingClient.getBooking("group-1")).thenReturn(Optional.of(
+                new BookingInfoResponse("group-1", 1L, 100L, List.of(new BookingInfoResponse.BoothFeeInfo(10L, 300_000L)), true)
         ));
         // 이미 결제된 상태로 가정
-        when(paymentRepository.existsByBookingId(1L)).thenReturn(true);
+        when(paymentRepository.existsByBookingId("group-1")).thenReturn(true);
 
-        assertThatThrownBy(() -> paymentService.pay(1L, 100L, 300_000L, "CARD"))
+        assertThatThrownBy(() -> paymentService.pay("group-1", 100L, 300_000L, "CARD", "test-payment-1"))
                 .isInstanceOf(CustomException.class);
 
         // 중복이면 결제 게이트웨이 호출도, 저장도 절대 일어나면 안 됨
-        verify(paymentGateway, never()).requestPayment(any(), anyLong(), anyLong());
+        verify(paymentGateway, never()).requestPayment(any(), any(), anyLong());
         verify(paymentRepository, never()).save(any());
     }
 }

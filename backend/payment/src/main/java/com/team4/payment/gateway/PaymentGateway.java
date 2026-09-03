@@ -6,7 +6,7 @@ package com.team4.payment.gateway;
 public interface PaymentGateway {
 
     // 결제 요청.
-    PaymentGatewayResult requestPayment(String paymentId, Long bookingId, Long amount);
+    PaymentGatewayResult requestPayment(String paymentId, String bookingId, Long amount);
 
     // 결제 요청 결과 담은 record (성공 or 실패 사유)
     record PaymentGatewayResult(boolean success, String failureReason){

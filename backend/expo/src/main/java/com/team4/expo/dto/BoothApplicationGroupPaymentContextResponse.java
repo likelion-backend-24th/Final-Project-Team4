@@ -11,12 +11,14 @@ import lombok.Getter;
 @Getter
 public class BoothApplicationGroupPaymentContextResponse {
 
+    private final Long expoId;
     private final boolean reviewComplete;
     private final Long applicantId;
     private final List<Item> items;
     private final long totalAmount;
 
-    public BoothApplicationGroupPaymentContextResponse(boolean reviewComplete, Long applicantId, List<Item> items, long totalAmount) {
+    public BoothApplicationGroupPaymentContextResponse(Long expoId, boolean reviewComplete, Long applicantId, List<Item> items, long totalAmount) {
+        this.expoId = expoId;
         this.reviewComplete = reviewComplete;
         this.applicantId = applicantId;
         this.items = items;
@@ -37,7 +39,7 @@ public class BoothApplicationGroupPaymentContextResponse {
 
         long totalAmount = items.stream().mapToLong(Item::getAmount).sum();
 
-        return new BoothApplicationGroupPaymentContextResponse(reviewComplete, group.getExhibitorId(), items, totalAmount);
+        return new BoothApplicationGroupPaymentContextResponse(group.getExpo().getId(), reviewComplete, group.getExhibitorId(), items, totalAmount);
     }
 
     @Getter
