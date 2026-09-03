@@ -58,4 +58,15 @@ public class BoothApplication {
     public void cancel() {
         this.status = ApplicationStatus.CANCELLED;
     }
+
+    // approveBoothApplication()에서 호출. SUBMITTED -> PAYMENT_PENDING (서비스 레이어에서 상태·경쟁신청 검증).
+    public void approve() {
+        this.status = ApplicationStatus.PAYMENT_PENDING;
+    }
+
+    // rejectBoothApplication()에서 호출. SUBMITTED -> REJECTED (서비스 레이어에서 상태 검증).
+    public void reject(String reason) {
+        this.status = ApplicationStatus.REJECTED;
+        this.rejectReason = reason;
+    }
 }

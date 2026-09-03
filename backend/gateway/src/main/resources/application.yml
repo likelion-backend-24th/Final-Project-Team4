@@ -11,11 +11,14 @@ spring:
           uri: http://localhost:8081
           predicates:
             - Path=/api/auth/**
-        - id: expo
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/admin/expos/**,/api/exhibitor/**
         - id: payment
           uri: http://localhost:8083
           predicates:
             - Path=/api/exhibitor/payments/**
+        - id: expo
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/admin/expos/**,/api/exhibitor/**
+
+jwt:
+  access-key: ${ACCESS_KEY}

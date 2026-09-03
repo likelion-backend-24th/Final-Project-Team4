@@ -7,6 +7,7 @@ import com.team4.common.response.PageMeta;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.dto.BoothApplicationDraftUpdateRequest;
 import com.team4.expo.dto.BoothApplicationGroupCancelResponse;
+import com.team4.expo.dto.BoothApplicationGroupDetailResponse;
 import com.team4.expo.dto.BoothApplicationGroupResponse;
 import com.team4.expo.dto.BoothApplicationRequest;
 import com.team4.expo.dto.ExpoBoothsResponse;
@@ -86,6 +87,18 @@ public class ExpoExhibitorController {
 
         BoothApplicationGroupCancelResponse response = expoService.deleteBoothApplicationGroup(exhibitorId, groupId);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // 마이페이지 - 내 부스 신청 내역 조회 (그룹 단위)
+    @GetMapping("/booth-applications")
+    public ResponseEntity<ApiResponse<PageMeta<BoothApplicationGroupDetailResponse>>> listMyBoothApplications(
+            @RequestHeader("X-User-Id") Long exhibitorId,
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PageableDefault(size = 10) Pageable pageable) {
+
+        requireExhibitor(role);
+
+        return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listMyBoothApplications(exhibitorId, pageable))));
     }
 
     // open 박람회 목록 페이징 조회

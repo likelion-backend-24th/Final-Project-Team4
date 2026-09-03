@@ -22,6 +22,14 @@ public class JwtProvider {
         this.refreshTokenExp = refreshTokenExp;
     }
 
+    // accessToken만 검증하기 위한 생성자 - gateway에서 사용
+    public JwtProvider(String accessSecret){
+        this.accessKey = Keys.hmacShaKeyFor(accessSecret.getBytes(StandardCharsets.UTF_8));
+        this.accessTokenExp = 0;
+        this.refreshKey = null;
+        this.refreshTokenExp = 0;
+    }
+
     // accessToken 생성
     public String createAccessToken(Long userId, String role) {
         Date now = new Date();

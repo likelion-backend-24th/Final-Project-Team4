@@ -33,4 +33,10 @@ public class Booth {
         this.fee = fee;
         this.status = BoothStatus.AVAILABLE;
     }
+
+    // ExpoService.approveBoothApplication()에서 호출. AVAILABLE -> RESERVED로 잠가서
+    // 관리자 승인~결제 완료 사이에 다른 업체가 같은 부스에 신청하지 못하게 막는다.
+    public void reserve() {
+        this.status = BoothStatus.RESERVED;
+    }
 }
