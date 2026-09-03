@@ -249,6 +249,8 @@ public class ExpoService {
         }
 
         application.approve();
+        // 부스도 같이 잠가서(RESERVED) 결제 대기 중에 다른 업체가 신청하지 못하게 함
+        application.getBooth().reserve();
         return BoothApplicationDecisionResponse.from(application);
     }
 
