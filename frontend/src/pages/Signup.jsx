@@ -1,16 +1,39 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
+import apiClient from '../api/client';
 import './Signup.css';
 
 function Signup() {
   const navigate = useNavigate();
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate('/login');
+    const f = new FormData(e.target);
+    if (f.get('password') !== f.get('passwordConfirm')) {
+      alert('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await apiClient.post('/api/auth/exhibitors/signup', {
+        businessNo: f.get('businessNo'),
+        password: f.get('password'),
+        email: f.get('email'),
+        companyName: f.get('companyName'),
+        managerName: f.get('managerName'),
+        contact: f.get('contact'),
+      });
+      alert('회원가입이 완료되었습니다. 로그인해주세요.');
+      navigate('/login');
+    } catch (err) {
+      alert(err.response?.data?.error?.message ?? '회원가입에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -35,17 +58,18 @@ function Signup() {
             <div className="signup__grid">
               <label>
                 <span className="signup__label-row">이름 <span>*</span></span>
-                <input placeholder="홍길동" required />
+                <input name="managerName" placeholder="홍길동" required />
               </label>
               <label>
                 <span className="signup__label-row">이메일 주소 <span>*</span></span>
-                <input type="email" placeholder="name@company.com" required />
+                <input type="email" name="email" placeholder="name@company.com" required />
               </label>
               <label>
                 <span className="signup__label-row">비밀번호 <span>*</span></span>
                 <div className="signup__input-with-icon">
                   <input
                     type={showPw ? 'text' : 'password'}
+                    name="password"
                     placeholder="영문, 숫자, 특수문자 조합 8자 이상"
                     required
                   />
@@ -62,6 +86,7 @@ function Signup() {
                 <div className="signup__input-with-icon">
                   <input
                     type={showPwConfirm ? 'text' : 'password'}
+                    name="passwordConfirm"
                     placeholder="비밀번호를 한번 더 입력해주세요"
                     required
                   />
@@ -75,7 +100,7 @@ function Signup() {
               </label>
               <label className="signup__full">
                 <span className="signup__label-row">연락처 <span>*</span></span>
-                <input placeholder="예: 010-1234-5678" required />
+                <input name="contact" placeholder="예: 010-1234-5678" required />
               </label>
             </div>
           </section>
@@ -85,11 +110,11 @@ function Signup() {
             <div className="signup__grid">
               <label>
                 <span className="signup__label-row">업체명 <span>*</span></span>
-                <input placeholder="주식회사 모빌리티테크" required />
+                <input name="companyName" placeholder="주식회사 모빌리티테크" required />
               </label>
               <label>
                 <span className="signup__label-row">사업자등록번호 <span>*</span></span>
-                <input placeholder="123-45-67890" required />
+                <input name="businessNo" placeholder="1234567890" required />
               </label>
               <label>
                 <span className="signup__label-row">대표자명 <span>*</span></span>
@@ -136,8 +161,8 @@ function Signup() {
             <button type="button" className="signup__back" onClick={() => navigate(-1)}>
               이전으로
             </button>
-            <button type="submit" className="signup__submit">
-              회원가입 완료
+            <button type="submit" className="signup__submit" disabled={submitting}>
+              {submitting ? '처리 중...' : '회원가입 완료'}
             </button>
           </div>
         </form>

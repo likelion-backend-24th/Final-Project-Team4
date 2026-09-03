@@ -1,24 +1,32 @@
 import axios from 'axios';
+import { getToken, clearAuth } from './auth';
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080',
 });
 
-// TODO: Gateway가 JWT 검증 후 X-User-Id/X-User-Role을 주입하게 되면 이 인터셉터는 제거.
-// 지금은 Gateway가 없어서 로컬 테스트용으로 프론트가 직접 헤더를 채워 넣음.
-// /admin 경로에서는 관리자 시딩 계정(id=1) 기준으로 자동 전환.
+// 로그인 시 저장한 accessToken을 모든 요청에 Bearer로 실음.
+// Gateway가 이 토큰을 검증하고 X-User-Id / X-User-Role을 하위 서비스에 주입
 apiClient.interceptors.request.use((config) => {
-  const isAdminPath = window.location.pathname.startsWith('/admin');
-  if (isAdminPath) {
-    config.headers['X-User-Id'] = 1;
-    config.headers['X-User-Role'] = 'ADMIN';
-  } else {
-    const devUserId = import.meta.env.VITE_DEV_USER_ID;
-    const devUserRole = import.meta.env.VITE_DEV_USER_ROLE;
-    if (devUserId) config.headers['X-User-Id'] = devUserId;
-    if (devUserRole) config.headers['X-User-Role'] = devUserRole;
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+// 인증 만료/누락(401)이면 토큰 비우고 로그인 화면으로 이동
+apiClient.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      clearAuth();
+      if (!window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(err);
+  }
+);
 
 export default apiClient;
