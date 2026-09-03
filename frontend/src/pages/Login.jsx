@@ -1,16 +1,39 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
+import apiClient from '../api/client';
+import { setAuth } from '../api/auth';
 import './Login.css';
 
 function Login() {
   const [role, setRole] = useState('exhibitor');
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate(role === 'admin' ? '/admin' : '/');
+    const form = new FormData(e.target);
+    const password = form.get('password');
+    setSubmitting(true);
+    try {
+      const { data } =
+        role === 'admin'
+          ? await apiClient.post('/api/auth/signin', {
+              email: form.get('email'),
+              password,
+            })
+          : await apiClient.post('/api/auth/exhibitors/signin', {
+              businessNo: form.get('businessNo'),
+              password,
+            });
+      setAuth(data.data.accessToken, data.data.role);
+      navigate(role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      alert(err.response?.data?.error?.message ?? '로그인에 실패했습니다.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -42,11 +65,17 @@ function Login() {
           <div className="login__form-fields">
             <div className="login__field">
               <div className="login__label-row">
-                <span className="login__label">이메일 주소</span>
+                <span className="login__label">
+                  {role === 'admin' ? '이메일 주소' : '사업자등록번호'}
+                </span>
                 <span className="login__required">*</span>
               </div>
               <div className="login__input-container">
-                <input type="email" placeholder="name@company.com" required />
+                {role === 'admin' ? (
+                  <input type="email" name="email" placeholder="name@company.com" required />
+                ) : (
+                  <input type="text" name="businessNo" placeholder="1234567890" required />
+                )}
               </div>
             </div>
 
@@ -58,6 +87,7 @@ function Login() {
               <div className="login__input-container">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="password"
                   placeholder="비밀번호를 입력해주세요"
                   required
                 />
@@ -82,8 +112,8 @@ function Login() {
           </div>
 
           <div className="login__actions">
-            <button type="submit" className="login__submit">
-              로그인
+            <button type="submit" className="login__submit" disabled={submitting}>
+              {submitting ? '로그인 중...' : '로그인'}
             </button>
             <p className="login__signup-guide">
               <span className="login__guide-text">아직 계정이 없으신가요?</span>
