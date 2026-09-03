@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.time.LocalDateTime;
 
@@ -33,6 +34,18 @@ class ExpoBoothsTest {
     @Autowired
     BoothRepository boothRepository;
 
+    private static RequestPostProcessor exhibitor() {
+        return role("EXHIBITOR");
+    }
+
+    private static RequestPostProcessor role(String role) {
+        return request -> {
+            request.addHeader("X-User-Id", "1");
+            request.addHeader("X-User-Role", role);
+            return request;
+        };
+    }
+
     @BeforeEach
     void clean() {
         boothRepository.deleteAllInBatch();
@@ -50,7 +63,7 @@ class ExpoBoothsTest {
     }
 
     private void saveBooth(Expo expo, String boothNo, BoothStatus status) {
-        Booth booth = new Booth(expo, boothNo, "조립 부스", 3_500_000);
+        Booth booth = new Booth(expo, boothNo, "조립 부스 (3m x 3m)", 3_500_000);
         if (status == BoothStatus.ASSIGNED) {
             ReflectionTestUtils.setField(booth, "status", BoothStatus.ASSIGNED);
         }
@@ -60,13 +73,12 @@ class ExpoBoothsTest {
     @Test
     void 부스_목록과_유형_참가비_applicable을_반환한다() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        Expo expo = saveExpo(true, now.minusDays(3), now.plusDays(7)); // 신청 기간 내
+        Expo expo = saveExpo(true, now.minusDays(3), now.plusDays(7));
         saveBooth(expo, "A-101", BoothStatus.AVAILABLE);
         saveBooth(expo, "A-102", BoothStatus.AVAILABLE);
         saveBooth(expo, "A-103", BoothStatus.ASSIGNED);
 
-        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId())
-                        .header("X-User-Role", "EXHIBITOR"))
+        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId()).with(exhibitor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.expoId").value(expo.getId()))
                 .andExpect(jsonPath("$.data.totalCount").value(3))
@@ -83,11 +95,10 @@ class ExpoBoothsTest {
     @Test
     void 신청_기간이_지나면_모든_부스가_applicable_false지만_목록에는_노출된다() throws Exception {
         LocalDateTime now = LocalDateTime.now();
-        Expo expo = saveExpo(true, now.minusDays(30), now.minusDays(1)); // 신청 마감
+        Expo expo = saveExpo(true, now.minusDays(30), now.minusDays(1));
         saveBooth(expo, "A-101", BoothStatus.AVAILABLE);
 
-        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId())
-                        .header("X-User-Role", "EXHIBITOR"))
+        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId()).with(exhibitor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.booths.length()").value(1))
                 .andExpect(jsonPath("$.data.booths[0].applicable").value(false));
@@ -102,7 +113,7 @@ class ExpoBoothsTest {
 
         mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId())
                         .param("status", "AVAILABLE")
-                        .header("X-User-Role", "EXHIBITOR"))
+                        .with(exhibitor()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.booths.length()").value(1))
                 .andExpect(jsonPath("$.data.booths[0].status").value("AVAILABLE"))
@@ -115,15 +126,13 @@ class ExpoBoothsTest {
         LocalDateTime now = LocalDateTime.now();
         Expo draft = saveExpo(false, now.minusDays(3), now.plusDays(7));
 
-        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", draft.getId())
-                        .header("X-User-Role", "EXHIBITOR"))
+        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", draft.getId()).with(exhibitor()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void 없는_박람회는_404() throws Exception {
-        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", 999999)
-                        .header("X-User-Role", "EXHIBITOR"))
+        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", 999999).with(exhibitor()))
                 .andExpect(status().isNotFound());
     }
 
@@ -134,7 +143,7 @@ class ExpoBoothsTest {
 
         mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId())
                         .param("status", "WEIRD")
-                        .header("X-User-Role", "EXHIBITOR"))
+                        .with(exhibitor()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -143,8 +152,7 @@ class ExpoBoothsTest {
         LocalDateTime now = LocalDateTime.now();
         Expo expo = saveExpo(true, now.minusDays(3), now.plusDays(7));
 
-        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId())
-                        .header("X-User-Role", "ADMIN"))
+        mockMvc.perform(get("/api/exhibitor/expos/{id}/booths", expo.getId()).with(role("ADMIN")))
                 .andExpect(status().isForbidden());
     }
 }

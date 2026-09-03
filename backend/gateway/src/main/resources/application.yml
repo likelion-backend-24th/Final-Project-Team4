@@ -19,6 +19,15 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/admin/expos/**,/api/exhibitor/**
+      globalcors: # gateway CORS 설정
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:5173"
+              - "http://localhost:3000"
+            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedHeaders: "*"
+            allowCredentials: true
 
 jwt:
   access-key: ${ACCESS_KEY}
