@@ -27,6 +27,9 @@ public class TraceIdFilter implements GlobalFilter, Ordered {
         ServerHttpRequest mutatedRequest = exchange.getRequest().mutate() // mutate: 속성변경
                 .headers(header-> header.set(HEADER_TRACE_ID, finalTraceId)).build();
 
+        // 응답에도 traceId 실음.
+        exchange.getResponse().getHeaders().set(HEADER_TRACE_ID, finalTraceId);
+
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 
