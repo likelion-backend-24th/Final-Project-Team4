@@ -12,6 +12,7 @@ import com.team4.expo.dto.BoothApplicationGroupResponse;
 import com.team4.expo.dto.BoothApplicationRequest;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
+import com.team4.expo.service.BoothApplicationService;
 import com.team4.expo.service.ExpoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
@@ -26,9 +27,11 @@ import org.springframework.web.bind.annotation.*;
 public class ExpoExhibitorController {
 
     private final ExpoService expoService;
+    private final BoothApplicationService boothApplicationService;
 
-    public ExpoExhibitorController(ExpoService expoService) {
+    public ExpoExhibitorController(ExpoService expoService, BoothApplicationService boothApplicationService) {
         this.expoService = expoService;
+        this.boothApplicationService = boothApplicationService;
     }
 
     /*
@@ -45,7 +48,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        BoothApplicationGroupResponse response = expoService.applyBooth(exhibitorId, request);
+        BoothApplicationGroupResponse response = boothApplicationService.applyBooth(exhibitorId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 
@@ -59,7 +62,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        BoothApplicationGroupResponse response = expoService.updateBoothApplicationDraft(exhibitorId, groupId, request);
+        BoothApplicationGroupResponse response = boothApplicationService.updateBoothApplicationDraft(exhibitorId, groupId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -72,7 +75,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        BoothApplicationGroupResponse response = expoService.submitBoothApplicationDraft(exhibitorId, groupId);
+        BoothApplicationGroupResponse response = boothApplicationService.submitBoothApplicationDraft(exhibitorId, groupId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -85,7 +88,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        BoothApplicationGroupCancelResponse response = expoService.deleteBoothApplicationGroup(exhibitorId, groupId);
+        BoothApplicationGroupCancelResponse response = boothApplicationService.deleteBoothApplicationGroup(exhibitorId, groupId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
@@ -98,7 +101,7 @@ public class ExpoExhibitorController {
 
         requireExhibitor(role);
 
-        return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listMyBoothApplications(exhibitorId, pageable))));
+        return ResponseEntity.ok(ApiResponse.success(PageMeta.from(boothApplicationService.listMyBoothApplications(exhibitorId, pageable))));
     }
 
     // open 박람회 목록 페이징 조회

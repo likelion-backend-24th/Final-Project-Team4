@@ -8,7 +8,7 @@ import com.team4.expo.dto.BoothApplicationGroupConfirmResponse;
 import com.team4.expo.dto.BoothApplicationGroupPaymentContextResponse;
 import com.team4.expo.dto.BoothApplicationGroupReleaseRequest;
 import com.team4.expo.dto.BoothApplicationGroupReleaseResponse;
-import com.team4.expo.service.ExpoService;
+import com.team4.expo.service.BoothApplicationPaymentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,13 +19,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/internal/expo/booth-application-groups")
 public class ExpoInternalController {
 
-    private final ExpoService expoService;
+    private final BoothApplicationPaymentService boothApplicationPaymentService;
 
     @Value("${service.token.payment}")
     private String paymentServiceToken;
 
-    public ExpoInternalController(ExpoService expoService) {
-        this.expoService = expoService;
+    public ExpoInternalController(BoothApplicationPaymentService boothApplicationPaymentService) {
+        this.boothApplicationPaymentService = boothApplicationPaymentService;
     }
 
     // Payment -> Expo. 결제 시작 전 그룹의 심사 완료 여부·결제 대상·금액 확인.
@@ -36,7 +36,7 @@ public class ExpoInternalController {
 
         requirePaymentService(authorization);
 
-        return ResponseEntity.ok(ApiResponse.success(expoService.getBoothApplicationGroupPaymentContext(groupId)));
+        return ResponseEntity.ok(ApiResponse.success(boothApplicationPaymentService.getBoothApplicationGroupPaymentContext(groupId)));
     }
 
     // Payment -> Expo. 결제 완료 확인 후 그룹 내 승인된 부스들을 확정.
@@ -49,7 +49,7 @@ public class ExpoInternalController {
         requirePaymentService(authorization);
 
         return ResponseEntity.ok(ApiResponse.success(
-                expoService.confirmBoothApplicationGroup(groupId, request.getPaymentId(), request.getPaidAt())));
+                boothApplicationPaymentService.confirmBoothApplicationGroup(groupId, request.getPaymentId(), request.getPaidAt())));
     }
 
     // Payment -> Expo. 결제 실패/시간 초과 시 호출 — 승인됐던 부스 잠금을 풀고 신청을 반려 처리.
@@ -62,7 +62,7 @@ public class ExpoInternalController {
         requirePaymentService(authorization);
 
         String reason = request != null ? request.getReason() : null;
-        return ResponseEntity.ok(ApiResponse.success(expoService.releaseBoothApplicationGroup(groupId, reason)));
+        return ResponseEntity.ok(ApiResponse.success(boothApplicationPaymentService.releaseBoothApplicationGroup(groupId, reason)));
     }
 
     private void requirePaymentService(String authorization) {
