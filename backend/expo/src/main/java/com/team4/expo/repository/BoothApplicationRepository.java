@@ -10,4 +10,7 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
 
     // "동일 부스 + 동일 업체 + 진행 중인 상태(SUBMITTED/PAYMENT_PENDING/CONFIRMED)"의 신청이 있는지 확인
     boolean existsByBooth_IdAndExhibitorIdAndStatusIn(Long boothId, Long exhibitorId, List<ApplicationStatus> statuses);
+
+    // 그룹에 속한 모든 부스 신청 조회 (제출/취소 시 그룹 단위 처리에 사용)
+    List<BoothApplication> findByGroup_Id(String groupId);
 }

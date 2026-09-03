@@ -5,10 +5,12 @@ import com.team4.common.error.ErrorCode;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothApplication;
+import com.team4.expo.domain.BoothApplicationGroup;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
 import com.team4.expo.dto.*;
+import com.team4.expo.repository.BoothApplicationGroupRepository;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -30,12 +33,15 @@ public class ExpoService {
     private final ExpoRepository expoRepository;
     private final BoothRepository boothRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final BoothApplicationGroupRepository boothApplicationGroupRepository;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
-                        BoothApplicationRepository boothApplicationRepository) {
+                        BoothApplicationRepository boothApplicationRepository,
+                        BoothApplicationGroupRepository boothApplicationGroupRepository) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.boothApplicationGroupRepository = boothApplicationGroupRepository;
     }
 
     // 박람회와 부스 목록을 등록 (관리자용, 등록 직후엔 비공개 DRAFT 상태).
@@ -75,18 +81,19 @@ public class ExpoService {
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
     }
 
-    // 참가업체가 특정 부스 자리에 참가를 신청 (검증 통과 시 SUBMITTED 상태로 저장).
-    public BoothApplicationResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
-        Booth booth = boothRepository.findById(request.getBoothId())
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
-        Expo expo = booth.getExpo();
+    // 참가업체가 부스 하나 이상을 골라 그룹으로 신청 (다중 선택). saveMode=SUBMIT이면 검증 후 SUBMITTED,
+    // DRAFT면 검증 없이 임시저장. 검증 실패 시 그룹 전체가 롤백됨(부분 제출 불허, 2026-09-03 확정).
+    public BoothApplicationGroupResponse applyBooth(Long exhibitorId, BoothApplicationRequest request) {
+        Expo expo = expoRepository.findById(request.getExpoId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        validateApplicationPeriod(expo);
-        validateBoothAvailable(booth);
-        validateNoDuplicateApplication(booth.getId(), exhibitorId);
+        boolean isSubmit = request.getSaveMode() == BoothApplicationRequest.SaveMode.SUBMIT;
+        if (isSubmit) {
+            validateApplicationPeriod(expo);
+        }
 
-        BoothApplication application = new BoothApplication(
-                booth,
+        BoothApplicationGroup group = new BoothApplicationGroup(
+                expo,
                 exhibitorId,
                 request.getExhibitionItem(),
                 request.getConceptDescription(),
@@ -95,9 +102,113 @@ public class ExpoService {
                 request.isInternetRequested(),
                 request.getAdditionalRequest()
         );
-        boothApplicationRepository.save(application);
+        boothApplicationGroupRepository.save(group);
 
-        return BoothApplicationResponse.from(application);
+        List<BoothApplication> applications = new ArrayList<>();
+        for (Long boothId : request.getBoothIds()) {
+            Booth booth = boothRepository.findById(boothId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+
+            ApplicationStatus status;
+            if (isSubmit) {
+                validateBoothAvailable(booth);
+                validateNoDuplicateApplication(booth.getId(), exhibitorId);
+                status = ApplicationStatus.SUBMITTED;
+            } else {
+                status = ApplicationStatus.DRAFT;
+            }
+
+            applications.add(new BoothApplication(booth, group, exhibitorId, status));
+        }
+        boothApplicationRepository.saveAll(applications);
+
+        return BoothApplicationGroupResponse.from(group.getId(), applications);
+    }
+
+    // 임시저장(DRAFT) 그룹의 부스 선택·입력 내용 수정. DRAFT 상태인 그룹만 가능.
+    public BoothApplicationGroupResponse updateBoothApplicationDraft(Long exhibitorId, String groupId,
+                                                                       BoothApplicationDraftUpdateRequest request) {
+        BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+        validateGroupOwnership(group, exhibitorId);
+
+        List<BoothApplication> existing = boothApplicationRepository.findByGroup_Id(groupId);
+        validateAllDraft(existing);
+
+        group.updateContent(
+                request.getExhibitionItem(),
+                request.getConceptDescription(),
+                request.isPowerRequested(),
+                request.isWaterSupplyRequested(),
+                request.isInternetRequested(),
+                request.getAdditionalRequest()
+        );
+
+        boothApplicationRepository.deleteAll(existing);
+
+        List<BoothApplication> applications = new ArrayList<>();
+        for (Long boothId : request.getBoothIds()) {
+            Booth booth = boothRepository.findById(boothId)
+                    .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+            applications.add(new BoothApplication(booth, group, exhibitorId, ApplicationStatus.DRAFT));
+        }
+        boothApplicationRepository.saveAll(applications);
+
+        return BoothApplicationGroupResponse.from(groupId, applications);
+    }
+
+    // DRAFT 그룹을 최종 제출 (DRAFT -> SUBMITTED). 이 시점에 신청기간/부스가용/중복 검증 수행,
+    // 그룹 내 하나라도 실패하면 그룹 전체 롤백(부분 제출 불허).
+    public BoothApplicationGroupResponse submitBoothApplicationDraft(Long exhibitorId, String groupId) {
+        BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+        validateGroupOwnership(group, exhibitorId);
+
+        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+        validateAllDraft(applications);
+
+        validateApplicationPeriod(group.getExpo());
+
+        for (BoothApplication application : applications) {
+            validateBoothAvailable(application.getBooth());
+            validateNoDuplicateApplication(application.getBooth().getId(), exhibitorId);
+        }
+        applications.forEach(BoothApplication::submit);
+
+        return BoothApplicationGroupResponse.from(groupId, applications);
+    }
+
+    // 신청 취소. 결제 대기·확정 건이 하나라도 있으면 취소 불가(환불 절차를 타야 함).
+    public BoothApplicationGroupCancelResponse deleteBoothApplicationGroup(Long exhibitorId, String groupId) {
+        BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+        validateGroupOwnership(group, exhibitorId);
+
+        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+        boolean hasPaymentInProgress = applications.stream().anyMatch(a ->
+                a.getStatus() == ApplicationStatus.PAYMENT_PENDING || a.getStatus() == ApplicationStatus.CONFIRMED);
+        if (hasPaymentInProgress) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "결제 진행 중이거나 확정된 신청은 취소할 수 없습니다.");
+        }
+
+        applications.forEach(BoothApplication::cancel);
+
+        return new BoothApplicationGroupCancelResponse(groupId, ApplicationStatus.CANCELLED.name());
+    }
+
+    // 신청 그룹의 소유자가 요청자 본인인지 확인
+    private void validateGroupOwnership(BoothApplicationGroup group, Long exhibitorId) {
+        if (!group.getExhibitorId().equals(exhibitorId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 신청 그룹이 아닙니다.");
+        }
+    }
+
+    // 그룹 내 모든 부스 신청이 DRAFT 상태인지 확인 (수정·제출은 DRAFT에서만 가능)
+    private void validateAllDraft(List<BoothApplication> applications) {
+        boolean allDraft = applications.stream().allMatch(a -> a.getStatus() == ApplicationStatus.DRAFT);
+        if (!allDraft) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "임시저장 상태의 신청만 처리할 수 있습니다.");
+        }
     }
 
     // open 박람회 목록 페이징 조회
