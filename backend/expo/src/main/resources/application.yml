@@ -26,3 +26,6 @@ spring:
 service:
   token:
     payment: ${SVC_TOKEN_PAYMENT:local_dev_payment_token}
+
+payment:
+  base-url: ${PAYMENT_BASE_URL:http://localhost:8083}
