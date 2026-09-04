@@ -50,7 +50,8 @@ class ExhibitorSignupTest {
                         .content(SIGNUP_BODY))
                 .andExpect(status().isCreated());
 
-        User saved = userRepository.findByBusinessNo("1234567890").orElseThrow();
+        User saved = userRepository.findByEmail("manager@corp.com").orElseThrow();
+        assertThat(saved.getBusinessNo()).isEqualTo("1234567890");
         assertThat(saved.getRole().name()).isEqualTo("EXHIBITOR");
         assertThat(saved.getPasswordHash()).isNotEqualTo("password123");
         assertThat(saved.getPasswordHash()).startsWith("$2");
