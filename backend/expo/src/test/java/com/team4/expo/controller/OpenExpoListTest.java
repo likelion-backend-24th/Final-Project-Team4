@@ -1,6 +1,8 @@
 package com.team4.expo.controller;
 
 import com.team4.expo.domain.Expo;
+import com.team4.expo.repository.BoothApplicationGroupRepository;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,10 @@ class OpenExpoListTest {
     ExpoRepository expoRepository;
     @Autowired
     BoothRepository boothRepository;
+    @Autowired
+    BoothApplicationRepository boothApplicationRepository;
+    @Autowired
+    BoothApplicationGroupRepository boothApplicationGroupRepository;
 
     // 게이트웨이가 주입하는 신원 헤더 흉내
     private static RequestPostProcessor exhibitor() {
@@ -46,6 +52,8 @@ class OpenExpoListTest {
 
     @BeforeEach
     void clean() {
+        boothApplicationRepository.deleteAllInBatch();
+        boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
         expoRepository.deleteAllInBatch();
     }

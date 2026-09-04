@@ -3,6 +3,8 @@ package com.team4.expo.controller;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
+import com.team4.expo.repository.BoothApplicationGroupRepository;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,10 @@ class ExpoBoothsTest {
     ExpoRepository expoRepository;
     @Autowired
     BoothRepository boothRepository;
+    @Autowired
+    BoothApplicationRepository boothApplicationRepository;
+    @Autowired
+    BoothApplicationGroupRepository boothApplicationGroupRepository;
 
     private static RequestPostProcessor exhibitor() {
         return role("EXHIBITOR");
@@ -48,6 +54,8 @@ class ExpoBoothsTest {
 
     @BeforeEach
     void clean() {
+        boothApplicationRepository.deleteAllInBatch();
+        boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
         expoRepository.deleteAllInBatch();
     }
