@@ -1,7 +1,5 @@
 package com.team4.expo.controller;
 
-import com.team4.common.error.CustomException;
-import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.dto.BoothApplicationDecisionResponse;
@@ -51,44 +49,28 @@ public class ExpoAdminController {
 
     // Admin - 전체 박람회 목록 (상태 무관) + 박람회별 신청 현황 집계
     @GetMapping("/api/admin/expos")
-    public ResponseEntity<ApiResponse<PageMeta<ExpoAdminSummaryResponse>>> listExposForAdmin(
-            @RequestHeader(value = "X-User-Role", required = false) String role,
-            @PageableDefault(size = 20) Pageable pageable) {
-
-        requireAdmin(role);
+    public ResponseEntity<ApiResponse<PageMeta<ExpoAdminSummaryResponse>>> listExposForAdmin(@PageableDefault(size = 20) Pageable pageable) {
 
         return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listExposForAdmin(pageable))));
     }
 
     // Admin - 특정 박람회의 실시간 부스 배치 현황
     @GetMapping("/api/admin/expos/{expoId}/booths")
-    public ResponseEntity<ApiResponse<ExpoBoothsResponse>> getExpoBoothsForAdmin(
-            @RequestHeader(value = "X-User-Role", required = false) String role,
-            @PathVariable Long expoId) {
-
-        requireAdmin(role);
+    public ResponseEntity<ApiResponse<ExpoBoothsResponse>> getExpoBoothsForAdmin(@PathVariable Long expoId) {
 
         return ResponseEntity.ok(ApiResponse.success(expoService.getExpoBoothsForAdmin(expoId)));
     }
 
     // Admin - 전체 부스 참가 신청 목록 조회 (그룹 단위)
     @GetMapping("/api/admin/booth-applications")
-    public ResponseEntity<ApiResponse<PageMeta<BoothApplicationGroupDetailResponse>>> listBoothApplications(
-            @RequestHeader(value = "X-User-Role", required = false) String role,
-            @PageableDefault(size = 10) Pageable pageable) {
-
-        requireAdmin(role);
+    public ResponseEntity<ApiResponse<PageMeta<BoothApplicationGroupDetailResponse>>> listBoothApplications(@PageableDefault(size = 10) Pageable pageable) {
 
         return ResponseEntity.ok(ApiResponse.success(PageMeta.from(boothApplicationService.listBoothApplications(pageable))));
     }
 
     // Admin - 부스 참가 신청 승인
     @PostMapping("/api/admin/booth-applications/{applicationId}/approve")
-    public ResponseEntity<ApiResponse<BoothApplicationDecisionResponse>> approveBoothApplication(
-            @RequestHeader(value = "X-User-Role", required = false) String role,
-            @PathVariable Long applicationId) {
-
-        requireAdmin(role);
+    public ResponseEntity<ApiResponse<BoothApplicationDecisionResponse>> approveBoothApplication(@PathVariable Long applicationId) {
 
         return ResponseEntity.ok(ApiResponse.success(boothApplicationReviewService.approveBoothApplication(applicationId)));
     }
@@ -96,18 +78,9 @@ public class ExpoAdminController {
     // Admin - 부스 참가 신청 반려
     @PostMapping("/api/admin/booth-applications/{applicationId}/reject")
     public ResponseEntity<ApiResponse<BoothApplicationDecisionResponse>> rejectBoothApplication(
-            @RequestHeader(value = "X-User-Role", required = false) String role,
             @PathVariable Long applicationId,
             @Valid @RequestBody BoothApplicationRejectRequest request) {
 
-        requireAdmin(role);
-
         return ResponseEntity.ok(ApiResponse.success(boothApplicationReviewService.rejectBoothApplication(applicationId, request.getReason())));
-    }
-
-    private void requireAdmin(String role) {
-        if (!"ADMIN".equals(role)) {
-            throw new CustomException(ErrorCode.FORBIDDEN, "관리자만 접근할 수 있습니다.");
-        }
     }
 }
