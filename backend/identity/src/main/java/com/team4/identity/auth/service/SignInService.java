@@ -27,21 +27,11 @@ public class SignInService {
     private final RefreshTokenStore refreshTokenStore;
     private final CookieProvider cookieProvider;
 
-    // 일반회원, 관리자 - 이메일 로그인
+    // 이메일 로그인 - 일반회원,관리자,참가업체 공통
     @Transactional(readOnly = true)
     public TokenResponse signIn(String email, String rawPassword, HttpServletResponse response) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다."));
         verifyPassword(rawPassword, user, "이메일 또는 비밀번호가 올바르지 않습니다.");
-
-        return issue(user, response);
-    }
-
-    // 참가업체 - 사업자등록번호 로그인
-    @Transactional(readOnly = true)
-    public TokenResponse signInExhibitor(String businessNo, String rawPassword, HttpServletResponse response) {
-        String normalized = businessNo == null ? null : businessNo.replace("-", "");
-        User user = userRepository.findByBusinessNo(normalized).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "사업자등록번호 또는 비밀번호가 올바르지 않습니다."));
-        verifyPassword(rawPassword, user, "사업자등록번호 또는 비밀번호가 올바르지 않습니다.");
 
         return issue(user, response);
     }

@@ -50,9 +50,9 @@ class RefreshLogoutTest {
     }
 
     private Cookie signInAndGetRefreshCookie() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/auth/exhibitors/signin")
+        MvcResult result = mockMvc.perform(post("/api/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"1234567890\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"manager@corp.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
                 .andReturn();
         Cookie cookie = result.getResponse().getCookie("refreshToken");

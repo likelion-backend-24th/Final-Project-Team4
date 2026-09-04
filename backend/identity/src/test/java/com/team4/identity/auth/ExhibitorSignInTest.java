@@ -50,9 +50,9 @@ class ExhibitorSignInTest {
 
     @Test
     void 정상_로그인시_accessToken은_body_refreshToken은_HttpOnly쿠키로_반환한다() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
+        mockMvc.perform(post("/api/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"1234567890\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"manager@corp.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.data.role").value("EXHIBITOR"))
@@ -64,18 +64,18 @@ class ExhibitorSignInTest {
 
     @Test
     void 비밀번호가_틀리면_401_WWW_Authenticate_헤더() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
+        mockMvc.perform(post("/api/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"1234567890\",\"password\":\"wrongpassword\"}"))
+                        .content("{\"email\":\"manager@corp.com\",\"password\":\"wrongpassword\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(header().string("WWW-Authenticate", "Bearer"));
     }
 
     @Test
-    void 없는_사업자번호는_401() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signin")
+    void 없는_이메일은_401() throws Exception {
+        mockMvc.perform(post("/api/auth/signin")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"businessNo\":\"9999999999\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"nobody@corp.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isUnauthorized());
     }
 }
