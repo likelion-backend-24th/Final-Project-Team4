@@ -1,0 +1,241 @@
+.admin-expo-create {
+  font-family: 'Inter', sans-serif;
+  color: #0f172a;
+  padding-bottom: 64px;
+}
+
+.admin-expo-create__hero {
+  box-sizing: border-box;
+  padding: 48px 80px;
+  background: #0f172a;
+  color: #fff;
+}
+
+.admin-expo-create__eyebrow {
+  color: #2563eb;
+  font-weight: 700;
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
+.admin-expo-create__hero h1 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  margin: 0 0 12px;
+}
+
+.admin-expo-create__hero p {
+  font-size: 14px;
+  color: #94a3b8;
+  margin: 0;
+  max-width: 720px;
+}
+
+.admin-expo-create__form {
+  max-width: 960px;
+  margin: 32px auto 0;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-expo-create__panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #fff;
+}
+
+.admin-expo-create__panel h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.admin-expo-create__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.admin-expo-create__panel-head h2 {
+  margin: 0;
+}
+
+.admin-expo-create__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.admin-expo-create__grid label,
+.admin-expo-create__gen label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-expo-create__grid input,
+.admin-expo-create__gen input,
+.admin-expo-create__gen select,
+.admin-expo-create__table input,
+.admin-expo-create__table select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.admin-expo-create__hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.admin-expo-create__gen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.admin-expo-create__gen label {
+  flex: 1 1 120px;
+}
+
+.admin-expo-create__gen-btn,
+.admin-expo-create__row-add {
+  padding: 9px 16px;
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-expo-create__row-add {
+  background: #fff;
+  color: #2563eb;
+}
+
+.admin-expo-create__empty {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.admin-expo-create__table-scroll {
+  overflow-x: auto;
+}
+
+.admin-expo-create__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-expo-create__table th {
+  text-align: left;
+  font-size: 12px;
+  color: #64748b;
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-expo-create__table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-expo-create__table td:nth-child(1) { width: 160px; }
+.admin-expo-create__table td:nth-child(3) { width: 140px; }
+.admin-expo-create__table td:nth-child(4) { width: 60px; }
+
+.admin-expo-create__row-del {
+  border: none;
+  background: none;
+  color: #dc2626;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.admin-expo-create__total {
+  margin: 16px 0 0;
+  text-align: right;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.admin-expo-create__error {
+  margin: 0;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.admin-expo-create__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.admin-expo-create__auto-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-expo-create__buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.admin-expo-create__cancel,
+.admin-expo-create__submit {
+  padding: 11px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-expo-create__cancel {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.admin-expo-create__submit {
+  border: none;
+  background: #0f172a;
+  color: #fff;
+}
+
+.admin-expo-create__submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 640px) {
+  .admin-expo-create__hero { padding: 32px 24px; }
+  .admin-expo-create__grid { grid-template-columns: 1fr; }
+}

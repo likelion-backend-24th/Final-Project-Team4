@@ -45,6 +45,16 @@ export const getMyBoothApplications = (params) =>
 export const getAdminBoothApplications = (params) =>
   apiClient.get('/api/admin/booth-applications', { params }).then((res) => res.data.data);
 
+// POST /api/admin/expos — Admin: 박람회 등록 (DRAFT 상태로 생성)
+// payload: { title, venue, startsAt, endsAt, applyStartsAt, applyEndsAt,
+//            booths: [{ boothNo, type, fee }] }
+export const registerExpo = (payload) =>
+  apiClient.post('/api/admin/expos', payload).then((res) => res.data.data);
+
+// POST /api/admin/expos/{expoId}/open — Admin: 박람회 공개 (DRAFT → OPEN)
+export const openExpo = (expoId) =>
+  apiClient.post(`/api/admin/expos/${expoId}/open`).then((res) => res.data.data);
+
 // GET /api/admin/expos — Admin: 전체 박람회 목록 + 박람회별 신청 현황 집계
 export const getAdminExpoList = (params) =>
   apiClient.get('/api/admin/expos', { params }).then((res) => res.data.data);
