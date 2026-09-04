@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getExpoList } from "../api/expo";
-import { mockExpos } from "../mock/data";
 import "./ExpoList.css";
 
+// 상단 필터 탭 목록
 const FILTERS = ["전체", "모집중", "모집마감", "진행중", "종료"];
+
+// 카드 썸네일에 순서대로 돌려가며 입힐 그라데이션 색상들
 const GRADIENTS = [
   "linear-gradient(135deg, #1e293b, #0f172a)",
   "linear-gradient(135deg, #7f1d1d, #1f2937)",
@@ -12,10 +14,11 @@ const GRADIENTS = [
   "linear-gradient(135deg, #14532d, #0f172a)",
 ];
 
-// ISO(2026-05-12T10:00:00) → 2026.05.12
+// ISO 날짜(2026-05-12T10:00:00) → 화면 표시용(2026.05.12)
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : "");
 
-// 신청/개최 기간과 현재 시각으로 진행 단계 계산 (서버는 OPEN 박람회만 내려줌)
+// 신청/개최 기간과 현재 시각을 비교해서 진행 단계(모집예정/모집중/모집마감/진행중/종료)를 계산
+// 참고: 서버는 기본적으로 OPEN 상태인 박람회만 내려주지만, 화면에서는 날짜 기준으로 세분화해서 보여줌
 const phaseOf = (e) => {
   const now = Date.now();
   const at = (s) => new Date(s).getTime();
@@ -26,10 +29,9 @@ const phaseOf = (e) => {
   return "종료";
 };
 
-// 실 API 응답 → 카드 공통 형태
+// 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환
 const toRealCard = (e) => ({
   key: `real-${e.expoId}`,
-  real: true,
   expoId: e.expoId,
   title: e.title,
   phase: phaseOf(e),
@@ -39,27 +41,17 @@ const toRealCard = (e) => ({
   applyEnd: fmtDate(e.applyEndsAt),
 });
 
-// 예시 목업. (클릭 불가, "예시" 표시)
-const mockCards = mockExpos.map((m) => ({
-  key: `mock-${m.id}`,
-  real: false,
-  title: m.title,
-  phase: m.status,
-  venue: m.venue,
-  startsAt: m.startsAt,
-  endsAt: m.endsAt,
-  applyEnd: m.applyPeriod?.split(" - ")[1] ?? "",
-}));
-
 function ExpoList() {
-  const [realCards, setRealCards] = useState([]);
+  // 서버에서 불러온 실제 박람회 카드 목록 (더미/예시 데이터는 사용하지 않음)
+  const [cards, setCards] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("전체");
   const [keyword, setKeyword] = useState("");
 
+  // 컴포넌트가 처음 렌더링될 때 한 번만 박람회 목록을 서버에서 불러옴
   useEffect(() => {
     getExpoList({ page: 0, size: 50 })
-      .then((res) => setRealCards(res.content.map(toRealCard)))
+      .then((res) => setCards(res.content.map(toRealCard)))
       .catch((err) =>
         setLoadError(
           err.response?.data?.error?.message ??
@@ -68,9 +60,7 @@ function ExpoList() {
       );
   }, []);
 
-  // 데모용 실제 박람회(신청 가능)를 앞, 예시 목업을 뒤 배치
-  const cards = useMemo(() => [...realCards, ...mockCards], [realCards]);
-
+  // 선택된 필터(상태 탭)와 검색어에 맞는 카드만 걸러냄
   const filtered = useMemo(
     () =>
       cards.filter((c) => {
@@ -83,14 +73,17 @@ function ExpoList() {
     [cards, filter, keyword],
   );
 
+  // 카드 하나의 내부 UI(썸네일 + 뱃지 + 제목 + 날짜/장소 + 하단 링크)를 그려주는 함수
   const renderCardBody = (c, i) => (
     <>
+      {/* 카드 상단 썸네일 영역 (그라데이션 배경) */}
       <div
         className="expo-card__thumb"
         style={{ background: GRADIENTS[i % GRADIENTS.length] }}
       />
       <div className="expo-card__body">
         <div className="expo-card__meta">
+          {/* 진행 단계 뱃지: 모집마감/종료면 회색(closed), 그 외엔 강조색(open) */}
           <span
             className={`expo-card__badge expo-card__badge--${
               ["모집마감", "종료"].includes(c.phase) ? "closed" : "open"
@@ -98,13 +91,9 @@ function ExpoList() {
           >
             {c.phase}
           </span>
-          {c.real ? (
-            <span>
-              신청 마감 <strong>{c.applyEnd}</strong>
-            </span>
-          ) : (
-            <span style={{ color: "#94a3b8" }}>예시</span>
-          )}
+          <span>
+            신청 마감 <strong>{c.applyEnd}</strong>
+          </span>
         </div>
         <h3>{c.title}</h3>
         <div className="expo-card__meta-list">
@@ -119,9 +108,7 @@ function ExpoList() {
         </div>
         <div className="expo-card__divider" />
         <div className="expo-card__footer">
-          <span className="expo-card__link">
-            {c.real ? "상세 보기 및 부스 신청" : "예시 데이터"}
-          </span>
+          <span className="expo-card__link">상세 보기 및 부스 신청</span>
           <span className="expo-card__arrow" />
         </div>
       </div>
@@ -130,6 +117,7 @@ function ExpoList() {
 
   return (
     <div className="expo-list">
+      {/* 상단 소개 영역 */}
       <section className="expo-list__hero">
         <p className="expo-list__eyebrow">ONLINE REGISTRATION PORTAL</p>
         <h1>박람회 참가 신청</h1>
@@ -139,6 +127,7 @@ function ExpoList() {
         </p>
       </section>
 
+      {/* 필터 탭 + 검색창 */}
       <div className="expo-list__toolbar">
         <div className="expo-list__filters">
           {FILTERS.map((f) => (
@@ -163,24 +152,16 @@ function ExpoList() {
         </div>
       </div>
 
+      {/* 박람회 카드 목록 */}
       <div className="expo-list__grid-wrap">
         {loadError && <p className="expo-list__status">{loadError}</p>}
         <div className="expo-list__grid">
-          {filtered.map((c, i) =>
-            c.real ? (
-              <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
-                {renderCardBody(c, i)}
-              </Link>
-            ) : (
-              <div
-                key={c.key}
-                className="expo-card"
-                style={{ opacity: 0.55, cursor: "default" }}
-              >
-                {renderCardBody(c, i)}
-              </div>
-            ),
-          )}
+          {filtered.map((c, i) => (
+            // 모든 카드는 실제 박람회이므로 클릭하면 상세 페이지로 이동
+            <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
+              {renderCardBody(c, i)}
+            </Link>
+          ))}
         </div>
       </div>
     </div>
