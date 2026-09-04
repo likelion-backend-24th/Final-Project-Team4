@@ -11,6 +11,7 @@ import Payment from './pages/Payment';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
+import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 
 function ExhibitorLayout({ children }) {
   return (
@@ -43,6 +44,7 @@ function App() {
       <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+      <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
     </Routes>
