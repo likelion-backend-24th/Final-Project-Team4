@@ -1,7 +1,6 @@
 package com.team4.identity.auth.controller;
 
 import com.team4.common.response.ApiResponse;
-import com.team4.identity.auth.dto.SignInExhibitorRequest;
 import com.team4.identity.auth.dto.SignInRequest;
 import com.team4.identity.auth.dto.SignUpExhibitorRequest;
 import com.team4.identity.auth.dto.TokenResponse;
@@ -35,12 +34,6 @@ public class AuthController {
     @PostMapping("/signin")
     public ResponseEntity<ApiResponse<TokenResponse>> signIn(@Valid @RequestBody SignInRequest request, HttpServletResponse response) {
         TokenResponse token = signInService.signIn(request.getEmail(), request.getPassword(), response);
-        return ResponseEntity.ok(ApiResponse.success(token));
-    }
-
-    @PostMapping("/exhibitors/signin")
-    public ResponseEntity<ApiResponse<TokenResponse>> signInExhibitor(@Valid @RequestBody SignInExhibitorRequest request, HttpServletResponse response) {
-        TokenResponse token = signInService.signInExhibitor(request.getBusinessNo(), request.getPassword(), response);
         return ResponseEntity.ok(ApiResponse.success(token));
     }
 
