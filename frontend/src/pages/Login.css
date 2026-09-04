@@ -46,44 +46,6 @@
   margin: 0;
 }
 
-.login__role-tabs {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  padding: 4px;
-  width: 100%;
-  max-width: 400px;
-  height: 48px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.login__tab {
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  flex-grow: 1;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  font-family: 'Inter', sans-serif;
-  font-weight: 500;
-  font-size: 14px;
-  line-height: 17px;
-  color: #475569;
-  cursor: pointer;
-}
-
-.login__tab.is-active {
-  background: #ffffff;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.0392157);
-  font-weight: 700;
-  color: #2563eb;
-}
-
 .login__form {
   display: flex;
   flex-direction: column;
