@@ -482,3 +482,16 @@
     flex-direction: column;
   }
 }
+
+/* 필수 항목을 비운 채 제출을 시도했을 때 입력창을 빨갛게 강조 */
+.booth-application__field input.booth-application__input--invalid {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+/* 입력창 아래에 보여줄 필드별 에러 안내 문구 */
+.booth-application__field-error {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: #ef4444;
+}

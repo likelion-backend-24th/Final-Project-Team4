@@ -29,6 +29,8 @@ function BoothApplication() {
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  // 필수 항목별 에러 메시지를 담아두는 곳 (예: { exhibitionItem: '전시 품목을 입력해주세요.' })
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     getExpoBooths(expoId)
@@ -46,8 +48,16 @@ function BoothApplication() {
   const selectedBooths = expoBooths.booths.filter((b) => selectedBoothIds.includes(b.boothId));
   const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
 
-  const handleChange = (field) => (e) =>
+  const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    // 입력을 시작하면 해당 필드의 에러 표시는 지워줌
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   const handleCheck = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.checked }));
@@ -56,6 +66,18 @@ function BoothApplication() {
     setSelectedBoothIds((prev) =>
       prev.includes(boothId) ? prev.filter((id) => id !== boothId) : [...prev, boothId]
     );
+  };
+
+  // "신청 완료하기"를 누르기 전에 필수 항목이 채워졌는지 검사
+  const validate = () => {
+    const errors = {};
+    if (!form.exhibitionItem.trim()) {
+      errors.exhibitionItem = '전시 품목을 입력해주세요.';
+    }
+    if (!form.conceptDescription.trim()) {
+      errors.conceptDescription = '전시 컨셉 설명을 입력해주세요.';
+    }
+    return errors;
   };
 
   const buildPayload = (saveMode) => ({
@@ -72,6 +94,16 @@ function BoothApplication() {
 
   const handleSubmit = () => {
     if (selectedBoothIds.length === 0) return;
+
+    // 필수 항목 검사: 하나라도 비어있으면 서버에 보내지 않고 바로 안내
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setSubmitError('필수 항목을 모두 입력해주세요.');
+      return;
+    }
+
+    setFieldErrors({});
     setSubmitError(null);
     setSubmitting(true);
     applyBooth(buildPayload('SUBMIT'))
@@ -161,10 +193,14 @@ function BoothApplication() {
                   전시 품목<span className="booth-application__required">*</span>
                 </span>
                 <input
+                  className={fieldErrors.exhibitionItem ? 'booth-application__input--invalid' : ''}
                   placeholder="예: 전기차 배터리 매니지먼트 시스템(BMS)"
                   value={form.exhibitionItem}
                   onChange={handleChange('exhibitionItem')}
                 />
+                {fieldErrors.exhibitionItem && (
+                  <span className="booth-application__field-error">{fieldErrors.exhibitionItem}</span>
+                )}
               </label>
 
               <label className="booth-application__field">
@@ -172,10 +208,14 @@ function BoothApplication() {
                   전시 컨셉 설명<span className="booth-application__required">*</span>
                 </span>
                 <input
+                  className={fieldErrors.conceptDescription ? 'booth-application__input--invalid' : ''}
                   placeholder="부스 내 전시 레이아웃 및 주요 기술 컨셉을 작성해주세요."
                   value={form.conceptDescription}
                   onChange={handleChange('conceptDescription')}
                 />
+                {fieldErrors.conceptDescription && (
+                  <span className="booth-application__field-error">{fieldErrors.conceptDescription}</span>
+                )}
               </label>
 
               <div className="booth-application__field">
