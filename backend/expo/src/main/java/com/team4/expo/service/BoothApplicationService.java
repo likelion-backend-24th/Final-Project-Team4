@@ -2,6 +2,7 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.PaymentClient;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothApplication;
@@ -34,16 +35,19 @@ public class BoothApplicationService {
     private final BoothApplicationRepository boothApplicationRepository;
     private final BoothApplicationGroupRepository boothApplicationGroupRepository;
     private final BoothApplicationValidator validator;
+    private final PaymentClient paymentClient;
 
     public BoothApplicationService(ExpoRepository expoRepository, BoothRepository boothRepository,
-                                    BoothApplicationRepository boothApplicationRepository,
-                                    BoothApplicationGroupRepository boothApplicationGroupRepository,
-                                    BoothApplicationValidator validator) {
+                                   BoothApplicationRepository boothApplicationRepository,
+                                   BoothApplicationGroupRepository boothApplicationGroupRepository,
+                                   BoothApplicationValidator validator,
+                                   PaymentClient paymentClient) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.boothApplicationGroupRepository = boothApplicationGroupRepository;
         this.validator = validator;
+        this.paymentClient = paymentClient;
     }
 
     // 참가업체가 부스 하나 이상을 골라 그룹으로 신청 (다중 선택). saveMode=SUBMIT이면 검증 후 SUBMITTED,
@@ -91,9 +95,10 @@ public class BoothApplicationService {
         return BoothApplicationGroupResponse.from(group.getId(), applications);
     }
 
+
     // 임시저장(DRAFT) 그룹의 부스 선택·입력 내용 수정. DRAFT 상태인 그룹만 가능.
     public BoothApplicationGroupResponse updateBoothApplicationDraft(Long exhibitorId, String groupId,
-                                                                       BoothApplicationDraftUpdateRequest request) {
+                                                                     BoothApplicationDraftUpdateRequest request) {
         BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
         validator.validateGroupOwnership(group, exhibitorId);
@@ -163,12 +168,15 @@ public class BoothApplicationService {
         return new BoothApplicationGroupCancelResponse(groupId, ApplicationStatus.CANCELLED.name());
     }
 
-    // 마이페이지 - 본인이 신청한 부스 신청 그룹 목록(그룹 단위, 부스별 상태 포함)
+    // 마이페이지 - 본인이 신청한 부스 신청 그룹 목록(그룹 단위, 부스별 상태 + 결제 상태 포함)
     @Transactional(readOnly = true)
     public Page<BoothApplicationGroupDetailResponse> listMyBoothApplications(Long exhibitorId, Pageable pageable) {
         Page<BoothApplicationGroup> groups = boothApplicationGroupRepository.findByExhibitorIdOrderByCreatedAtDesc(exhibitorId, pageable);
-        return groups.map(group -> BoothApplicationGroupDetailResponse.of(
-                group, boothApplicationRepository.findByGroup_Id(group.getId())));
+        return groups.map(group -> {
+            List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(group.getId());
+            String paymentStatus = paymentClient.getPaymentStatus(group.getId()).orElse(null);
+            return BoothApplicationGroupDetailResponse.of(group, applications, paymentStatus);
+        });
     }
 
     // Admin - 전체 부스 신청 그룹 목록(그룹 단위, 부스별 상태 포함)

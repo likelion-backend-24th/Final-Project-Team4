@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
 
-// 마이페이지(내 신청 내역) / Admin 신청 조회 공통 응답. 그룹의 공유 정보 + 부스별 상태를 함께 반환.
+// 마이페이지(내 신청 내역) / Admin 신청 조회 공통 응답. 그룹의 공유 정보 + 부스별 상태 + 결제 상태를 함께 반환.
 @Getter
 public class BoothApplicationGroupDetailResponse {
 
@@ -24,12 +24,14 @@ public class BoothApplicationGroupDetailResponse {
     private final String additionalRequest;
     private final LocalDateTime createdAt;
     private final List<Item> applications;
+    private final String paymentStatus; // Payment 서비스 결제 상태(PENDING/PAID/FAILED/CANCELLED). 결제 이력 없으면 null.
 
     public BoothApplicationGroupDetailResponse(String groupId, Long expoId, String expoTitle, Long exhibitorId,
-                                                String exhibitionItem, String conceptDescription,
-                                                boolean powerRequested, boolean waterSupplyRequested,
-                                                boolean internetRequested, String additionalRequest,
-                                                LocalDateTime createdAt, List<Item> applications) {
+                                               String exhibitionItem, String conceptDescription,
+                                               boolean powerRequested, boolean waterSupplyRequested,
+                                               boolean internetRequested, String additionalRequest,
+                                               LocalDateTime createdAt, List<Item> applications,
+                                               String paymentStatus) {
         this.groupId = groupId;
         this.expoId = expoId;
         this.expoTitle = expoTitle;
@@ -42,9 +44,15 @@ public class BoothApplicationGroupDetailResponse {
         this.additionalRequest = additionalRequest;
         this.createdAt = createdAt;
         this.applications = applications;
+        this.paymentStatus = paymentStatus;
     }
 
+    // 결제 상태를 안 붙이는 기존 호출부(Admin 목록 등)용 - paymentStatus는 null
     public static BoothApplicationGroupDetailResponse of(BoothApplicationGroup group, List<BoothApplication> applications) {
+        return of(group, applications, null);
+    }
+
+    public static BoothApplicationGroupDetailResponse of(BoothApplicationGroup group, List<BoothApplication> applications, String paymentStatus) {
         return new BoothApplicationGroupDetailResponse(
                 group.getId(),
                 group.getExpo().getId(),
@@ -57,7 +65,8 @@ public class BoothApplicationGroupDetailResponse {
                 group.isInternetRequested(),
                 group.getAdditionalRequest(),
                 group.getCreatedAt(),
-                applications.stream().map(Item::from).collect(Collectors.toList())
+                applications.stream().map(Item::from).collect(Collectors.toList()),
+                paymentStatus
         );
     }
 
@@ -73,7 +82,7 @@ public class BoothApplicationGroupDetailResponse {
         private final LocalDateTime submittedAt;
 
         public Item(Long applicationId, Long boothId, String boothNo, String boothType, Integer fee,
-                     ApplicationStatus status, String rejectReason, LocalDateTime submittedAt) {
+                    ApplicationStatus status, String rejectReason, LocalDateTime submittedAt) {
             this.applicationId = applicationId;
             this.boothId = boothId;
             this.boothNo = boothNo;
