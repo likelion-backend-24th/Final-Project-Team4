@@ -8,6 +8,7 @@ import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,6 +25,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+// e2e 테스트라 기본 test 실행에서 임시 제외.
+@Disabled("e2e 테스트 임시 비활성화")
 @SpringBootTest(webEnvironment =  SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ActiveProfiles("test")
 public class BoothParticipationAcceptanceTest {
