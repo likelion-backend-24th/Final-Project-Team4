@@ -3,6 +3,7 @@ package com.team4.identity.auth.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.identity.auth.dto.SignInRequest;
 import com.team4.identity.auth.dto.SignUpExhibitorRequest;
+import com.team4.identity.auth.dto.SignUpUserRequest;
 import com.team4.identity.auth.dto.TokenResponse;
 import com.team4.identity.auth.service.SignInService;
 import com.team4.identity.auth.service.SignUpService;
@@ -25,6 +26,14 @@ public class AuthController {
     private final SignUpService signUpService;
     private final SignInService signInService;
 
+    // 일반 회원(USER) 회원가입
+    @PostMapping("/signup")
+    public ResponseEntity<ApiResponse<Void>> signUp(@Valid @RequestBody SignUpUserRequest request) {
+        signUpService.signUpUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null));
+    }
+
+    // 참가업체 회원가입(+사업자등록번호)
     @PostMapping("/exhibitors/signup")
     public ResponseEntity<ApiResponse<Void>> signUpExhibitor(@Valid @RequestBody SignUpExhibitorRequest request) {
         signUpService.signUpExhibitor(request);
