@@ -64,7 +64,9 @@ public class SignUpService {
                 request.getManagerName(),
                 request.getContact(),
                 request.getCompanyAddress(),
-                request.getIndustry()
+                request.getIndustry(),
+                request.getRepresentativeName(),
+                request.getCompanyContact()
         );
 
         try {

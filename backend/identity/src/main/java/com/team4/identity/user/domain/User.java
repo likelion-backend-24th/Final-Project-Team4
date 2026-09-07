@@ -42,16 +42,16 @@ public class User {
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "business_no", unique = true, length = 32)
-    private String businessNo;
+    private String businessNo; // 사업자등록번호
 
     @Column(name = "company_name")
-    private String companyName;
+    private String companyName; // 상호명
 
     @Column(name = "manager_name", length = 100)
-    private String managerName;
+    private String managerName; // 담당자 이름
 
-    @Column(name = "contact_enc", length = 512)
-    private String contact;
+    @Column(length = 32)
+    private String contact; // 담당자 연락처
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -64,6 +64,12 @@ public class User {
 
     @Column(length = 100)
     private String industry; // 업종
+
+    @Column(name = "representative_name", length = 100)
+    private String representativeName; // 대표자명
+
+    @Column(name = "company_contact", length = 32)
+    private String companyContact; // 업체 대표 연락처
 
     private User(String email, String passwordHash, Role role) {
         this.email = email;
@@ -78,7 +84,8 @@ public class User {
 
     public static User createExhibitor(String email, String passwordHash, String businessNo,
                                        String companyName, String managerName, String contact,
-                                       String companyAddress, String industry) {
+                                       String companyAddress, String industry,
+                                       String representativeName, String companyContact) {
         User user = new User(email, passwordHash, Role.EXHIBITOR);
         user.businessNo = businessNo;
         user.companyName = companyName;
@@ -86,6 +93,8 @@ public class User {
         user.contact = contact;
         user.companyAddress = companyAddress;
         user.industry = industry;
+        user.representativeName = representativeName;
+        user.companyContact = companyContact;
         return user;
     }
 

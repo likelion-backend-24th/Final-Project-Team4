@@ -37,4 +37,10 @@ public class SignUpExhibitorRequest {
 
     @NotBlank
     private final String industry; // 업종
+
+    @NotBlank
+    private final String representativeName; // 대표자명
+
+    @NotBlank
+    private final String companyContact; // 업체 대표 연락처
 }
