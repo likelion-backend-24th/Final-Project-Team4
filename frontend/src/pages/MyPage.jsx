@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockMyProfile, mockPastExhibits, mockPayments } from "../mock/data";
+import { mockMyProfile, mockPastExhibits } from "../mock/data";
 import { getMyBoothApplications } from "../api/expo";
+import { getMyPayments } from "../api/payment";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -12,6 +13,8 @@ const STATUS_BADGE = {
   취소됨: "badge--rejected",
   미결제: "badge--unpaid",
   결제완료: "badge--paid",
+  결제실패: "badge--rejected",
+  결제중: "badge--pending",
   "참가 완료": "badge--done",
 };
 
@@ -25,11 +28,27 @@ const STATUS_LABEL = {
   CANCELLED: "취소됨",
 };
 
+// 결제 엔티티의 상태(PaymentStatus enum) → 화면 표시용 한글 라벨
+const PAYMENT_STATUS_LABEL = {
+  PENDING: "결제중",
+  PAID: "결제완료",
+  FAILED: "결제실패",
+  CANCELLED: "취소됨",
+};
+
+// ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12 10:00)
+const fmtDateTime = (iso) =>
+  iso ? iso.slice(0, 16).replace("T", " ").replace(/-/g, ".") : null;
+
 function MyPage() {
   const navigate = useNavigate();
   const [myApplications, setMyApplications] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [openId, setOpenId] = useState(null);
+
+  // 참가비 결제 내역: 실제 결제된 건 목록 (없으면 빈 배열 - 아직 결제한 게 없다는 뜻)
+  const [payments, setPayments] = useState([]);
+  const [paymentsError, setPaymentsError] = useState(null);
 
   useEffect(() => {
     getMyBoothApplications()
@@ -68,6 +87,61 @@ function MyPage() {
         ),
       );
   }, []);
+
+  useEffect(() => {
+    getMyPayments()
+      .then(setPayments)
+      .catch((err) =>
+        setPaymentsError(
+          err.response?.data?.error?.message ??
+            "결제 내역을 불러오지 못했습니다.",
+        ),
+      );
+  }, []);
+
+  // "부스 참가 신청 현황"과 "참가비 결제 내역"을 신청 그룹(groupId = bookingId) 기준으로 합쳐서
+  // 결제 내역 표에 보여줄 한 줄씩을 만듦.
+  // - 승인(신청 승인) 이전 단계(심사중/반려/임시저장)인 신청은 아직 결제 대상이 아니므로 표에서 제외
+  // - 실제 결제(Payment) 기록이 있으면 그 결과(결제완료/결제실패/취소됨)를 보여줌
+  // - 결제 기록이 없으면 "미결제"로 표시하고, 청구 금액은 승인된 부스 참가비 합계를 보여줌
+  const paymentHistory = useMemo(() => {
+    const groups = new Map();
+    myApplications.forEach((app) => {
+      if (!groups.has(app.groupId)) {
+        groups.set(app.groupId, {
+          groupId: app.groupId,
+          expoTitle: app.expoTitle,
+          payableTotal: app.payableTotal,
+          isBillable: false,
+        });
+      }
+      if (app.status === "신청 승인" || app.status === "참가 확정") {
+        groups.get(app.groupId).isBillable = true;
+      }
+    });
+
+    return Array.from(groups.values())
+      .filter((g) => g.isBillable)
+      .map((g) => {
+        const payment = payments.find((p) => p.bookingId === g.groupId);
+        if (payment) {
+          return {
+            id: g.groupId,
+            expoTitle: g.expoTitle,
+            amount: payment.amount,
+            status: PAYMENT_STATUS_LABEL[payment.status] ?? payment.status,
+            paidAt: fmtDateTime(payment.approvedAt),
+          };
+        }
+        return {
+          id: g.groupId,
+          expoTitle: g.expoTitle,
+          amount: g.payableTotal,
+          status: "미결제",
+          paidAt: null,
+        };
+      });
+  }, [myApplications, payments]);
 
   const facilityLabel = (app) => {
     const facilities = [];
@@ -234,6 +308,7 @@ function MyPage() {
 
         <section className="mypage__card">
           <h2>참가비 결제 내역</h2>
+          {paymentsError && <p className="mypage__cell-muted">{paymentsError}</p>}
           <div className="mypage__table-scroll">
             <table className="mypage__table">
               <thead>
@@ -246,7 +321,14 @@ function MyPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockPayments.map((p) => (
+                {paymentHistory.length === 0 && !paymentsError && (
+                  <tr>
+                    <td colSpan={5} className="mypage__cell-muted">
+                      결제 내역이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {paymentHistory.map((p) => (
                   <tr key={p.id}>
                     <td className="mypage__cell-strong">{p.expoTitle}</td>
                     <td className="mypage__cell-strong">
