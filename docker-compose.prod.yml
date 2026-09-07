@@ -119,8 +119,8 @@ services:
       - "443:443"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/certbot/conf:/etc/letsencrypt:ro
-      - ./nginx/certbot/www:/var/www/certbot:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro # 호스트 certbot이 발급
+      - /var/www/certbot:/var/www/certbot:ro # ACME webroot 갱신용
     depends_on:
       - gateway
     networks:
