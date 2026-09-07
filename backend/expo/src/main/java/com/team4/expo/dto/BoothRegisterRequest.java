@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 
 
+// ExpoRegisterRequest에 포함되는 부스 1건 등록 정보
 @Getter
 public class BoothRegisterRequest {
 

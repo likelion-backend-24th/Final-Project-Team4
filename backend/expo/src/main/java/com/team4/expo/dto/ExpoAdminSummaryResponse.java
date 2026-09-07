@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// Admin 박람회 목록 - 박람회별 부스·신청 현황 집계
+// Admin 박람회 목록: 박람회별 부스·신청 현황 집계
 @Getter
 @AllArgsConstructor
 public class ExpoAdminSummaryResponse {

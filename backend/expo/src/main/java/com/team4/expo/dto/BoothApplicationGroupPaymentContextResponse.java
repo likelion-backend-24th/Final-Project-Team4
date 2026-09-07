@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.Getter;
 
-// Payment -> Expo 내부 API 응답.
+// 내부 API(Payment -> Expo) 응답.
 @Getter
 public class BoothApplicationGroupPaymentContextResponse {
 

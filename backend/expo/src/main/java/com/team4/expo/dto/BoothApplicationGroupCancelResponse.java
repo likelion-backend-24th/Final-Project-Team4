@@ -2,6 +2,7 @@ package com.team4.expo.dto;
 
 import lombok.Getter;
 
+// 부스 신청 그룹 취소(삭제) 응답
 @Getter
 public class BoothApplicationGroupCancelResponse {
 

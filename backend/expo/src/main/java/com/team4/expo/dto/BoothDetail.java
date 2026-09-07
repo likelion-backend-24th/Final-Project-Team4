@@ -5,6 +5,7 @@ import com.team4.expo.domain.BoothStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+// ExpoBoothsResponse에 담기는 부스 1건 상세 정보
 @Getter
 @AllArgsConstructor
 public class BoothDetail {

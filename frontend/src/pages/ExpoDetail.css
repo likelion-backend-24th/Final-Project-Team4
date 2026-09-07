@@ -90,16 +90,6 @@
   background: #2563eb;
 }
 
-.expo-detail__entrance {
-  text-align: center;
-  font-size: 12px;
-  color: #94a3b8;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  padding: 8px;
-  margin: 12px 0;
-}
-
 .expo-detail__perk {
   margin-bottom: 16px;
 }
@@ -195,6 +185,88 @@
 
 .expo-detail__booths-scroll {
   overflow-x: auto;
+}
+
+.expo-detail__boothmap-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.expo-detail__boothmap-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.expo-detail__allmap {
+  width: 380px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.expo-detail__allmap h3 {
+  margin: 0;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: #0f172a;
+}
+
+.expo-detail__allmap-scroll {
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.expo-detail__current {
+  flex: 1;
+  min-width: 0;
+}
+
+.expo-detail__current h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.expo-detail__view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.expo-detail__view-toggle button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.expo-detail__view-toggle button.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+.expo-detail__current .expo-detail__legend {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+  .expo-detail__boothmap-layout {
+    flex-direction: column;
+  }
+
+  .expo-detail__allmap {
+    width: 100%;
+  }
 }
 
 @media (max-width: 900px) {

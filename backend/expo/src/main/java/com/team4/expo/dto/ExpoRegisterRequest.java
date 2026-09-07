@@ -9,6 +9,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 import java.util.List;
 
+// 박람회 등록 요청(부스 목록 포함)
 @Getter
 public class ExpoRegisterRequest {
 

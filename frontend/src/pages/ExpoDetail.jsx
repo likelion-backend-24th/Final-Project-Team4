@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getExpoBooths, getExpoList } from '../api/expo';
 import BoothGrid from '../components/BoothGrid';
+import { BOOTH_VIEW_MODES, isFoodBooth } from '../utils/boothType';
 import './ExpoDetail.css';
 
 const TABS = ['행사 소개', '부스 배치도', '참가 안내'];
@@ -18,6 +19,7 @@ function ExpoDetail() {
   const [loadError, setLoadError] = useState(null);
   const [tab, setTab] = useState('부스 배치도');
   const [selectedBoothId, setSelectedBoothId] = useState(null);
+  const [viewMode, setViewMode] = useState('BOOTH');
 
   useEffect(() => {
     Promise.all([getExpoBooths(expoId), getExpoList({ page: 0, size: 50 })])
@@ -85,22 +87,48 @@ function ExpoDetail() {
           </nav>
 
           {tab === '부스 배치도' && (
-            <section className="expo-detail__booths">
-              <div className="expo-detail__booths-header">
-                <h2>실시간 부스 배치 현황</h2>
-                <div className="expo-detail__legend">
-                  <span><i className="dot dot--available" /> 선택가능</span>
-                  <span><i className="dot dot--assigned" /> 예약됨</span>
-                  <span><i className="dot dot--selected" /> 선택됨</span>
+            <section className="expo-detail__booths expo-detail__boothmap-card">
+              <div className="expo-detail__boothmap-layout">
+                <div className="expo-detail__allmap">
+                  <h3>전체맵</h3>
+                  <div className="expo-detail__allmap-scroll">
+                    <BoothGrid booths={detail.booths} selectedBoothIds={[]} onToggle={() => {}} readOnly />
+                  </div>
                 </div>
-              </div>
-              <p className="expo-detail__entrance">MAIN ENTRANCE - 전시장 주출입구</p>
-              <div className="expo-detail__booths-scroll">
-                <BoothGrid
-                  booths={detail.booths}
-                  selectedBoothIds={selectedBoothId ? [selectedBoothId] : []}
-                  onToggle={(id) => setSelectedBoothId(id === selectedBoothId ? null : id)}
-                />
+
+                <div className="expo-detail__current">
+                  <h2>실시간 부스 현황</h2>
+
+                  <div className="expo-detail__view-toggle">
+                    {BOOTH_VIEW_MODES.map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        className={viewMode === m.key ? 'is-active' : ''}
+                        onClick={() => {
+                          setViewMode(m.key);
+                          setSelectedBoothId(null);
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="expo-detail__legend">
+                    <span><i className="dot dot--available" /> 선택가능</span>
+                    <span><i className="dot dot--assigned" /> 예약됨</span>
+                    <span><i className="dot dot--selected" /> 선택됨</span>
+                  </div>
+
+                  <div className="expo-detail__booths-scroll">
+                    <BoothGrid
+                      booths={detail.booths.filter((b) => isFoodBooth(b.type) === (viewMode === 'FOOD'))}
+                      selectedBoothIds={selectedBoothId ? [selectedBoothId] : []}
+                      onToggle={(id) => setSelectedBoothId(id === selectedBoothId ? null : id)}
+                    />
+                  </div>
+                </div>
               </div>
             </section>
           )}

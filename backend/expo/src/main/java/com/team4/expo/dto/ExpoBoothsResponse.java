@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.util.List;
 
+// 박람회 부스 배치 현황 조회 응답
 @Getter
 @AllArgsConstructor
 public class ExpoBoothsResponse {

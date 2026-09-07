@@ -56,3 +56,22 @@
 .booth-cell--selected .booth-cell__status {
   color: #fff;
 }
+
+.booth-grid--readonly {
+  grid-template-columns: repeat(4, minmax(64px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.booth-grid--readonly .booth-cell {
+  height: 56px;
+  cursor: default;
+}
+
+.booth-grid--readonly .booth-cell__no {
+  font-size: 13px;
+}
+
+.booth-cell--readonly {
+  cursor: default;
+}

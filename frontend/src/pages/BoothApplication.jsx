@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getExpoBooths, applyBooth } from '../api/expo';
 import BoothGrid from '../components/BoothGrid';
+import { BOOTH_VIEW_MODES, isFoodBooth } from '../utils/boothType';
 import './BoothApplication.css';
 
 const STEPS = ['부스 선택', '신청 정보 입력', '신청 완료'];
@@ -13,7 +14,8 @@ function BoothApplication() {
 
   const [expoBooths, setExpoBooths] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [step, setStep] = useState(2);
+  const [step, setStep] = useState(1);
+  const [viewMode, setViewMode] = useState('BOOTH');
   const initialBoothId = searchParams.get('boothId');
   const [selectedBoothIds, setSelectedBoothIds] = useState(
     initialBoothId ? [Number(initialBoothId)] : []
@@ -27,7 +29,6 @@ function BoothApplication() {
     additionalRequest: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   // 필수 항목별 에러 메시지를 담아두는 곳 (예: { exhibitionItem: '전시 품목을 입력해주세요.' })
   const [fieldErrors, setFieldErrors] = useState({});
@@ -114,18 +115,6 @@ function BoothApplication() {
       .finally(() => setSubmitting(false));
   };
 
-  const handleSaveDraft = () => {
-    if (selectedBoothIds.length === 0) return;
-    setSubmitError(null);
-    setSavingDraft(true);
-    applyBooth(buildPayload('DRAFT'))
-      .then(() => navigate('/mypage'))
-      .catch((err) =>
-        setSubmitError(err.response?.data?.error?.message ?? '임시저장 중 오류가 발생했습니다.')
-      )
-      .finally(() => setSavingDraft(false));
-  };
-
   return (
     <div className="booth-application">
       <div className="booth-application__step-bar">
@@ -153,9 +142,22 @@ function BoothApplication() {
                   <span><i className="booth-application__dot booth-application__dot--selected" />선택됨</span>
                 </div>
               </div>
+              <div className="booth-application__view-toggle">
+                {BOOTH_VIEW_MODES.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    className={viewMode === m.key ? 'is-active' : ''}
+                    onClick={() => setViewMode(m.key)}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="booth-application__grid-scroll">
                 <BoothGrid
-                  booths={expoBooths.booths}
+                  booths={expoBooths.booths.filter((b) => isFoodBooth(b.type) === (viewMode === 'FOOD'))}
                   selectedBoothIds={selectedBoothIds}
                   onToggle={toggleBooth}
                 />
@@ -269,18 +271,10 @@ function BoothApplication() {
               <button
                 type="button"
                 className="booth-application__submit"
-                disabled={selectedBoothIds.length === 0 || submitting || savingDraft}
+                disabled={selectedBoothIds.length === 0 || submitting}
                 onClick={handleSubmit}
               >
                 {submitting ? '신청 중...' : '신청 완료하기'}
-              </button>
-              <button
-                type="button"
-                className="booth-application__save"
-                disabled={selectedBoothIds.length === 0 || submitting || savingDraft}
-                onClick={handleSaveDraft}
-              >
-                {savingDraft ? '저장 중...' : '임시 저장'}
               </button>
             </div>
           </section>

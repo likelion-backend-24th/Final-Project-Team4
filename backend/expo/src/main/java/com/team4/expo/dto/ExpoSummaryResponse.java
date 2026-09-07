@@ -6,6 +6,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+// 박람회 목록/요약 조회 응답
 @Getter
 @AllArgsConstructor
 public class ExpoSummaryResponse {

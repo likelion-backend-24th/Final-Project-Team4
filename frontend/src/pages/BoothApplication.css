@@ -167,6 +167,29 @@
   background: #2563eb;
 }
 
+.booth-application__view-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.booth-application__view-toggle button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.booth-application__view-toggle button.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
 .booth-application__grid-scroll {
   background: #f8fafc;
   border-radius: 6px;
@@ -386,20 +409,6 @@
 .booth-application__submit:disabled {
   background: #cbd5e1;
   cursor: not-allowed;
-}
-
-.booth-application__save {
-  box-sizing: border-box;
-  width: 100%;
-  height: 48px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-  color: #475569;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
 }
 
 .booth-application__done {

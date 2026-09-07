@@ -5,6 +5,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+// 부스 콘텐츠(게시글) 조회/등록/수정 응답
 @Getter
 public class BoothContentResponse {
 

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.Getter;
 
+// 부스 참가 신청(다중 선택, DRAFT/SUBMIT) 요청
 @Getter
 public class BoothApplicationRequest {
 

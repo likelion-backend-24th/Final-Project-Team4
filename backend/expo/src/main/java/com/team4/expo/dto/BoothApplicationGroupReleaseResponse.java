@@ -4,6 +4,7 @@ import com.team4.expo.domain.ApplicationStatus;
 import java.util.List;
 import lombok.Getter;
 
+// 그룹 내 승인 부스 반납(해제) 결과
 @Getter
 public class BoothApplicationGroupReleaseResponse {
 
