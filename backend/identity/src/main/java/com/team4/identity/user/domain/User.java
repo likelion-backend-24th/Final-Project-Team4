@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -58,6 +59,12 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "company_address")
+    private String companyAddress; // 업체주소
+
+    @Column(length = 100)
+    private String industry; // 업종
+
     private User(String email, String passwordHash, Role role) {
         this.email = email;
         this.passwordHash = passwordHash;
@@ -70,12 +77,15 @@ public class User {
     }
 
     public static User createExhibitor(String email, String passwordHash, String businessNo,
-                                       String companyName, String managerName, String contact) {
+                                       String companyName, String managerName, String contact,
+                                       String companyAddress, String industry) {
         User user = new User(email, passwordHash, Role.EXHIBITOR);
         user.businessNo = businessNo;
         user.companyName = companyName;
         user.managerName = managerName;
         user.contact = contact;
+        user.companyAddress = companyAddress;
+        user.industry = industry;
         return user;
     }
 
