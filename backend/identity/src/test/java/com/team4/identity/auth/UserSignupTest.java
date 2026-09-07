@@ -15,20 +15,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// TASK 1-2 - 참가업체 회원가입 테스트
+// 일반 회원(USER) 회원가입 테스트
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ExhibitorSignupTest {
+class UserSignupTest {
 
     private static final String SIGNUP_BODY = """
             {
-              "businessNo": "123-45-67890",
-              "password": "password123",
-              "email": "manager@corp.com",
-              "companyName": "코퍼레이션",
-              "managerName": "KJH",
-              "contact": "010-1234-5678"
+              "email": "member@example.com",
+              "password": "password123"
             }
             """;
 
@@ -44,38 +40,26 @@ class ExhibitorSignupTest {
     }
 
     @Test
-    void 정상_회원가입시_EXHIBITOR_계정이_생성되고_비밀번호는_해시로_저장된다() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
+    void 정상_회원가입시_USER_계정이_생성_비밀번호는_해시로_저장된다() throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(SIGNUP_BODY))
                 .andExpect(status().isCreated());
 
-        User saved = userRepository.findByEmail("manager@corp.com").orElseThrow();
-        assertThat(saved.getBusinessNo()).isEqualTo("1234567890");
-        assertThat(saved.getRole().name()).isEqualTo("EXHIBITOR");
+        User saved = userRepository.findByEmail("member@example.com").orElseThrow();
+        assertThat(saved.getRole().name()).isEqualTo("USER");
+        assertThat(saved.getBusinessNo()).isNull();
         assertThat(saved.getPasswordHash()).isNotEqualTo("password123");
         assertThat(saved.getPasswordHash()).startsWith("$2");
     }
 
     @Test
-    void 이미_가입된_사업자번호면_409() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(SIGNUP_BODY));
-
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(SIGNUP_BODY))
-                .andExpect(status().isConflict());
-    }
-
-    @Test
     void 이미_가입된_이메일이면_409() throws Exception {
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
+        mockMvc.perform(post("/api/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(SIGNUP_BODY));
 
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
+        mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(SIGNUP_BODY))
                 .andExpect(status().isConflict());
@@ -83,19 +67,9 @@ class ExhibitorSignupTest {
 
     @Test
     void 이메일_형식이_틀리면_400() throws Exception {
-        String badBody = SIGNUP_BODY.replace("manager@corp.com", "not-an-email");
+        String badBody = SIGNUP_BODY.replace("member@example.com", "not-an-email");
 
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(badBody))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void 사업자번호_형식이_틀리면_400() throws Exception {
-        String badBody = SIGNUP_BODY.replace("123-45-67890", "abc");
-
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
+        mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(badBody))
                 .andExpect(status().isBadRequest());
@@ -105,7 +79,7 @@ class ExhibitorSignupTest {
     void 비밀번호가_8자_미만이면_400() throws Exception {
         String badBody = SIGNUP_BODY.replace("password123", "short");
 
-        mockMvc.perform(post("/api/auth/exhibitors/signup")
+        mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(badBody))
                 .andExpect(status().isBadRequest());

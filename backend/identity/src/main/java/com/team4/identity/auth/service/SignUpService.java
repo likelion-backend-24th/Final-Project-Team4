@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.identity.auth.business.BusinessVerification;
 import com.team4.identity.auth.dto.SignUpExhibitorRequest;
+import com.team4.identity.auth.dto.SignUpUserRequest;
 import com.team4.identity.user.domain.User;
 import com.team4.identity.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,23 @@ public class SignUpService {
     private final BusinessVerification businessVerification;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Transactional
+    public void signUpUser(SignUpUserRequest request) {
+        // 이메일 로그인 - 일반회원
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
+        }
+
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+        User user = User.createMember(request.getEmail(), passwordHash);
+
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) { // unique 제약 예외
+            throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
+        }
+    }
 
     @Transactional
     public void signUpExhibitor(SignUpExhibitorRequest request) {
