@@ -1,9 +1,9 @@
 import './BoothGrid.css';
 
 const STATUS_LABEL = {
-  AVAILABLE: '가능',
-  RESERVED: '승인 대기중',
-  ASSIGNED: '예약됨',
+  AVAILABLE: '신청 가능',
+  RESERVED: '결제 대기중',
+  ASSIGNED: '배정 완료',
 };
 
 // booth.boothId(실제 API 응답 필드) 또는 booth.id(레거시 mock 데이터 필드) 둘 다 지원
