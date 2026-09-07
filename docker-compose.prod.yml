@@ -1,0 +1,133 @@
+name: car-expo-prod
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: car-expo-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_USER: app
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d:ro
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+    networks:
+      - backend
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: car-expo-redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 15
+    networks:
+      - backend
+
+  identity:
+    image: ghcr.io/likelion-backend-24th/team4-identity:${IMAGE_TAG:-latest}
+    container_name: car-expo-identity
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: app
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ACCESS_KEY: ${ACCESS_KEY}
+      REFRESH_KEY: ${REFRESH_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: None
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+
+  expo:
+    image: ghcr.io/likelion-backend-24th/team4-expo:${IMAGE_TAG:-latest}
+    container_name: car-expo-expo
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: app
+      DB_PASSWORD: ${DB_PASSWORD}
+      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
+      PAYMENT_BASE_URL: http://payment:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+
+  payment: # payment H2라 재기동 시 데이터 초기화될수도
+    image: ghcr.io/likelion-backend-24th/team4-payment:${IMAGE_TAG:-latest}
+    container_name: car-expo-payment
+    restart: unless-stopped
+    environment:
+      PORTONE_API_SECRET: ${PORTONE_API_SECRET:-}
+      EXPO_BASE_URL: http://expo:8082
+      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
+    networks:
+      - backend
+
+  gateway:
+    image: ghcr.io/likelion-backend-24th/team4-gateway:${IMAGE_TAG:-latest}
+    container_name: car-expo-gateway
+    restart: unless-stopped
+    environment:
+      ACCESS_KEY: ${ACCESS_KEY}
+      # application.yml 라우트 순서 - 0 identity, 1 payment, 2 expo
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://identity:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://payment:8083
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://expo:8082
+    depends_on:
+      - identity
+      - expo
+      - payment
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: car-expo-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certbot/conf:/etc/letsencrypt:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
+    depends_on:
+      - gateway
+    networks:
+      - backend
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  backend:
