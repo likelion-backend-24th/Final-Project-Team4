@@ -34,6 +34,14 @@ public class ExpoService {
         this.validator = validator;
     }
 
+    // 내부 API(Reservation -> Expo)용 — 방문 예약 시점에 무료/유료를 가르는 데 필요한 최소 정보만 조회.
+    @Transactional(readOnly = true)
+    public ExpoInternalInfoResponse getExpoInternalInfo(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+        return ExpoInternalInfoResponse.from(expo);
+    }
+
     // 박람회와 부스 목록을 등록 (관리자용, 등록 직후엔 비공개 DRAFT 상태).
     public ExpoResponse registerExpo(ExpoRegisterRequest request) {
         validateDateOrder(request);
@@ -45,7 +53,8 @@ public class ExpoService {
                 request.getStartsAt(),
                 request.getEndsAt(),
                 request.getApplyStartsAt(),
-                request.getApplyEndsAt()
+                request.getApplyEndsAt(),
+                request.getAdmissionFee()
         );
         expoRepository.save(expo);
 

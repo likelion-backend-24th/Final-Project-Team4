@@ -1,11 +1,11 @@
 server:
-  port: 8082
+  port: 8084
 
 spring:
   application:
-    name: expo
+    name: reservation
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/expo?serverTimezone=UTC&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/reservation?serverTimezone=UTC&characterEncoding=UTF-8&rewriteBatchedStatements=true
     username: ${DB_USER:app}
     password: ${DB_PASSWORD:app_local_only}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -22,11 +22,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+# 방문 예약 신청 시 대상 박람회 공개 상태·시작일 확인용 (Reservation -> Expo 내부 호출)
+expo:
+  base-url: ${EXPO_BASE_URL:http://localhost:8082}
+  service-token: ${SVC_TOKEN_RESERVATION:local_dev_reservation_token}
+
 # 내부 서비스 간 호출(/internal/**) 인증용. Gateway·OpenAPI에 미노출.
+# Payment -> Reservation 당일 입장권 결제 문의(admission-context)에서 씀. expo의 SVC_TOKEN_PAYMENT와 같은 값 공유.
 service:
   token:
     payment: ${SVC_TOKEN_PAYMENT:local_dev_payment_token}
-    reservation: ${SVC_TOKEN_RESERVATION:local_dev_reservation_token}
-
-payment:
-  base-url: ${PAYMENT_BASE_URL:http://localhost:8083}

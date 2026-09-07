@@ -29,75 +29,164 @@ const STATUS_CLASS = {
 
 const FILTER_TABS = ['전체', '심사중', '승인', '반려'];
 
-// 그룹별 보기 / 부스별 보기 양쪽에서 재사용하는 "부스 선택 → 메모 → 승인/반려" 패널.
-// applicants: 선택 대상 목록. renderLabel(app): 리스트 항목에 보여줄 라벨(부스번호만 vs 업체+부스번호).
-function BoothDecisionPanel({ applicants, renderLabel, selectedApplicationId, onSelect, memo, setMemo, onApprove, onReject, isSubmitting, actionError }) {
-  const selectedApp = applicants.find((a) => a.applicationId === selectedApplicationId);
+// ISO(2026-01-20T10:14:00) → 2026.01.20 10:14
+const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
+
+// "부스별 심사 현황" — 그룹 안의 부스 목록(또는 부스별 보기의 경쟁 업체 목록)에서 상태 무관하게 라디오로 선택해 상세를 확인.
+// 승인/반려 액션은 심사중 건에만 가능하지만, 선택 자체는 모든 상태에서 가능해야 지난 심사 결과도 확인할 수 있다.
+function BoothSelectList({ applicants, renderLabel, selectedApplicationId, onSelect }) {
+  return (
+    <ul className="admin-applications__booth-list">
+      {applicants.map((app) => {
+        const isSelected = selectedApplicationId === app.applicationId;
+        return (
+          <li
+            key={app.applicationId}
+            className={[isSelected && 'is-selected', 'is-selectable'].filter(Boolean).join(' ')}
+            onClick={() => onSelect(app.applicationId)}
+          >
+            <div className="admin-applications__booth-list-row">
+              <span className="admin-applications__booth-list-radio">
+                <input
+                  type="radio"
+                  name="booth-decision-select"
+                  checked={isSelected}
+                  onChange={() => onSelect(app.applicationId)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </span>
+              <span className="is-strong">{renderLabel(app)}</span>
+              <span className={`admin-badge ${STATUS_CLASS[app.statusLabel] ?? ''}`}>{app.statusLabel}</span>
+            </div>
+            {app.rejectReason && (
+              <p className="admin-applications__reject-reason">사유: {app.rejectReason}</p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+// 좌측 컬럼: "신청 업체 대표 정보" + "부스 참가 상세 신청 정보".
+// selectedApp이 없으면(아직 심사 대상을 선택 안 했으면) 안내 문구만 보여준다.
+function ApplicantInfoColumn({ selectedApp }) {
+  if (!selectedApp) {
+    return <p className="admin-applications__cell-muted">오른쪽에서 심사할 부스를 선택하면 상세 정보가 표시됩니다.</p>;
+  }
+
+  const group = selectedApp.group;
 
   return (
     <>
-      <ul className="admin-applications__booth-list">
-        {applicants.map((app) => {
-          const isSelected = selectedApplicationId === app.applicationId;
-          const isActionable = app.statusLabel === '심사중';
-          return (
-            <li
-              key={app.applicationId}
-              className={[isSelected && 'is-selected', isActionable && 'is-selectable'].filter(Boolean).join(' ')}
-              onClick={() => isActionable && onSelect(app.applicationId)}
-            >
-              <div className="admin-applications__booth-list-row">
-                <span className="admin-applications__booth-list-radio">
-                  {isActionable && (
-                    <input
-                      type="radio"
-                      name="booth-decision-select"
-                      checked={isSelected}
-                      onChange={() => onSelect(app.applicationId)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  )}
-                </span>
-                <span className="is-strong">{renderLabel(app)}</span>
-                <span className={`admin-badge ${STATUS_CLASS[app.statusLabel] ?? ''}`}>{app.statusLabel}</span>
-              </div>
-              {app.rejectReason && (
-                <p className="admin-applications__reject-reason">사유: {app.rejectReason}</p>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+      <section className="admin-review__card">
+        <h3>신청 업체 대표 정보</h3>
+        <dl className="admin-review__info-grid">
+          <div>
+            <dt>업체명</dt>
+            <dd>{group?.companyName ?? '-'}</dd>
+          </div>
+          <div>
+            <dt>사업자등록번호</dt>
+            <dd>{group?.businessNumber ?? '-'}</dd>
+          </div>
+          <div>
+            <dt>대표자명</dt>
+            <dd>{group?.ceoName ?? '-'}</dd>
+          </div>
+          <div>
+            <dt>담당자 이메일</dt>
+            <dd>{group?.managerEmail ?? '-'}</dd>
+          </div>
+        </dl>
+      </section>
 
-      <label className="admin-applications__memo-label">
-        {selectedApp ? `${renderLabel(selectedApp)} 심사 메모 (반려 시 사유로 전달됨)` : '심사할 부스를 선택하세요'}
-      </label>
-      <textarea
-        value={memo}
-        onChange={(e) => setMemo(e.target.value)}
-        placeholder='예: "해당 부스 배정 승인 전, 전력 추가 용량(3kW) 공급 가능 여부 전시 기술팀 협의 필요."'
-        rows={4}
-        disabled={!selectedApp}
-      />
-      {actionError && <p className="admin-applications__memo-notice">{actionError}</p>}
-      <div className="admin-applications__decision">
-        <button
-          className="admin-applications__reject"
-          disabled={!selectedApp || !memo.trim() || isSubmitting}
-          title={!selectedApp ? '부스를 먼저 선택하세요' : !memo.trim() ? '반려 사유를 입력하세요' : undefined}
-          onClick={() => onReject(selectedApp, memo)}
-        >
-          {selectedApp ? `${renderLabel(selectedApp)} 반려` : '신청 반려'}
-        </button>
-        <button
-          className="admin-applications__approve"
-          disabled={!selectedApp || isSubmitting}
-          onClick={() => onApprove(selectedApp)}
-        >
-          {selectedApp ? `${renderLabel(selectedApp)} 승인` : '신청 승인 완료'}
-        </button>
-      </div>
+      <section className="admin-review__card">
+        <h3>부스 참가 상세 신청 정보</h3>
+        <dl className="admin-review__detail-dl">
+          <dt>희망 부스 번호</dt>
+          <dd>{selectedApp.boothNo}</dd>
+          <dt>부스 유형 및 규격</dt>
+          <dd>{selectedApp.boothType ?? '-'}</dd>
+          <dt>주요 전시 품목</dt>
+          <dd>{group?.exhibitionItem}</dd>
+          <dt>전시 컨셉 설명</dt>
+          <dd>{group?.conceptDescription}</dd>
+          <dt>추가 요청 사항</dt>
+          <dd>{group?.additionalRequest || '-'}</dd>
+        </dl>
+      </section>
     </>
+  );
+}
+
+// 우측 컬럼 하단: 선택된 신청 건의 상태·메모·승인/반려 액션 카드 ("참가 신청 심사").
+function ReviewCard({ selectedApp, memo, setMemo, onApprove, onReject, isSubmitting, actionError }) {
+  if (!selectedApp) {
+    return (
+      <section className="admin-review__card">
+        <h3>참가 신청 심사</h3>
+        <p className="admin-applications__cell-muted">위 목록에서 심사할 부스를 선택하세요.</p>
+      </section>
+    );
+  }
+
+  const isPending = selectedApp.statusLabel === '심사중';
+  const statusBadgeLabel = isPending ? '심사중 (대기)' : selectedApp.statusLabel;
+
+  return (
+    <section className="admin-review__card">
+      <h3>참가 신청 심사</h3>
+      <div className="admin-applications__review-meta">
+        <div>
+          <span>신청 접수 상태</span>
+          <span className={`admin-badge ${STATUS_CLASS[selectedApp.statusLabel] ?? ''}`}>{statusBadgeLabel}</span>
+        </div>
+        <div>
+          <span>최초 신청 일시</span>
+          <span>{fmtDateTime(selectedApp.submittedAt)}</span>
+        </div>
+        <div>
+          <span>심사 처리 일시</span>
+          <span>-</span>
+        </div>
+      </div>
+
+      {isPending ? (
+        <>
+          <label className="admin-applications__memo-label">관리자 심사 메모</label>
+          <textarea
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder='예: "해당 부스 배정 승인 전, 전력 추가 용량(3kW) 공급 가능 여부 전시 기술팀 협의 필요."'
+            rows={4}
+          />
+          <p className="admin-review__notice">
+            * 반려 시 참가업체에 이메일로 반려 사유가 즉시 안내됩니다.
+          </p>
+          {actionError && <p className="admin-applications__memo-notice">{actionError}</p>}
+          <div className="admin-applications__decision">
+            <button
+              className="admin-applications__reject"
+              disabled={!memo.trim() || isSubmitting}
+              title={!memo.trim() ? '반려 사유를 입력하세요' : undefined}
+              onClick={() => onReject(selectedApp, memo)}
+            >
+              신청 반려
+            </button>
+            <button
+              className="admin-applications__approve"
+              disabled={isSubmitting}
+              onClick={() => onApprove(selectedApp)}
+            >
+              신청 승인 완료
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="admin-applications__cell-muted">이미 처리된 신청 건입니다. (승인/반려 대상 아님)</p>
+      )}
+    </section>
   );
 }
 
@@ -344,47 +433,42 @@ function AdminExpoDetail() {
                           </button>
                         </td>
                       </tr>
-                      {isOpen && (
-                        <tr className="admin-applications__detail-row">
-                          <td colSpan={4}>
-                            <div className="admin-applications__detail">
-                              <div className="admin-applications__detail-col">
-                                <h3>신청 업체 정보</h3>
-                                <dl>
-                                  <dt>참가업체 ID</dt>
-                                  <dd>#{group.exhibitorId}</dd>
-                                  <dt>신청 그룹</dt>
-                                  <dd>{group.groupId}</dd>
-                                </dl>
-                                <h3>부스 참가 상세 신청 정보</h3>
-                                <dl>
-                                  <dt>주요 전시 품목</dt>
-                                  <dd>{group.exhibitionItem}</dd>
-                                  <dt>전시 컨셉 설명</dt>
-                                  <dd>{group.conceptDescription}</dd>
-                                  <dt>추가 요청 사항</dt>
-                                  <dd>{group.additionalRequest || '-'}</dd>
-                                </dl>
+                      {isOpen && (() => {
+                        const applicants = group.applications.map((app) => ({ ...app, group }));
+                        const selectedApp = applicants.find((a) => a.applicationId === selectedApplicationId);
+                        return (
+                          <tr className="admin-applications__detail-row">
+                            <td colSpan={4}>
+                              <div className="admin-applications__detail admin-applications__detail--columns">
+                                <div className="admin-review__col">
+                                  <ApplicantInfoColumn selectedApp={selectedApp} />
+                                </div>
+                                <div className="admin-review__col">
+                                  <section className="admin-review__card">
+                                    <h3>부스별 심사 현황 (부스를 선택해 개별 승인/반려)</h3>
+                                    <BoothSelectList
+                                      applicants={applicants}
+                                      renderLabel={(app) => app.boothNo}
+                                      selectedApplicationId={selectedApplicationId}
+                                      onSelect={setSelectedApplicationId}
+                                    />
+                                  </section>
+
+                                  <ReviewCard
+                                    selectedApp={selectedApp}
+                                    memo={memo}
+                                    setMemo={setMemo}
+                                    onApprove={handleApprove}
+                                    onReject={handleReject}
+                                    isSubmitting={isSubmitting}
+                                    actionError={actionError}
+                                  />
+                                </div>
                               </div>
-                              <div className="admin-applications__detail-col">
-                                <h3>부스별 심사 현황 (부스를 선택해 개별 승인/반려)</h3>
-                                <BoothDecisionPanel
-                                  applicants={group.applications}
-                                  renderLabel={(app) => app.boothNo}
-                                  selectedApplicationId={selectedApplicationId}
-                                  onSelect={setSelectedApplicationId}
-                                  memo={memo}
-                                  setMemo={setMemo}
-                                  onApprove={handleApprove}
-                                  onReject={handleReject}
-                                  isSubmitting={isSubmitting}
-                                  actionError={actionError}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
                     </Fragment>
                   );
                 })}
@@ -439,62 +523,41 @@ function AdminExpoDetail() {
                           </button>
                         </td>
                       </tr>
-                      {isOpen && (
-                        <tr className="admin-applications__detail-row">
-                          <td colSpan={4}>
-                            <div className="admin-applications__detail">
-                              {(() => {
-                                const selectedApp = row.applicants.find((a) => a.applicationId === selectedApplicationId);
-                                const selectedGroup = selectedApp?.group;
-                                return (
-                                  <div className="admin-applications__detail-col">
-                                    <h3>선택된 신청 업체 정보</h3>
-                                    {selectedGroup ? (
-                                      <dl>
-                                        <dt>참가업체 ID</dt>
-                                        <dd>#{selectedGroup.exhibitorId}</dd>
-                                        <dt>신청 그룹</dt>
-                                        <dd>{selectedGroup.groupId}</dd>
-                                      </dl>
-                                    ) : (
-                                      <p className="admin-applications__cell-muted">오른쪽에서 업체를 선택하면 상세 정보가 표시됩니다.</p>
-                                    )}
+                      {isOpen && (() => {
+                        const selectedApp = row.applicants.find((a) => a.applicationId === selectedApplicationId);
+                        return (
+                          <tr className="admin-applications__detail-row">
+                            <td colSpan={4}>
+                              <div className="admin-applications__detail admin-applications__detail--columns">
+                                <div className="admin-review__col">
+                                  <ApplicantInfoColumn selectedApp={selectedApp} />
+                                </div>
+                                <div className="admin-review__col">
+                                  <section className="admin-review__card">
+                                    <h3>{row.boothNo} 신청 업체 비교 (업체를 선택해 개별 승인/반려)</h3>
+                                    <BoothSelectList
+                                      applicants={row.applicants}
+                                      renderLabel={(app) => `#${app.group.exhibitorId}`}
+                                      selectedApplicationId={selectedApplicationId}
+                                      onSelect={setSelectedApplicationId}
+                                    />
+                                  </section>
 
-                                    <h3>부스 참가 상세 신청 정보</h3>
-                                    {selectedGroup ? (
-                                      <dl>
-                                        <dt>주요 전시 품목</dt>
-                                        <dd>{selectedGroup.exhibitionItem}</dd>
-                                        <dt>전시 컨셉 설명</dt>
-                                        <dd>{selectedGroup.conceptDescription}</dd>
-                                        <dt>추가 요청 사항</dt>
-                                        <dd>{selectedGroup.additionalRequest || '-'}</dd>
-                                      </dl>
-                                    ) : (
-                                      <p className="admin-applications__cell-muted">-</p>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                              <div className="admin-applications__detail-col">
-                                <h3>{row.boothNo} 신청 업체 비교 (업체를 선택해 개별 승인/반려)</h3>
-                                <BoothDecisionPanel
-                                  applicants={row.applicants}
-                                  renderLabel={(app) => `#${app.group.exhibitorId}`}
-                                  selectedApplicationId={selectedApplicationId}
-                                  onSelect={setSelectedApplicationId}
-                                  memo={memo}
-                                  setMemo={setMemo}
-                                  onApprove={handleApprove}
-                                  onReject={handleReject}
-                                  isSubmitting={isSubmitting}
-                                  actionError={actionError}
-                                />
+                                  <ReviewCard
+                                    selectedApp={selectedApp}
+                                    memo={memo}
+                                    setMemo={setMemo}
+                                    onApprove={handleApprove}
+                                    onReject={handleReject}
+                                    isSubmitting={isSubmitting}
+                                    actionError={actionError}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
+                            </td>
+                          </tr>
+                        );
+                      })()}
                     </Fragment>
                   );
                 })}
