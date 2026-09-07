@@ -74,6 +74,7 @@ class BoothApplicationAcceptanceTest {
                 "applyEndsAt", now.plusDays(10).toString(),
                 "startsAt", now.plusDays(30).toString(),
                 "endsAt", now.plusDays(33).toString(),
+                "admissionFee", 10_000,
                 "booths", List.of(
                         Map.of("boothNo", "A-101", "type", "조립 부스", "fee", 3_000_000),
                         Map.of("boothNo", "A-102", "type", "독립 부스", "fee", 5_000_000))));
@@ -200,6 +201,7 @@ class BoothApplicationAcceptanceTest {
                 "applyEndsAt", now.plusDays(1).toString(),   // 시작 > 마감
                 "startsAt", now.plusDays(30).toString(),
                 "endsAt", now.plusDays(33).toString(),
+                "admissionFee", 10_000,
                 "booths", List.of(Map.of("boothNo", "A-1", "type", "조립", "fee", 1_000_000))));
 
         mockMvc.perform(post("/api/admin/expos").with(admin())
@@ -239,6 +241,7 @@ class BoothApplicationAcceptanceTest {
                 "applyEndsAt", now.minusDays(1).toString(),
                 "startsAt", now.plusDays(30).toString(),
                 "endsAt", now.plusDays(33).toString(),
+                "admissionFee", 10_000,
                 "booths", List.of(Map.of("boothNo", "A-1", "type", "조립", "fee", 1_000_000))));
         String json = mockMvc.perform(post("/api/admin/expos").with(admin())
                         .contentType(MediaType.APPLICATION_JSON).content(closed))

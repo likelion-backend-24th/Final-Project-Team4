@@ -1,0 +1,29 @@
+package com.team4.reservation.repository;
+
+import com.team4.reservation.domain.Ticket;
+import com.team4.reservation.domain.TicketType;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface TicketRepository extends JpaRepository<Ticket, Long> {
+
+    // 이 고객이 이 박람회의 이 날짜 티켓을 이미 받았는지 — 방문 예약 신청의 멱등 체크에 씀.
+    Optional<Ticket> findByCustomerIdAndExpoIdAndVisitDate(Long customerId, Long expoId, LocalDate visitDate);
+
+    // 이 고객이 이 박람회에 무료 QR을 하나라도 갖고 있는지(날짜 무관) — Payment가 당일 결제 전에 물어보는 값.
+    boolean existsByCustomerIdAndExpoIdAndTicketType(Long customerId, Long expoId, TicketType ticketType);
+
+    // 체크인할 때 QR 스캔값(qrToken)으로 대상 티켓을 찾는 용도.
+    Optional<Ticket> findByQrToken(String qrToken);
+
+    // 체크인 시 단일 사용 보장용 조건부 UPDATE.
+    @Modifying
+    @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.USED, t.usedAt = :usedAt "
+            + "WHERE t.id = :id AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED")
+    int markUsedIfIssued(@Param("id") Long id, @Param("usedAt") LocalDateTime usedAt); // 반환값 0 = 이미 사용됨/취소됨(호출부에서 409 처리)
+}
