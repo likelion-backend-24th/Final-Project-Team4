@@ -56,6 +56,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: None
+      SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
         condition: service_healthy
@@ -75,6 +76,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
       PAYMENT_BASE_URL: http://payment:8083
+      SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
         condition: service_healthy
@@ -89,6 +91,7 @@ services:
       PORTONE_API_SECRET: ${PORTONE_API_SECRET:-}
       EXPO_BASE_URL: http://expo:8082
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
+      SPRING_JPA_SHOW_SQL: "false"
     networks:
       - backend
 
@@ -97,11 +100,9 @@ services:
     container_name: car-expo-gateway
     restart: unless-stopped
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       ACCESS_KEY: ${ACCESS_KEY}
-      # application.yml 라우트 순서 - 0 identity, 1 payment, 2 expo
-      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://identity:8081
-      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://payment:8083
-      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://expo:8082
+      FRONT_ORIGIN: ${FRONT_ORIGIN}
     depends_on:
       - identity
       - expo
