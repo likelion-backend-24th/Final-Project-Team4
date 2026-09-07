@@ -3,6 +3,8 @@ package com.team4.payment.gateway;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -14,7 +16,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 @Component
-// @Primary
+@Primary
+@Profile("portone")
 public class PortOnePaymentGateway implements PaymentGateway {
 
     private final String apiSecret;
