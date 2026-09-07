@@ -3,6 +3,7 @@ package com.team4.payment.repository;
 import com.team4.payment.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
@@ -16,4 +17,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByPortonePaymentId(String portonePaymentId);
     // 거래 고유 번호 중복 여부 확인
     boolean existsByPortonePaymentId(String portonePaymentId);
+
+    // 특정 사용자의 결제 내역 전체 조회
+    List<Payment> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

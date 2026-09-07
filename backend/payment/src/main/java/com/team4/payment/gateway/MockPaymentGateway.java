@@ -1,11 +1,13 @@
 package com.team4.payment.gateway;
 
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 // 데모/로컬 기본 결제 게이트웨이. 항상 성공 처리.
 @Component
 @Primary
+@Profile("!portone")
 public class MockPaymentGateway implements PaymentGateway{
 
     private static final String FORCE_FAIL_PREFIX = "FORCE_FAIL";

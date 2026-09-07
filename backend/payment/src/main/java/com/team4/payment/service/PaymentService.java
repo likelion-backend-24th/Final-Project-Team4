@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -31,6 +32,11 @@ public class PaymentService {
 
     public Optional<Payment> findByBookingId(String bookingId){
         return paymentRepository.findByBookingId(bookingId);
+    }
+
+    // 특정 사용자(참가업체)의 결제 내역 전체 조회 (마이페이지 '참가비 결제 내역')
+    public List<Payment> findByUserId(Long userId){
+        return paymentRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     // 부스 참가비 결제 처리 (실제 포트원 검증 + Expo 확정 통보)
@@ -103,4 +109,7 @@ public class PaymentService {
 
         return saved;
     }
+
+    // 결제 내역 조회 매서드
+
 }
