@@ -30,7 +30,9 @@ class ExhibitorSignupTest {
               "managerName": "KJH",
               "contact": "010-1234-5678",
               "companyAddress": "서울시 강남구 테헤란로 1",
-              "industry": "전기차 부품 제조"
+              "industry": "전기차 부품 제조",
+              "representativeName": "이대표",
+              "companyContact": "02-1234-5678"
             }
             """;
 
@@ -59,6 +61,8 @@ class ExhibitorSignupTest {
         assertThat(saved.getPasswordHash()).startsWith("$2");
         assertThat(saved.getCompanyAddress()).isEqualTo("서울시 강남구 테헤란로 1");
         assertThat(saved.getIndustry()).isEqualTo("전기차 부품 제조");
+        assertThat(saved.getRepresentativeName()).isEqualTo("이대표");
+        assertThat(saved.getCompanyContact()).isEqualTo("02-1234-5678");
     }
 
     @Test
