@@ -75,7 +75,27 @@ services:
       DB_USER: app
       DB_PASSWORD: ${DB_PASSWORD}
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
+      SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
       PAYMENT_BASE_URL: http://payment:8083
+      SPRING_JPA_SHOW_SQL: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+
+  reservation:
+    image: ghcr.io/likelion-backend-24th/team4-reservation:${IMAGE_TAG:-latest}
+    container_name: car-expo-reservation
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: app
+      DB_PASSWORD: ${DB_PASSWORD}
+      EXPO_BASE_URL: http://expo:8082
+      SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
+      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
@@ -107,6 +127,7 @@ services:
       - identity
       - expo
       - payment
+      - reservation
     networks:
       - backend
 
