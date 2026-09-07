@@ -31,4 +31,16 @@ public class SignUpExhibitorRequest {
 
     @NotBlank
     private final String contact;       // 담당자 연락처(전화)
+
+    @NotBlank
+    private final String companyAddress; // 업체주소
+
+    @NotBlank
+    private final String industry; // 업종
+
+    @NotBlank
+    private final String representativeName; // 대표자명
+
+    @NotBlank
+    private final String companyContact; // 업체 대표 연락처
 }

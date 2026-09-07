@@ -49,6 +49,10 @@ function Signup() {
         companyName: f.get('companyName'),
         managerName: f.get('managerName'),
         contact: f.get('contact'),
+        companyAddress: f.get('companyAddress'),
+        industry: f.get('industry'),
+        representativeName: f.get('representativeName'),
+        companyContact: f.get('companyContact'),
       });
       alert('회원가입이 완료되었습니다. 로그인해주세요.');
       navigate('/login');
@@ -218,19 +222,19 @@ function Signup() {
                 </label>
                 <label>
                   <span className="signup__label-row">대표자명 <span>*</span></span>
-                  <input placeholder="이대표" required />
+                  <input name="representativeName" placeholder="이대표" required />
                 </label>
                 <label>
                   <span className="signup__label-row">업종 <span>*</span></span>
-                  <input placeholder="전기차 부품 제조 / S/W 솔루션" required />
+                  <input name="industry" placeholder="전기차 부품 제조 / S/W 솔루션" required />
                 </label>
                 <label className="signup__full">
                   <span className="signup__label-row">업체 주소 <span>*</span></span>
-                  <input placeholder="서울특별시 강남구 테헤란로 123, 4층" required />
+                  <input name="companyAddress" placeholder="서울특별시 강남구 테헤란로 123, 4층" required />
                 </label>
                 <label className="signup__full">
                   <span className="signup__label-row">업체 대표 연락처 <span>*</span></span>
-                  <input placeholder="예: 02-1234-5678" required />
+                  <input name="companyContact" placeholder="예: 02-1234-5678" required />
                 </label>
               </div>
             </section>

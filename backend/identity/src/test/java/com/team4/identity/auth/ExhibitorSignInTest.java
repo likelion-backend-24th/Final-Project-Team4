@@ -30,7 +30,11 @@ class ExhibitorSignInTest {
               "email": "manager@corp.com",
               "companyName": "코퍼레이션",
               "managerName": "KJH",
-              "contact": "010-1234-5678"
+              "contact": "010-1234-5678",
+              "companyAddress": "서울시 강남구 테헤란로 1",
+              "industry": "전기차 부품 제조",
+              "representativeName": "이대표",
+              "companyContact": "02-1234-5678"
             }
             """;
 

@@ -57,7 +57,17 @@ public class SignUpService {
 
         // 비밀번호 해시 후 저장
         String passwordHash = passwordEncoder.encode(request.getPassword());
-        User user = User.createExhibitor(request.getEmail(), passwordHash, businessNo, request.getCompanyName(), request.getManagerName(), request.getContact());
+        User user = User.createExhibitor(
+                request.getEmail(),
+                passwordHash, businessNo,
+                request.getCompanyName(),
+                request.getManagerName(),
+                request.getContact(),
+                request.getCompanyAddress(),
+                request.getIndustry(),
+                request.getRepresentativeName(),
+                request.getCompanyContact()
+        );
 
         try {
             userRepository.save(user);
