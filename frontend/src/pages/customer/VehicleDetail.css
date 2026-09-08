@@ -1,0 +1,336 @@
+.c-vehicle-detail {
+  padding: 20px 80px 64px;
+  font-family: 'Inter', sans-serif;
+}
+
+.c-vehicle-detail__status {
+  padding: 40px 80px;
+  color: #64748b;
+}
+
+.c-vehicle-detail__crumb {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.c-vehicle-detail__crumb a {
+  color: #94a3b8;
+  text-decoration: none;
+}
+
+.c-vehicle-detail__crumb span:last-child {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.c-vehicle-detail__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  align-items: start;
+}
+
+.c-vehicle-detail__gallery-main {
+  height: 320px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+  margin-bottom: 12px;
+}
+
+.c-vehicle-detail__gallery-thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.c-vehicle-detail__gallery-thumb {
+  height: 72px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.c-vehicle-detail__main h1 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 8px;
+}
+
+.c-vehicle-detail__summary {
+  color: #475569;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.c-vehicle-detail__tags {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.c-vehicle-detail__tags span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.c-vehicle-detail__price {
+  font-size: 14px;
+  color: #475569;
+  margin: 0 0 20px;
+}
+
+.c-vehicle-detail__price strong {
+  font-size: 20px;
+  color: #0f172a;
+  font-weight: 800;
+  margin-left: 6px;
+}
+
+.c-vehicle-detail__specs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.c-vehicle-detail__spec {
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c-vehicle-detail__spec-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.c-vehicle-detail__spec-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.c-vehicle-detail__linkrow {
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 28px;
+}
+
+.c-vehicle-detail__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+}
+
+.c-vehicle-detail__tabs button {
+  box-sizing: border-box;
+  padding: 12px 18px;
+  border: none;
+  background: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.c-vehicle-detail__tabs button.is-active {
+  color: #0f172a;
+  border-bottom-color: #2563eb;
+}
+
+.c-vehicle-detail__tabcontent p {
+  color: #475569;
+  font-size: 14px;
+  line-height: 22px;
+  margin: 0 0 10px;
+}
+
+.c-vehicle-detail__side {
+  position: sticky;
+  top: 20px;
+}
+
+.c-consult {
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.c-consult h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.c-consult__desc {
+  font-size: 13px;
+  color: #64748b;
+  margin: -10px 0 0;
+}
+
+.c-consult__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c-consult__field > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.c-consult__field input {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+}
+
+.c-consult__field input:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.c-consult__calendar {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.c-consult__calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.c-consult__calendar-head span {
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+.c-consult__calendar-weekdays,
+.c-consult__calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+}
+
+.c-consult__calendar-weekdays span {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 4px 0;
+}
+
+.c-consult__calendar-grid button {
+  box-sizing: border-box;
+  aspect-ratio: 1;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.c-consult__calendar-grid button:disabled {
+  cursor: default;
+}
+
+.c-consult__calendar-grid button:not(:disabled):hover {
+  background: #f1f5f9;
+}
+
+.c-consult__calendar-grid button.is-selected {
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+}
+
+.c-consult__slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.c-consult__slots button {
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.c-consult__slots button.is-selected {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.c-consult__submit {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.c-consult__submit:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .c-vehicle-detail {
+    padding: 16px 20px 48px;
+  }
+
+  .c-vehicle-detail__body {
+    grid-template-columns: 1fr;
+  }
+
+  .c-vehicle-detail__side {
+    position: static;
+  }
+}
