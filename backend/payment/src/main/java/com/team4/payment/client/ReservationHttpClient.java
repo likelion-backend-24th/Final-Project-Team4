@@ -15,6 +15,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.util.Map;
 
 // 실제 Reservation 서비스(/internal/reservation/...) 호출용 클라이언트.
 @Component
@@ -64,6 +66,40 @@ public class ReservationHttpClient implements ReservationClient {
                     data.path("customerId").asLong(),
                     data.path("hasFreeAdmission").asBoolean(),
                     data.path("admissionFee").asLong()
+            );
+
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public AdmissionTicket issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
+        try {
+            String body = objectMapper.writeValueAsString(Map.of("visitDate", visitDate.toString()));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(reservationBaseUrl + "/internal/reservation/customers/" + customerId
+                            + "/expos/" + expoId + "/admission-tickets"))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "Reservation 티켓 발급 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+
+            JsonNode data = objectMapper.readTree(response.body()).path("data");
+
+            return new AdmissionTicket(
+                    data.path("ticketId").asLong(),
+                    data.path("qrToken").asText(),
+                    data.path("qrImageBase64").asText(null)
             );
 
         } catch (IOException | InterruptedException e) {

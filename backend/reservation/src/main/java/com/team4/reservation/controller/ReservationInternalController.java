@@ -4,11 +4,16 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.reservation.dto.AdmissionContextResponse;
+import com.team4.reservation.dto.IssueAdmissionTicketRequest;
+import com.team4.reservation.dto.TicketResponse;
 import com.team4.reservation.service.TicketService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +42,20 @@ public class ReservationInternalController {
         requirePaymentService(authorization);
 
         return ResponseEntity.ok(ApiResponse.success(ticketService.getAdmissionContext(customerId, expoId)));
+    }
+
+    // Payment -> Reservation. 당일 유료 입장권 결제 완료 직후, 실제 티켓(QR)을 발급.
+    @PostMapping("/customers/{customerId}/expos/{expoId}/admission-tickets")
+    public ResponseEntity<ApiResponse<TicketResponse>> issueAdmissionTicket(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long customerId,
+            @PathVariable Long expoId,
+            @Valid @RequestBody IssueAdmissionTicketRequest request) {
+
+        requirePaymentService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.issueAdmissionTicket(customerId, expoId, request.getVisitDate())));
     }
 
     private void requirePaymentService(String authorization) {

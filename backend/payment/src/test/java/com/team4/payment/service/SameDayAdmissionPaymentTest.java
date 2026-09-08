@@ -2,6 +2,7 @@ package com.team4.payment.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.payment.client.AdmissionContext;
+import com.team4.payment.client.AdmissionTicket;
 import com.team4.payment.client.ReservationClient;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.entity.PaymentStatus;
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +37,8 @@ class SameDayAdmissionPaymentTest {
         when(admissionPaymentRepository.existsByCustomerIdAndExpoId(100L, 1L)).thenReturn(false);
         when(paymentGateway.requestPayment(any(), any(), anyLong()))
                 .thenReturn(PaymentGateway.PaymentGatewayResult.succeeded());
+        when(reservationClient.issueAdmissionTicket(eq(100L), eq(1L), any()))
+                .thenReturn(new AdmissionTicket(10L, "qr-token-1", "base64-image"));
         when(admissionPaymentRepository.save(any(AdmissionPayment.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -44,6 +48,8 @@ class SameDayAdmissionPaymentTest {
         assertThat(result.getAmount()).isEqualTo(20_000L);
         assertThat(result.getCustomerId()).isEqualTo(100L);
         assertThat(result.getExpoId()).isEqualTo(1L);
+        assertThat(result.getTicketId()).isEqualTo(10L);
+        assertThat(result.getQrToken()).isEqualTo("qr-token-1");
     }
 
     @Test

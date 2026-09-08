@@ -52,6 +52,17 @@ public class AdmissionPayment {
     // 츼소 또는 실패 사유
     private String cancelReason;
 
+    // 결제 완료 후 Reservation이 발급한 티켓 정보(둘 다 nullable — 결제 실패/취소 시엔 없음)
+    @Column(name = "ticket_id")
+    private Long ticketId;
+
+    @Column(name = "qr_token")
+    private String qrToken;
+
+    // QR 이미지는 저장하지 않고 결제 응답에만 실어 보냄(Reservation의 qrToken으로 언제든 다시 그릴 수 있음)
+    @Transient
+    private String qrImageBase64;
+
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
     private LocalDateTime createdAt;
