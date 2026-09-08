@@ -9,7 +9,7 @@ spring:
         - id: payment
           uri: http://payment:8083
           predicates:
-            - Path=/api/exhibitor/payments/**
+            - Path=/api/exhibitor/payments/**,/api/customer/admission-payments/**
         - id: reservation
           uri: http://reservation:8084
           predicates:
