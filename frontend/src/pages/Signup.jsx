@@ -23,6 +23,8 @@ function Signup() {
       await apiClient.post('/api/auth/signup', {
         email: f.get('email'),
         password: f.get('password'),
+        name: f.get('name'),
+        phone: f.get('phone'),
       });
       alert('회원가입이 완료되었습니다. 로그인해주세요.');
       navigate('/login');
@@ -104,6 +106,14 @@ function Signup() {
           <form onSubmit={handleUserSubmit}>
             <section className="signup__section">
               <div className="signup__grid">
+                <label>
+                  <span className="signup__label-row">이름 <span>*</span></span>
+                  <input name="name" placeholder="홍길동" required />
+                </label>
+                <label>
+                  <span className="signup__label-row">전화번호 <span>*</span></span>
+                  <input name="phone" placeholder="예: 010-1234-5678" required />
+                </label>
                 <label className="signup__full">
                   <span className="signup__label-row">이메일 주소 <span>*</span></span>
                   <input type="email" name="email" placeholder="name@example.com" required />

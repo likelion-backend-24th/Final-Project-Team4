@@ -3,6 +3,7 @@ package com.team4.payment.service;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.payment.client.AdmissionContext;
+import com.team4.payment.client.AdmissionTicket;
 import com.team4.payment.client.ReservationClient;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.entity.PaymentStatus;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -65,6 +67,11 @@ public class AdmissionPaymentService {
 
         if (result.success()) {
             admissionPayment.approve(paymentId, LocalDateTime.now());
+            // 7. 결제 성공 직후 실제 당일 입장권(QR) 발급 — 방문일은 결제하는 오늘 하루로 고정
+            AdmissionTicket ticket = reservationClient.issueAdmissionTicket(customerId, expoId, LocalDate.now());
+            admissionPayment.setTicketId(ticket.ticketId());
+            admissionPayment.setQrToken(ticket.qrToken());
+            admissionPayment.setQrImageBase64(ticket.qrImageBase64());
         } else {
             admissionPayment.fail(result.failureReason());
         }

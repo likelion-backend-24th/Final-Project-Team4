@@ -120,9 +120,19 @@ public class ExpoService {
     // open 박람회 목록 페이징 조회
     @Transactional(readOnly = true)
     public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
-        Page<Expo> openExpos = expoRepository.findByStatus(ExpoStatus.OPEN, pageable);
+        LocalDateTime now = LocalDateTime.now();
+        return expoRepository.findByStatus(ExpoStatus.OPEN, pageable)
+                .map(expo -> ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, now), boothRepository.countByExpo_IdAndStatus(expo.getId(), BoothStatus.ASSIGNED)));
+    }
 
-        return openExpos.map(ExpoSummaryResponse::from);
+    // 비회원 - 공개 박람회 단건 조회
+    @Transactional(readOnly = true)
+    public ExpoSummaryResponse getPublicExpo(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        return ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, LocalDateTime.now()), boothRepository.countByExpo_IdAndStatus(expoId, BoothStatus.ASSIGNED));
     }
 
     // 특정 박람회의 부스 목록 조회. DRAFT(비공개) 및 없는 박람회는 404

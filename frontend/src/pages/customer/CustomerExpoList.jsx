@@ -9,6 +9,8 @@ const FILTERS = ['전체', '진행중', '모집중', '모집예정', '종료'];
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
 // 신청/개최 기간과 현재 시각을 비교해서 진행 단계를 계산 (ExpoList.jsx와 동일한 규칙)
+// 참고: 서버 응답에도 phase(ExpoPhase) 필드가 새로 생겼지만, 그 값이 이 필터 버튼들과
+// 똑같은 한글 라벨로 내려오는지 확인되기 전까지는 안전하게 클라이언트 계산을 그대로 씀.
 const phaseOf = (e) => {
   const now = Date.now();
   const at = (s) => new Date(s).getTime();
@@ -26,8 +28,8 @@ const toCard = (e) => ({
   venue: e.venue,
   startsAt: e.startsAt,
   endsAt: e.endsAt,
-  applyEndsAt: e.applyEndsAt,
   admissionFee: e.admissionFee,
+  boothCount: e.boothCount,
   phase: phaseOf(e),
 });
 
@@ -111,9 +113,7 @@ function CustomerExpoList() {
                   >
                     {e.phase}
                   </span>
-                  <span>
-                    신청 마감 <strong>{fmtDate(e.applyEndsAt)}</strong>
-                  </span>
+                  <span>참여부스 {e.boothCount}개</span>
                 </div>
                 <h3>{e.title}</h3>
                 <div className="c-expo-card__meta-list">
