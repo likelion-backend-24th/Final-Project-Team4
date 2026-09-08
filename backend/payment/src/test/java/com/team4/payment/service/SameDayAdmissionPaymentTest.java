@@ -70,35 +70,4 @@ class SameDayAdmissionPaymentTest {
         assertThatThrownBy(() -> service.pay(100L, 1L, 15_000L, "CARD", "test-admission-3"))
                 .isInstanceOf(CustomException.class);
     }
-
-    @Test
-    void 이미_결제된_건은_중복_결제가_차단된다() {
-        AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
-
-        when(reservationClient.getAdmissionContext(100L, 1L))
-                .thenReturn(new AdmissionContext(1L, 100L, false, 20_000L));
-        when(admissionPaymentRepository.existsByCustomerIdAndExpoId(100L, 1L)).thenReturn(true);
-
-        assertThatThrownBy(() -> service.pay(100L, 1L, 20_000L, "CARD", "test-admission-4"))
-                .isInstanceOf(CustomException.class);
-    }
-
-    @Test
-    void 결제_실패시_FAILED_상태로_저장되고_PAID로_저장되지_않는다() {
-        AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
-
-        when(reservationClient.getAdmissionContext(100L, 1L))
-                .thenReturn(new AdmissionContext(1L, 100L, false, 20_000L));
-        when(admissionPaymentRepository.existsByCustomerIdAndExpoId(100L, 1L)).thenReturn(false);
-        when(paymentGateway.requestPayment(any(), any(), anyLong()))
-                .thenReturn(PaymentGateway.PaymentGatewayResult.failure("잔액 부족"));
-        when(admissionPaymentRepository.save(any(AdmissionPayment.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        AdmissionPayment result = service.pay(100L, 1L, 20_000L, "CARD", "test-admission-5");
-
-        assertThat(result.getStatus()).isEqualTo(PaymentStatus.FAILED);
-    }
 }

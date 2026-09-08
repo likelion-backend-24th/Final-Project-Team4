@@ -13,7 +13,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "admission_payments")
+@Table(name = "admission_payments", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_admission_payment_customer_expo", columnNames = {"customer_id", "expo_id"})
+})
 public class AdmissionPayment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
