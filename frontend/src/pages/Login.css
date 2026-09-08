@@ -209,6 +209,16 @@
   cursor: pointer;
 }
 
+.login__browse {
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 17px;
+  color: #475569;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .login__signup-guide {
   display: flex;
   flex-direction: row;
