@@ -102,6 +102,9 @@ function Login() {
             >
               {submitting ? "로그인 중..." : "로그인"}
             </button>
+            <Link to="/customer" className="login__browse">
+              로그인 없이 박람회 둘러보기
+            </Link>
             <p className="login__signup-guide">
               <span className="login__guide-text">아직 계정이 없으신가요?</span>
               <Link to="/signup" className="login__signup-link">

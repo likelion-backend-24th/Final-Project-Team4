@@ -6,6 +6,7 @@ import { addMyTicket, getTicketStatus, isTicketCheckableToday } from '../../mock
 import { isLoggedIn } from '../../api/auth';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
+import { isLoggedIn } from '../../api/auth';
 import './Modal.css';
 import './EntryFlowModal.css';
 
@@ -118,8 +119,13 @@ function EntryFlowModal({ expo, onClose }) {
   const admissionFee = expo.admissionFee ?? 0;
   const totalFee = freeMode ? 0 : admissionFee;
 
-  // 이 박람회에 이미 발급된 티켓이 있는지 — 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회
+  // 이 박람회에 이미 발급된 티켓이 있는지 — 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회.
+  // 비로그인이면 호출 자체를 스킵 (401 -> 인터셉터가 /login으로 튕기는 것 방지)
   useEffect(() => {
+    if (!isLoggedIn()) {
+      setExistingTickets([]);
+      return;
+    }
     let cancelled = false;
     getMyReservations()
       .then((list) => {
