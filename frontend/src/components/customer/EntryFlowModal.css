@@ -318,6 +318,60 @@
   font-weight: 600;
 }
 
+.ef-date-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.ef-date-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.ef-date-item span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.ef-error {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  margin: -8px 0 14px;
+}
+
+.ef-error--info {
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}
+
+.ef-ready-badge.is-expired {
+  color: #64748b;
+}
+
+.ef-ready-badge.is-expired .ef-ready-badge__dot {
+  background: #94a3b8;
+}
+
+.ef-date-fee {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 16px;
+}
+
 .ef-placeholder {
   padding: 32px 0;
   text-align: center;

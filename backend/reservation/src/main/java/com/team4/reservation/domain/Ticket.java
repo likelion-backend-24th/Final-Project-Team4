@@ -77,6 +77,12 @@ public class Ticket {
         return new Ticket(customerId, expoId, visitDate, TicketType.FREE);
     }
 
+    // 당일 결제 완료 후 Payment -> Reservation 내부 호출로 발급되는 유료 입장권.
+    // (customerId, expoId, visitDate) 조합당 1장만 존재해야 함 — 호출부(TicketService)에서 중복 발급 방지.
+    public static Ticket issuePaid(Long customerId, Long expoId, LocalDate visitDate) {
+        return new Ticket(customerId, expoId, visitDate, TicketType.PAID);
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();

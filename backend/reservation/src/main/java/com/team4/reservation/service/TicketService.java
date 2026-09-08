@@ -74,4 +74,29 @@ public class TicketService {
                     .orElseThrow(() -> new CustomException(ErrorCode.INTERNAL_ERROR, "입장권 발급 처리 중 오류가 발생했습니다."));
         }
     }
+
+    // 마이페이지 "나의 입장권" 목록 조회
+    public List<TicketResponse> listMyTickets(Long customerId) {
+        return ticketRepository.findByCustomerIdOrderByIssuedAtDesc(customerId).stream()
+                .map(TicketResponse::from)
+                .toList();
+    }
+
+    // Payment -> Reservation. 당일 유료 입장권 결제 완료 직후 호출 — 멱등(같은 날짜 티켓이 이미 있으면 그걸 그대로 반환).
+    public TicketResponse issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
+        return ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
+                .map(TicketResponse::from)
+                .orElseGet(() -> createPaidTicket(customerId, expoId, visitDate));
+    }
+
+    private TicketResponse createPaidTicket(Long customerId, Long expoId, LocalDate visitDate) {
+        try {
+            Ticket ticket = ticketRepository.save(Ticket.issuePaid(customerId, expoId, visitDate));
+            return TicketResponse.from(ticket);
+        } catch (DataIntegrityViolationException e) {
+            return ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
+                    .map(TicketResponse::from)
+                    .orElseThrow(() -> new CustomException(ErrorCode.INTERNAL_ERROR, "입장권 발급 처리 중 오류가 발생했습니다."));
+        }
+    }
 }

@@ -68,6 +68,30 @@
   min-width: 0;
 }
 
+.c-mypage__ticket-filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.c-mypage__ticket-filters button {
+  box-sizing: border-box;
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 100px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.c-mypage__ticket-filters button.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
 .c-mypage__empty {
   color: #94a3b8;
   font-size: 14px;
@@ -107,6 +131,40 @@
   margin: 0;
 }
 
+.c-ticket-card__visitdate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.c-ticket-card__visitdate-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.c-ticket-card__visitdate-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.c-ticket-card__visitdate-today {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
 .c-ticket-card__badge {
   flex-shrink: 0;
   background: #dcfce7;
@@ -118,6 +176,11 @@
 }
 
 .c-ticket-card__badge.is-used {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.c-ticket-card__badge.is-expired {
   background: #f1f5f9;
   color: #94a3b8;
 }
