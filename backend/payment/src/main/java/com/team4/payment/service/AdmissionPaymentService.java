@@ -67,27 +67,23 @@ public class AdmissionPaymentService {
 
         if (result.success()) {
             admissionPayment.approve(paymentId, LocalDateTime.now());
-            // 7. 결제 성공 직후 실제 당일 입장권(QR) 발급 — 방문일은 결제하는 오늘 하루로 고정
-            AdmissionTicket ticket = reservationClient.issueAdmissionTicket(customerId, expoId, LocalDate.now());
-            admissionPayment.setTicketId(ticket.ticketId());
-            admissionPayment.setQrToken(ticket.qrToken());
-            admissionPayment.setQrImageBase64(ticket.qrImageBase64());
+
+            // 7. 결제 성공 직후 Reservation에 실제 당일 입장권(QR) 발급 요청 — 방문일은 결제하는 오늘 하루로 고정.
+            //    Reservation 장애로 발급이 실패해도 이미 완료된 결제 자체는 그대로 저장되어야 하므로 예외를 삼킴
+            //    (티켓 정보가 비어있는 채로 저장되면, 추후 재시도/재발급 대상이 됨).
+            try {
+                AdmissionTicket ticket = reservationClient.issueAdmissionTicket(customerId, expoId, LocalDate.now());
+                admissionPayment.setTicketId(ticket.ticketId());
+                admissionPayment.setQrToken(ticket.qrToken());
+                admissionPayment.setQrImageBase64(ticket.qrImageBase64());
+            } catch (Exception e) {
+                log.error("Reservation 입장권 발급 실패 customerId={}, expoId={}, paymentId={}",
+                        customerId, expoId, paymentId, e);
+            }
         } else {
             admissionPayment.fail(result.failureReason());
         }
 
-        AdmissionPayment saved = admissionPaymentRepository.save(admissionPayment);
-
-        // 7. 결제 성공했을 때만 Reservation에 통보해서 입장권(QR)이 발급되게 함.
-        if (result.success()) {
-            try {
-                reservationClient.confirmAdmissionPayment(customerId, expoId, paymentId, saved.getApprovedAt());
-            } catch (Exception e) {
-                log.error("Reservation 입장권 발급 통보 실패 customerId={}, expoId={}, paymentId={}",
-                        customerId, expoId, paymentId, e);
-            }
-        }
-
-        return saved;
+        return admissionPaymentRepository.save(admissionPayment);
     }
 }
