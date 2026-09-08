@@ -2,12 +2,10 @@ package com.team4.expo.controller;
 
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.Expo;
-import com.team4.expo.domain.Post;
 import com.team4.expo.repository.BoothApplicationGroupRepository;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
-import com.team4.expo.repository.PostRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,15 +33,12 @@ class PublicExpoQueryTest {
     @Autowired
     BoothRepository boothRepository;
     @Autowired
-    PostRepository postRepository;
-    @Autowired
     BoothApplicationRepository boothApplicationRepository;
     @Autowired
     BoothApplicationGroupRepository boothApplicationGroupRepository;
 
     @BeforeEach
     void clean() {
-        postRepository.deleteAllInBatch();
         boothApplicationRepository.deleteAllInBatch();
         boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
@@ -122,19 +117,5 @@ class PublicExpoQueryTest {
                 .andExpect(jsonPath("$.data.booths.length()").value(1))
                 .andExpect(jsonPath("$.data.booths[0].status").value("ASSIGNED"))
                 .andExpect(jsonPath("$.data.booths[0].bannerImageUrl").value("/uploads/banner/x.png"));
-    }
-
-    @Test
-    void 소개글은_ASSIGNED_부스_것만_반환한다() throws Exception {
-        Expo open = saveExpo("서울 모빌리티쇼", true);
-        Booth assigned = saveBooth(open, "A-1", true);
-        Booth available = saveBooth(open, "A-2", false);
-        postRepository.save(new Post(assigned, "확정 부스 소개", "본문"));
-        postRepository.save(new Post(available, "미확정 부스 소개", "본문"));
-
-        mockMvc.perform(get("/api/expos/" + open.getId() + "/posts"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].title").value("확정 부스 소개"));
     }
 }

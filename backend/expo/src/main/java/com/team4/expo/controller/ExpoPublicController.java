@@ -3,7 +3,6 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.domain.BoothStatus;
-import com.team4.expo.dto.BoothContentResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
 import com.team4.expo.service.ExpoService;
@@ -14,8 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 // 비회원 공개 조회 API
 @RestController
@@ -48,12 +45,5 @@ public class ExpoPublicController {
     public ResponseEntity<ApiResponse<ExpoBoothsResponse>> getPublicExpoBooths(@PathVariable Long expoId) {
 
         return ResponseEntity.ok(ApiResponse.success(expoService.getExpoBooths(expoId, BoothStatus.ASSIGNED)));
-    }
-
-    // 부스 소개글 목록 (참가 확정 부스만)
-    @GetMapping("/{expoId}/posts")
-    public ResponseEntity<ApiResponse<List<BoothContentResponse>>> getPublicExpoPosts(@PathVariable Long expoId) {
-
-        return ResponseEntity.ok(ApiResponse.success(expoService.getPublicExpoPosts(expoId)));
     }
 }
