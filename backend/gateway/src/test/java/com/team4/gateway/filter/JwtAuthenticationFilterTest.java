@@ -3,6 +3,8 @@ package com.team4.gateway.filter;
 import com.team4.common.jwt.JwtProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
@@ -91,6 +93,31 @@ class JwtAuthenticationFilterTest {
         HttpHeaders h = forwarded().getRequest().getHeaders();
         assertThat(h.getFirst("X-User-Id")).isNull();
         assertThat(h.getFirst("X-User-Role")).isNull();
+    }
+
+    // 비회원 공개 박람회 조회 경로는 토큰 없이 통과
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/expos", "/api/expos/1", "/api/expos/1/booths"})
+    void 토큰이_없어도_공개_박람회_조회_경로면_통과하고_신원헤더는_없다(String path) {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path));
+
+        filter.filter(exchange, chain).block();
+
+        HttpHeaders h = forwarded().getRequest().getHeaders();
+        assertThat(h.getFirst("X-User-Id")).isNull();
+        assertThat(h.getFirst("X-User-Role")).isNull();
+    }
+
+    // 화이트리스트에 없는 박람회 하위 경로는 토큰 없으면 401
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/expos/1/details", "/api/expos/1/reviews"})
+    void 공개_화이트리스트가_아닌_박람회_하위경로는_토큰_없으면_401(String path) {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path));
+
+        filter.filter(exchange, chain).block();
+
+        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        verify(chain, never()).filter(any());
     }
 
     @Test
