@@ -6,7 +6,6 @@ import { addMyTicket, getTicketStatus, isTicketCheckableToday } from '../../mock
 import { isLoggedIn } from '../../api/auth';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
-import { isLoggedIn } from '../../api/auth';
 import './Modal.css';
 import './EntryFlowModal.css';
 
