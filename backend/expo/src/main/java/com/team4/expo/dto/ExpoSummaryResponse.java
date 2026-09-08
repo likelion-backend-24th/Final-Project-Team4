@@ -17,6 +17,7 @@ public class ExpoSummaryResponse {
     private final LocalDateTime endsAt; // 박람회 자체 종료일
     private final LocalDateTime applyStartsAt; // 박람회 신청 시작일
     private final LocalDateTime applyEndsAt; // 박람회 신청 마감일
+    private final Long admissionFee;    // 당일 유료 입장료
 
     public static ExpoSummaryResponse from(Expo expo) {
         return new ExpoSummaryResponse(
@@ -26,6 +27,7 @@ public class ExpoSummaryResponse {
                 expo.getStartsAt(),
                 expo.getEndsAt(),
                 expo.getApplyStartsAt(),
-                expo.getApplyEndsAt());
+                expo.getApplyEndsAt(),
+                expo.getAdmissionFee());
     }
 }

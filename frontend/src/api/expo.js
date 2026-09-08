@@ -1,4 +1,5 @@
 import apiClient from './client';
+import { getUserId } from "./auth";
 
 // GET /api/exhibitor/expos — OPEN 박람회 목록 페이징 조회
 export const getExpoList = (params) =>
@@ -74,3 +75,7 @@ export const rejectBoothApplication = (applicationId, reason) =>
   apiClient
     .post(`/api/admin/booth-applications/${applicationId}/reject`, { reason })
     .then((res) => res.data.data);
+
+// GET /api/customer/expos — 일반 방문객이 보는 공개 박람회 목록 (로그인 불필요)
+export const getCustomerExpoList = (params) =>
+  apiClient.get('/api/customer/expos', { params }).then((res) => res.data.data);

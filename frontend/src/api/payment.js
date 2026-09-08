@@ -21,3 +21,15 @@ export const getMyPayments = () =>
   apiClient
     .get("/api/exhibitor/payments", { params: { userId: getUserId() } })
     .then((res) => res.data);
+
+// POST /api/customer/admission-payments - 당일 유료 입장권 결제 (무료 QR 입장권이 없는 방문객 대상)
+export const payAdmission = ({ expoId, amount, payMethod, paymentId }) =>
+  apiClient
+    .post("/api/customer/admission-payments", {
+      customerId: getUserId(),
+      expoId,
+      amount,
+      payMethod,
+      paymentId,
+    })
+    .then((res) => res.data);

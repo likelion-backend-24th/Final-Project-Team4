@@ -69,6 +69,18 @@ public class AdmissionPaymentService {
             admissionPayment.fail(result.failureReason());
         }
 
-        return admissionPaymentRepository.save(admissionPayment);
+        AdmissionPayment saved = admissionPaymentRepository.save(admissionPayment);
+
+        // 7. 결제 성공했을 때만 Reservation에 통보해서 입장권(QR)이 발급되게 함.
+        if (result.success()) {
+            try {
+                reservationClient.confirmAdmissionPayment(customerId, expoId, paymentId, saved.getApprovedAt());
+            } catch (Exception e) {
+                log.error("Reservation 입장권 발급 통보 실패 customerId={}, expoId={}, paymentId={}",
+                        customerId, expoId, paymentId, e);
+            }
+        }
+
+        return saved;
     }
 }

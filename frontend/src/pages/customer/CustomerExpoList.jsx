@@ -1,26 +1,61 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
-import { CUSTOMER_EXPO_GRADIENTS, mockCustomerExpos } from '../../mock/customerData';
+import { getCustomerExpoList } from '../../api/expo';
+import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import './CustomerExpoList.css';
 
 const FILTERS = ['전체', '진행중', '모집중', '모집예정', '종료'];
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
+// 신청/개최 기간과 현재 시각을 비교해서 진행 단계를 계산 (ExpoList.jsx와 동일한 규칙)
+const phaseOf = (e) => {
+  const now = Date.now();
+  const at = (s) => new Date(s).getTime();
+  if (now < at(e.applyStartsAt)) return '모집예정';
+  if (now <= at(e.applyEndsAt)) return '모집중';
+  if (now < at(e.startsAt)) return '모집마감';
+  if (now <= at(e.endsAt)) return '진행중';
+  return '종료';
+};
+
+// 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환
+const toCard = (e) => ({
+  expoId: e.expoId,
+  title: e.title,
+  venue: e.venue,
+  startsAt: e.startsAt,
+  endsAt: e.endsAt,
+  applyEndsAt: e.applyEndsAt,
+  admissionFee: e.admissionFee,
+  phase: phaseOf(e),
+});
+
 function CustomerExpoList() {
+  // 실제 박람회 목록 (더미 데이터는 사용하지 않음)
+  const [expos, setExpos] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState('전체');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [checkinExpo, setCheckinExpo] = useState(null);
 
+  useEffect(() => {
+    getCustomerExpoList({ page: 0, size: 50 })
+      .then((res) => setExpos(res.content.map(toCard)))
+      .catch((err) =>
+        setLoadError(err.response?.data?.error?.message ?? '박람회 목록을 불러오지 못했습니다.'),
+      );
+  }, []);
+
   const filtered = useMemo(
     () =>
-      mockCustomerExpos.filter((e) => {
+      expos.filter((e) => {
         const matchesFilter = filter === '전체' || e.phase === filter;
         const matchesKeyword = e.title.toLowerCase().includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       }),
-    [filter, keyword]
+    [expos, filter, keyword]
   );
 
   return (
@@ -56,6 +91,10 @@ function CustomerExpoList() {
       </div>
 
       <div className="c-expo-list__grid-wrap">
+        {loadError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{loadError}</p>}
+        {!loadError && filtered.length === 0 && (
+          <p style={{ color: '#64748b', marginBottom: '1rem' }}>표시할 박람회가 없습니다.</p>
+        )}
         <div className="c-expo-list__grid">
           {filtered.map((e, i) => (
             <div key={e.expoId} className="c-expo-card">
@@ -72,7 +111,9 @@ function CustomerExpoList() {
                   >
                     {e.phase}
                   </span>
-                  <span>참여부스 {e.boothCount}개</span>
+                  <span>
+                    신청 마감 <strong>{fmtDate(e.applyEndsAt)}</strong>
+                  </span>
                 </div>
                 <h3>{e.title}</h3>
                 <div className="c-expo-card__meta-list">

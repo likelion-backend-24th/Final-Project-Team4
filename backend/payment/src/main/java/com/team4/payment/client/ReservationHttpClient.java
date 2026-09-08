@@ -15,6 +15,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 // 실제 Reservation 서비스(/internal/reservation/...) 호출용 클라이언트.
 @Component
@@ -70,4 +71,33 @@ public class ReservationHttpClient implements ReservationClient {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
         }
     }
+
+    // TODO: 이 경로/요청 형태는 아직 팀과 확정 안 됨(이슈 #82에 "API 확정 후 링크"로 명시).
+    // Reservation 담당 팀원과 실제 계약(경로, 요청 필드명) 확정되면 여기 맞춰서 수정할 것.
+    @Override
+    public void confirmAdmissionPayment(Long customerId, Long expoId, String paymentId, LocalDateTime paidAt) {
+        try {
+            String json = objectMapper.writeValueAsString(new ConfirmBody(paymentId, paidAt));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(reservationBaseUrl + "/internal/reservation/customers/" + customerId
+                            + "/expos/" + expoId + "/admission-confirmations"))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "Reservation 발급 통보 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 발급 통보 중 오류: " + e.getMessage());
+        }
+    }
+
+    private record ConfirmBody(String paymentId, LocalDateTime paidAt) {}
 }
