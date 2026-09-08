@@ -31,7 +31,7 @@ public class ExpoSummaryResponse {
                 expo.getEndsAt(),
                 expo.getApplyStartsAt(),
                 expo.getApplyEndsAt(),
-                expo.getAdmissionFee());
+                expo.getAdmissionFee(),
                 phase,
                 boothCount);
     }
