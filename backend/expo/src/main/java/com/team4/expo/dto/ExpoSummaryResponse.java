@@ -18,6 +18,7 @@ public class ExpoSummaryResponse {
     private final LocalDateTime endsAt; // 박람회 자체 종료일
     private final LocalDateTime applyStartsAt; // 박람회 신청 시작일
     private final LocalDateTime applyEndsAt; // 박람회 신청 마감일
+    private final Long admissionFee; // 당일 유료 입장료
     private final ExpoPhase phase; // 진행 단계 (모집예정/모집중/개최예정/진행중/진행종료)
     private final long boothCount; // 참여 확정(ASSIGNED) 부스 수
 
@@ -30,6 +31,7 @@ public class ExpoSummaryResponse {
                 expo.getEndsAt(),
                 expo.getApplyStartsAt(),
                 expo.getApplyEndsAt(),
+                expo.getAdmissionFee());
                 phase,
                 boothCount);
     }

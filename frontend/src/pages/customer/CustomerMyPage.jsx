@@ -67,7 +67,6 @@ function CustomerMyPage() {
           ? '구매한 입장권과 QR을 다시 확인할 수 있습니다.'
           : '내 정보와 활동 내역을 확인할 수 있습니다.'}
       </p>
-
       <div className="c-mypage__body">
         <aside className="c-mypage__side">
           {TABS.map((t) => (
@@ -81,7 +80,6 @@ function CustomerMyPage() {
             </button>
           ))}
         </aside>
-
         <main className="c-mypage__main">
           {tab === 'tickets' ? (
             <>
@@ -98,7 +96,6 @@ function CustomerMyPage() {
                   </button>
                 ))}
               </div>
-
               {loading ? (
                 <p className="c-mypage__empty">불러오는 중...</p>
               ) : loadError ? (
@@ -110,69 +107,67 @@ function CustomerMyPage() {
                     : `${ticketFilter} 상태인 입장권이 없습니다.`}
                 </p>
               ) : (
-              <div className="c-ticket-grid">
-                {tickets.map((t) => (
-                  <div key={t.id} className="c-ticket-card">
-                    <div className="c-ticket-card__head">
-                      <h3>{t.expoTitle}</h3>
-                      <span
-                        className={`c-ticket-card__badge ${
-                          t._status === '사용완료' ? 'is-used' : t._status === '만료' ? 'is-expired' : ''
-                        }`}
-                      >
-                        {t._status}
-                      </span>
-                    </div>
-
-                    <div className="c-ticket-card__visitdate">
-                      <span className="c-ticket-card__visitdate-label">체크인 가능일</span>
-                      <span className="c-ticket-card__visitdate-value">{fmtDate(t.visitDate)}</span>
-                      {t._status === '사용가능' && isTicketCheckableToday(t) && (
-                        <span className="c-ticket-card__visitdate-today">오늘 체크인 가능</span>
-                      )}
-                    </div>
-
-                    <p className="c-ticket-card__meta">
-                      <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
-                      박람회 전체 기간 {fmtDate(t.startsAt)} - {fmtDate(t.endsAt)}
-                    </p>
-                    <p className="c-ticket-card__meta">
-                      <span className="c-ticket-card__icon c-ticket-card__icon--pin" />
-                      {t.venue}
-                    </p>
-                    <div className="c-ticket-card__divider" />
-                    <div className="c-ticket-card__row">
-                      <div className="c-ticket-card__qr" onClick={() => setZoomTicket(t)}>
-                        {t.qrImageBase64 ? (
-                          <img
-                            src={`data:image/png;base64,${t.qrImageBase64}`}
-                            alt="입장 QR 코드"
-                            width={64}
-                            height={64}
-                          />
-                        ) : (
-                          <QrPlaceholder size={64} />
+                <div className="c-ticket-grid">
+                  {tickets.map((t) => (
+                    <div key={t.id} className="c-ticket-card">
+                      <div className="c-ticket-card__head">
+                        <h3>{t.expoTitle}</h3>
+                        <span
+                          className={`c-ticket-card__badge ${
+                            t._status === '사용완료' ? 'is-used' : t._status === '만료' ? 'is-expired' : ''
+                          }`}
+                        >
+                          {t._status}
+                        </span>
+                      </div>
+                      <div className="c-ticket-card__visitdate">
+                        <span className="c-ticket-card__visitdate-label">체크인 가능일</span>
+                        <span className="c-ticket-card__visitdate-value">{fmtDate(t.visitDate)}</span>
+                        {t._status === '사용가능' && isTicketCheckableToday(t) && (
+                          <span className="c-ticket-card__visitdate-today">오늘 체크인 가능</span>
                         )}
                       </div>
-                      <div className="c-ticket-card__info">
-                        <p>
-                          {t.holderName} <span className="c-ticket-card__dot" /> {t.ticketType}
-                        </p>
-                        <p className="c-ticket-card__muted">예매번호 {t.bookingNo}</p>
-                        <p className="c-ticket-card__muted">구매일 {t.purchasedAt}</p>
+                      <p className="c-ticket-card__meta">
+                        <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
+                        박람회 전체 기간 {fmtDate(t.startsAt)} - {fmtDate(t.endsAt)}
+                      </p>
+                      <p className="c-ticket-card__meta">
+                        <span className="c-ticket-card__icon c-ticket-card__icon--pin" />
+                        {t.venue}
+                      </p>
+                      <div className="c-ticket-card__divider" />
+                      <div className="c-ticket-card__row">
+                        <div className="c-ticket-card__qr" onClick={() => setZoomTicket(t)}>
+                          {t.qrImageBase64 ? (
+                            <img
+                              src={`data:image/png;base64,${t.qrImageBase64}`}
+                              alt="입장 QR 코드"
+                              width={64}
+                              height={64}
+                            />
+                          ) : (
+                            <QrPlaceholder size={64} />
+                          )}
+                        </div>
+                        <div className="c-ticket-card__info">
+                          <p>
+                            {t.holderName} <span className="c-ticket-card__dot" /> {t.ticketType}
+                          </p>
+                          <p className="c-ticket-card__muted">예매번호 {t.bookingNo}</p>
+                          <p className="c-ticket-card__muted">구매일 {t.purchasedAt}</p>
+                        </div>
+                      </div>
+                      <div className="c-ticket-card__actions">
+                        <button type="button" onClick={() => setZoomTicket(t)}>
+                          QR 크게 보기
+                        </button>
+                        <button type="button" onClick={() => window.print()}>
+                          이미지 저장
+                        </button>
                       </div>
                     </div>
-                    <div className="c-ticket-card__actions">
-                      <button type="button" onClick={() => setZoomTicket(t)}>
-                        QR 크게 보기
-                      </button>
-                      <button type="button" onClick={() => window.print()}>
-                        이미지 저장
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
               )}
             </>
           ) : (
@@ -180,7 +175,6 @@ function CustomerMyPage() {
           )}
         </main>
       </div>
-
       {zoomTicket && (
         <div className="c-modal__backdrop" onClick={() => setZoomTicket(null)}>
           <div className="c-modal" onClick={(e) => e.stopPropagation()}>

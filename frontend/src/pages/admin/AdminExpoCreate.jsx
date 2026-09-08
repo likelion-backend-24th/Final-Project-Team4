@@ -25,6 +25,9 @@ function AdminExpoCreate() {
     applyEndsAt: isoLocal(10),
     startsAt: isoLocal(30),
     endsAt: isoLocal(33),
+    // 박람회 시작 이후(사전 예약 마감 후) 방문객이 내는 당일 입장료. 0이면 당일에도 무료.
+    // Reservation 서비스가 이 값을 조회해 당일 유료 입장권 결제 금액으로 사용함(US17/US18).
+    admissionFee: 20000,
   });
   const [booths, setBooths] = useState([]);
   const [autoOpen, setAutoOpen] = useState(true);
@@ -73,6 +76,10 @@ function AdminExpoCreate() {
       setError('부스 번호 / 유형 / 임차료(양수)를 모두 채워주세요.');
       return;
     }
+    if (form.admissionFee === '' || Number(form.admissionFee) < 0) {
+      setError('당일 입장료를 0 이상으로 입력해주세요.');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -83,6 +90,7 @@ function AdminExpoCreate() {
         endsAt: form.endsAt,
         applyStartsAt: form.applyStartsAt,
         applyEndsAt: form.applyEndsAt,
+        admissionFee: Number(form.admissionFee),
         booths: booths.map((b) => ({ boothNo: b.boothNo.trim(), type: b.type.trim(), fee: Number(b.fee) })),
       };
       const res = await registerExpo(payload);
@@ -134,8 +142,13 @@ function AdminExpoCreate() {
               개최 종료
               <input type="datetime-local" value={form.endsAt} onChange={setField('endsAt')} required />
             </label>
+            <label>
+              당일 입장료(원)
+              <input type="number" min={0} value={form.admissionFee} onChange={setField('admissionFee')} required />
+            </label>
           </div>
           <p className="admin-expo-create__hint">규칙: 신청 시작 &lt; 신청 마감 ≤ 개최 시작 &lt; 개최 종료</p>
+          <p className="admin-expo-create__hint">당일 입장료: 무료 QR 입장권이 없는 방문객이 개최 당일 결제하는 입장료. 0이면 당일에도 무료.</p>
         </section>
 
         <section className="admin-expo-create__panel">

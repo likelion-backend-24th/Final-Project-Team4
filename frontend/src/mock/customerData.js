@@ -1,10 +1,4 @@
 // 일반 사용자(방문객)용 화면 목업 데이터.
-// 차량/업체/상담 관련 API는 아직 백엔드(Expo 서비스)에 없어서, 실제 연동 전까지 화면 확인용으로 사용.
-// 방문 예약(QR 발급)만 실제 Reservation 서비스 API(POST /api/customer/reservations)로 연동함.
-//
-// 주의: expoId(1/2/3)와 startsAt/endsAt은 로컬 expo DB의 실제 시드 데이터(Test Expo/Test Expo2/Test Expo3)와
-// 맞춰둔 값 — Reservation 서비스가 내부적으로 실제 Expo 레코드의 시작일을 기준으로 무료/유료를 판정하므로,
-// 여기 날짜가 실제 DB 값과 어긋나면 화면 표시(무료/유료)와 실제 API 응답이 서로 달라질 수 있음.
 export const mockCustomerExpos = [
   {
     expoId: 1,
@@ -241,7 +235,6 @@ const DEFAULT_MOCK_TICKETS = [
     usedAt: null,
   },
 ];
-
 const DEFAULT_TICKET_IDS = new Set(DEFAULT_MOCK_TICKETS.map((t) => t.id));
 
 export function getMyTickets() {

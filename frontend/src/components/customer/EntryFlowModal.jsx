@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as PortOne from '@portone/browser-sdk/v2';
 import QrPlaceholder from './QrPlaceholder';
 import { addMyTicket, getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
+import { isLoggedIn } from '../../api/auth';
+import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
 import './Modal.css';
 import './EntryFlowModal.css';
 
-const DAY_TICKET_FEE = 10000;
+// PortOne 결제 채널 식별용 공개 ID들 (비밀값 아님 - 프론트에 그대로 둬도 되는 값).
+// 실제 카드 검증 비밀키(API Secret)는 절대 여기 두지 않고, 백엔드 환경변수(PORTONE_API_SECRET)로만 관리함.
+const PORTONE_STORE_ID = 'store-9663b602-88a9-4fcf-a8b7-adad963c46e3';
+const PORTONE_CHANNEL_KEY = 'channel-key-c5723eb4-9ee3-4df3-9c56-129d13d4e9d6';
+
+const PAY_METHOD_CODE = {
+  card: 'CARD',
+  transfer: 'TRANSFER',
+  virtual: 'VIRTUAL_ACCOUNT',
+};
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
@@ -28,7 +40,8 @@ function expoDateRange(expo) {
   return dates;
 }
 
-// 박람회 시작일 이전에 신청하면 무료(사전 방문예약), 시작일 당일 이후면 유료(당일 입장권)
+// 박람회 시작일 이전에 신청하면 무료(사전 방문예약, Reservation 서비스 연동),
+// 시작일 당일 이후면 유료(당일 입장권, Payment 서비스 실제 결제 연동)
 // — Reservation 서비스의 "시작일 이후 무료 발급 거부(409)" 업무 규칙과 동일한 기준
 function isFreeReservation(expo) {
   const today = new Date();
@@ -38,10 +51,13 @@ function isFreeReservation(expo) {
   return today < start;
 }
 
-// 당일 결제(mock) 플로우 전용 — 결제 완료 후 발급 API가 없어 화면 확인용으로만 생성
+// 당일 결제 완료 후 화면에 보여줄 티켓 객체.
+// 결제(payAdmission) 자체와 서버 쪽 QR 발급(issueAdmissionTicket)은 실제로 이뤄지지만,
+// 그 결과로 발급된 진짜 QR을 프론트가 돌려받는 응답 계약이 아직 확정되지 않아서
+// 화면 확인용으로만 이 객체를 만들어 보여줌. (백엔드 응답에 티켓 정보 포함되면 교체 예정)
 function buildMockPaidTicket(expo, visitDate) {
   return {
-    id: `${expo.expoId}-${visitDate}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `${expo.expoId}-${visitDate}-${Date.now()}`,
     expoId: expo.expoId,
     expoTitle: expo.title,
     startsAt: expo.startsAt,
@@ -79,10 +95,11 @@ function mapReservationTicket(expo, t) {
 
 // 박람회 목록에서 "선택하기"를 눌렀을 때 뜨는 입장 방법 선택 팝업 + 이어지는 전체 플로우.
 // 업무 규칙: 날짜를 먼저 고르고, 박람회 시작일 이전 신청이면 무료 QR 즉시 발급,
-// 시작일 이후(당일)면 결제 후 QR 발급 — 실제 Reservation/Payment API 계약과 동일한 조건 분기.
-// 무료 경로는 실제 Reservation 서비스(POST /api/customer/reservations)로 연동됨.
-// 유료(당일 결제) 경로는 결제 완료 후 실제 입장권을 발급하는 API가 아직 없어서(CLAUDE.md 참고)
-// 결제~QR 발급 구간을 화면 확인용 목업으로 구성함.
+// 시작일 이후(당일)면 결제 후 QR 발급.
+// - 무료 경로: 실제 Reservation 서비스(POST/GET /api/customer/reservations, 체크인)로 연동됨.
+// - 유료(당일) 경로: 실제 PortOne 결제 + 백엔드(POST /api/customer/admission-payments)로 연동됨
+//   (payment 서비스 TASK 5-6~5-8). 결제 1건 = 박람회 1곳 입장권(고객당 박람회당 1회만 결제 가능하도록
+//   백엔드에 유니크 제약이 걸려 있음)이라서, 유료 경로는 날짜를 1개만 선택하도록 제한함.
 function EntryFlowModal({ expo, onClose }) {
   const navigate = useNavigate();
   const [step, setStep] = useState('choose');
@@ -94,9 +111,12 @@ function EntryFlowModal({ expo, onClose }) {
   const [applyError, setApplyError] = useState(null);
   const [existingTickets, setExistingTickets] = useState([]);
   const [checkInError, setCheckInError] = useState(null);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState(null);
 
   const freeMode = isFreeReservation(expo);
-  const totalFee = freeMode ? 0 : DAY_TICKET_FEE * selectedDates.length;
+  const admissionFee = expo.admissionFee ?? 0;
+  const totalFee = freeMode ? 0 : admissionFee;
 
   // 이 박람회에 이미 발급된 티켓이 있는지 — 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회
   useEffect(() => {
@@ -109,7 +129,6 @@ function EntryFlowModal({ expo, onClose }) {
         );
       })
       .catch(() => {
-        // 목록 조회 실패해도 "방문 날짜 선택" 등 나머지 흐름은 그대로 쓸 수 있어야 하므로 조용히 무시
         if (!cancelled) setExistingTickets([]);
       });
     return () => {
@@ -132,19 +151,29 @@ function EntryFlowModal({ expo, onClose }) {
     navigate('/login');
   };
 
+  // 유료 모드는 날짜 1개만 선택되게(클릭하면 그걸로 교체), 무료 모드는 여러 개 토글 가능하게
   const toggleDate = (date) => {
-    setSelectedDates((prev) =>
-      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
-    );
+    if (freeMode) {
+      setSelectedDates((prev) =>
+        prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+      );
+    } else {
+      setSelectedDates([date]);
+    }
   };
 
   const confirmDates = () => {
     if (selectedDates.length === 0) return;
     if (freeMode) {
       issueFreeTickets();
-    } else {
-      setStep('payment');
+      return;
     }
+    // 당일 유료 결제는 로그인한 회원만 가능
+    if (!isLoggedIn()) {
+      setStep('login-required');
+      return;
+    }
+    setStep('payment');
   };
 
   // 무료 사전 방문예약 — 실제 Reservation 서비스(POST /api/customer/reservations) 연동
@@ -165,7 +194,47 @@ function EntryFlowModal({ expo, onClose }) {
     }
   };
 
-  // 당일 결제(mock) 완료 후 QR 발급 — 실제 발급 API가 없어 화면 확인용
+  // 당일 유료 입장권 결제 — 실제 PortOne 결제 + 백엔드 결제 API 연동
+  const handlePay = async () => {
+    setPayError(null);
+    setPaying(true);
+    // 결제 건마다 고유해야 하는 ID. PortOne 결제창과 우리 서버 양쪽에 동일한 값을 사용해서
+    // 서버가 나중에 "이 ID로 결제된 게 진짜 맞는지" PortOne에 재확인할 수 있게 함.
+    const paymentId = `admission-${crypto.randomUUID()}`;
+    try {
+      const response = await PortOne.requestPayment({
+        storeId: PORTONE_STORE_ID,
+        channelKey: PORTONE_CHANNEL_KEY,
+        paymentId,
+        orderName: `${expo.title} 당일 입장권`,
+        totalAmount: admissionFee,
+        currency: 'CURRENCY_KRW',
+        payMethod: PAY_METHOD_CODE[payMethod],
+        redirectUrl: `${window.location.origin}/customer/expos`,
+      });
+
+      if (response.code) {
+        setPayError(response.message ?? '결제가 취소되었거나 실패했습니다.');
+        setPaying(false);
+        return;
+      }
+
+      await payAdmission({
+        expoId: expo.expoId,
+        amount: admissionFee,
+        payMethod: PAY_METHOD_CODE[payMethod],
+        paymentId,
+      });
+
+      setStep('pay-done');
+    } catch (err) {
+      setPayError(err.response?.data?.error?.message ?? '결제 처리 중 오류가 발생했습니다.');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  // 당일 결제 완료 후 QR 발급 화면으로. 실제 QR을 응답으로 받는 계약이 아직 없어 화면 확인용 티켓 생성
   const issuePaidTickets = () => {
     const issued = selectedDates.map((d) => buildMockPaidTicket(expo, d));
     issued.forEach(addMyTicket);
@@ -212,6 +281,10 @@ function EntryFlowModal({ expo, onClose }) {
           />
         )}
 
+        {step === 'login-required' && (
+          <LoginRequired onLogin={goLogin} onGuest={() => setStep('guest-info')} />
+        )}
+
         {step === 'select-date' && (
           <SelectDate
             expo={expo}
@@ -246,12 +319,14 @@ function EntryFlowModal({ expo, onClose }) {
             setPayMethod={setPayMethod}
             agree={agree}
             setAgree={setAgree}
-            onPaid={() => setStep('pay-done')}
+            paying={paying}
+            payError={payError}
+            onPaid={handlePay}
           />
         )}
 
         {step === 'pay-done' && (
-          <PayDone amount={totalFee} onCheckQr={issuePaidTickets} onLookAround={goDetail} />
+          <PayDone amount={totalFee} payMethod={payMethod} onCheckQr={issuePaidTickets} onLookAround={goDetail} />
         )}
 
         {step === 'ticket-qr' && tickets.length > 0 && (
@@ -285,7 +360,6 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
           ? '이미 발급받은 QR이 있어요. 바로 입장하거나 새로 신청할 수 있습니다.'
           : '방문 날짜를 고르면 QR 입장권이 발급됩니다.'}
       </p>
-
       <div className="ef-options">
         {hasExisting && (
           <button type="button" className="ef-option" onClick={onQrExisting}>
@@ -303,7 +377,6 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
             <span className="ef-option__chevron" />
           </button>
         )}
-
         <button type="button" className="ef-option" onClick={onApply}>
           <span className="ef-option__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -317,7 +390,6 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
           </span>
           <span className="ef-option__chevron" />
         </button>
-
         <button type="button" className="ef-option" onClick={onGuest}>
           <span className="ef-option__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
@@ -336,6 +408,27 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
   );
 }
 
+function LoginRequired({ onLogin, onGuest }) {
+  return (
+    <>
+      <div className="c-modal__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+      </div>
+      <h2>로그인이 필요합니다</h2>
+      <p className="c-modal__desc">당일 입장권 결제는 로그인한 회원만 이용할 수 있습니다.</p>
+      <button type="button" className="c-modal__primary" onClick={onLogin}>
+        로그인하러 가기
+      </button>
+      <button type="button" className="c-modal__secondary" onClick={onGuest}>
+        로그인 없이 둘러보기
+      </button>
+    </>
+  );
+}
+
 function SelectDate({
   expo,
   freeMode,
@@ -347,7 +440,6 @@ function SelectDate({
   applyError,
 }) {
   const dates = expoDateRange(expo);
-
   return (
     <>
       <div className="c-modal__icon">
@@ -360,9 +452,8 @@ function SelectDate({
       <p className="c-modal__desc">
         {freeMode
           ? '박람회 시작 전 사전 신청은 무료로 QR이 발급됩니다.'
-          : '박람회가 이미 시작되어 당일 입장권 결제가 필요합니다.'}
+          : '박람회가 이미 시작되어 당일 입장권 결제가 필요합니다. (1회 선택)'}
       </p>
-
       <div className="ef-date-list">
         {dates.map((d) => (
           <label key={d} className="ef-checkbox-row ef-date-item">
@@ -375,13 +466,10 @@ function SelectDate({
           </label>
         ))}
       </div>
-
       <p className="ef-date-fee">
         {freeMode ? '결제 금액 : 무료' : `결제 예정 금액 : ₩${totalFee.toLocaleString()}`}
       </p>
-
       {applyError && <p className="ef-error">{applyError}</p>}
-
       <button
         type="button"
         className="c-modal__primary"
@@ -444,7 +532,6 @@ function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround 
   const status = getTicketStatus(ticket);
   const isInactive = status === '사용완료' || status === '만료';
   const checkableToday = status === '사용가능' && isTicketCheckableToday(ticket);
-
   return (
     <>
       <p className={`ef-ready-badge ${isInactive ? 'is-expired' : ''}`}>
@@ -476,7 +563,6 @@ function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround 
         <br />
         {expo.venue}
       </p>
-
       {status === '사용완료' ? (
         <p className="ef-error ef-error--info">이미 입장 체크가 완료된 QR입니다.</p>
       ) : status === '만료' ? (
@@ -486,9 +572,7 @@ function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround 
           방문 예약일({fmtDate(ticket.visitDate)})에만 입장 체크가 가능합니다.
         </p>
       ) : null}
-
       {checkInError && <p className="ef-error">{checkInError}</p>}
-
       {checkableToday && (
         <button type="button" className="c-modal__primary" onClick={onCheckIn}>
           입장 체크하기
@@ -552,8 +636,8 @@ const PAY_METHODS = [
   { key: 'virtual', label: '가상계좌 발급' },
 ];
 
-function Payment({ amount, payMethod, setPayMethod, agree, setAgree, onPaid }) {
-  const canPay = payMethod === 'card' && agree;
+function Payment({ amount, payMethod, setPayMethod, agree, setAgree, paying, payError, onPaid }) {
+  const canPay = agree && !paying;
 
   return (
     <>
@@ -573,50 +657,38 @@ function Payment({ amount, payMethod, setPayMethod, agree, setAgree, onPaid }) {
         ))}
       </div>
 
-      {payMethod === 'card' ? (
-        <div className="ef-card-form">
-          <p className="ef-card-form__title">당일 입장권 결제</p>
-          <label className="ef-field">
-            <span>카드 번호</span>
-            <input placeholder="1234 - 5678 - 9012 - 3456" />
-          </label>
-          <div className="ef-field-row">
-            <label className="ef-field">
-              <span>유효기간(MM/YY)</span>
-              <input placeholder="MM / YY" />
-            </label>
-            <label className="ef-field">
-              <span>CVC 번호</span>
-              <input placeholder="123" />
-            </label>
-          </div>
-          <label className="ef-field">
-            <span>카드소유주</span>
-            <input placeholder="이름을 입력하세요." />
-          </label>
-          <label className="ef-checkbox-row">
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
-            <span>
-              결제 내용을 확인하였으며, 이에 동의합니다. (필수)
-              <br />
-              <a href="#!" onClick={(e) => e.preventDefault()}>
-                이용약관 보기
-              </a>
-            </span>
-          </label>
-        </div>
-      ) : (
-        <p className="ef-placeholder">이 결제 수단은 준비 중입니다.</p>
+      <div className="ef-card-form">
+        <p className="ef-card-form__title">당일 입장권 결제</p>
+        <p className="c-modal__desc" style={{ margin: '0 0 1rem' }}>
+          '결제하기' 클릭 시 실제 PortOne 결제창이 새로 열립니다. 카드/계좌 정보는 그 결제창에서 직접
+          입력합니다. 테스트 채널로 연결되어 있어 실제 대금은 빠져나가지 않습니다.
+        </p>
+        <label className="ef-checkbox-row">
+          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+          <span>
+            결제 내용을 확인하였으며, 이에 동의합니다. (필수)
+            <br />
+            <a href="#!" onClick={(e) => e.preventDefault()}>
+              이용약관 보기
+            </a>
+          </span>
+        </label>
+      </div>
+
+      {payError && (
+        <p className="c-modal__desc" style={{ color: '#dc2626' }}>
+          {payError}
+        </p>
       )}
 
       <button type="button" className="c-modal__primary" disabled={!canPay} onClick={onPaid}>
-        ₩{amount.toLocaleString()} 결제하기
+        {paying ? '결제 처리 중...' : `₩${amount.toLocaleString()} 결제하기`}
       </button>
     </>
   );
 }
 
-function PayDone({ amount, onCheckQr, onLookAround }) {
+function PayDone({ amount, payMethod, onCheckQr, onLookAround }) {
   return (
     <>
       <div className="c-modal__icon">
@@ -633,7 +705,7 @@ function PayDone({ amount, onCheckQr, onLookAround }) {
         </div>
         <div className="c-modal__info-row">
           <dt>결제 수단</dt>
-          <dd>신용카드</dd>
+          <dd>{PAY_METHODS.find((m) => m.key === payMethod)?.label ?? payMethod}</dd>
         </div>
         <div className="c-modal__info-row">
           <dt>결제 금액</dt>
