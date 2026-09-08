@@ -21,7 +21,13 @@ function Login() {
       });
       const loginRole = data.data.role;
       setAuth(data.data.accessToken, loginRole);
-      navigate(loginRole === "ADMIN" ? "/admin" : "/");
+      if (loginRole === "ADMIN") {
+        navigate("/admin");
+      } else if (loginRole === "USER") {
+        navigate("/customer");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       alert(err.response?.data?.error?.message ?? "로그인에 실패했습니다.");
     } finally {

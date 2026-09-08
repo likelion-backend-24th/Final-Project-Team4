@@ -1,0 +1,184 @@
+/* 사전 체크인 / 상담 완료 팝업 공용 스타일 */
+.c-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.c-modal {
+  box-sizing: border-box;
+  width: 400px;
+  max-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+}
+
+.c-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.c-modal__close:hover {
+  color: #0f172a;
+}
+
+.c-modal__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.c-modal__icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.c-modal h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 12px;
+}
+
+.c-modal__desc {
+  font-size: 14px;
+  line-height: 20px;
+  color: #64748b;
+  margin: 0 0 24px;
+}
+
+.c-modal__primary,
+.c-modal__secondary {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14px;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.c-modal__primary {
+  background: #2563eb;
+  border: none;
+  color: #fff;
+}
+
+.c-modal__primary:hover {
+  background: #1d4ed8;
+}
+
+.c-modal__primary:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.c-modal__secondary {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  margin-top: 10px;
+}
+
+.c-modal__secondary:hover {
+  background: #f8fafc;
+}
+
+.c-modal__note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 16px;
+  font-size: 12px;
+  line-height: 17px;
+  color: #64748b;
+}
+
+.c-modal__note-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #94a3b8;
+  margin-top: 2px;
+}
+
+.c-modal__error {
+  color: #dc2626;
+  font-size: 13px;
+  margin: -8px 0 16px;
+}
+
+.c-modal__qr {
+  width: 176px;
+  height: 176px;
+  margin: 0 auto 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.c-modal__qr img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.c-modal__info {
+  text-align: left;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.c-modal__info-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.c-modal__info-row dt {
+  color: #64748b;
+}
+
+.c-modal__info-row dd {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+}
