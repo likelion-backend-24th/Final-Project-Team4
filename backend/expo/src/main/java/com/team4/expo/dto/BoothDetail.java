@@ -16,6 +16,7 @@ public class BoothDetail {
     private final Integer fee;      // 참가비
     private final BoothStatus status;
     private final boolean applicable; // 지금 신청 가능한지 (신청 기간 내 && AVAILABLE)
+    private final String bannerImageUrl; // 부스 배너 이미지 (없으면 null)
 
     public static BoothDetail of(Booth booth, boolean withinApplyPeriod) {
         return new BoothDetail(
@@ -24,7 +25,8 @@ public class BoothDetail {
                 booth.getType(),
                 booth.getFee(),
                 booth.getStatus(),
-                withinApplyPeriod && booth.getStatus() == BoothStatus.AVAILABLE
+                withinApplyPeriod && booth.getStatus() == BoothStatus.AVAILABLE,
+                booth.getBannerImageUrl()
         );
     }
 }

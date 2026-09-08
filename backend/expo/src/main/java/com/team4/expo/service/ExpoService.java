@@ -7,6 +7,7 @@ import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
+import com.team4.expo.repository.PostRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,14 +24,17 @@ public class ExpoService {
     private final ExpoRepository expoRepository;
     private final BoothRepository boothRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final PostRepository postRepository;
     private final BoothApplicationValidator validator;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
                         BoothApplicationRepository boothApplicationRepository,
+                        PostRepository postRepository,
                         BoothApplicationValidator validator) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.postRepository = postRepository;
         this.validator = validator;
     }
 
@@ -120,9 +124,31 @@ public class ExpoService {
     // open 박람회 목록 페이징 조회
     @Transactional(readOnly = true)
     public Page<ExpoSummaryResponse> listOpenExpos(Pageable pageable){
-        Page<Expo> openExpos = expoRepository.findByStatus(ExpoStatus.OPEN, pageable);
+        LocalDateTime now = LocalDateTime.now();
+        return expoRepository.findByStatus(ExpoStatus.OPEN, pageable)
+                .map(expo -> ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, now), boothRepository.countByExpo_IdAndStatus(expo.getId(), BoothStatus.ASSIGNED)));
+    }
 
-        return openExpos.map(ExpoSummaryResponse::from);
+    // 비회원 - 공개 박람회 단건 조회
+    @Transactional(readOnly = true)
+    public ExpoSummaryResponse getPublicExpo(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        return ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, LocalDateTime.now()), boothRepository.countByExpo_IdAndStatus(expoId, BoothStatus.ASSIGNED));
+    }
+
+    // 비회원 - 박람회 내 부스 소개글 목록. 참가 확정부스만.
+    @Transactional(readOnly = true)
+    public List<BoothContentResponse> getPublicExpoPosts(Long expoId) {
+        expoRepository.findById(expoId)
+                .filter(e -> e.getStatus() == ExpoStatus.OPEN)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        return postRepository.findByBooth_Expo_IdAndBooth_Status(expoId, BoothStatus.ASSIGNED).stream()
+                .map(BoothContentResponse::from)
+                .toList();
     }
 
     // 특정 박람회의 부스 목록 조회. DRAFT(비공개) 및 없는 박람회는 404
