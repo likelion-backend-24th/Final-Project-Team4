@@ -17,4 +17,10 @@ public class SignUpUserRequest {
     @NotBlank
     @Size(min = 8, max = 64, message = "비밀번호는 8자 이상이어야 합니다.")
     private final String password;
+
+    @NotBlank
+    private final String name; // 이름
+
+    @NotBlank
+    private final String phone; // 전화번호
 }

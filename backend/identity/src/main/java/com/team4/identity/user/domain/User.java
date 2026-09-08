@@ -51,7 +51,7 @@ public class User {
     private String managerName; // 담당자 이름
 
     @Column(length = 32)
-    private String contact; // 담당자 연락처
+    private String contact; // 연락처 (참가업체 담당자 / 일반회원 전화번호 공용)
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -71,6 +71,9 @@ public class User {
     @Column(name = "company_contact", length = 32)
     private String companyContact; // 업체 대표 연락처
 
+    @Column(length = 100)
+    private String name; // 일반회원 이름
+
     private User(String email, String passwordHash, Role role) {
         this.email = email;
         this.passwordHash = passwordHash;
@@ -78,8 +81,11 @@ public class User {
         this.status = UserStatus.ACTIVE;
     }
 
-    public static User createMember(String email, String passwordHash) {
-        return new User(email, passwordHash, Role.USER);
+    public static User createMember(String email, String passwordHash, String name, String phone) {
+        User user = new User(email, passwordHash, Role.USER);
+        user.name = name;
+        user.contact = phone;
+        return user;
     }
 
     public static User createExhibitor(String email, String passwordHash, String businessNo,

@@ -24,7 +24,9 @@ class UserSignupTest {
     private static final String SIGNUP_BODY = """
             {
               "email": "member@example.com",
-              "password": "password123"
+              "password": "password123",
+              "name": "홍길동",
+              "phone": "010-1234-5678"
             }
             """;
 
@@ -51,6 +53,18 @@ class UserSignupTest {
         assertThat(saved.getBusinessNo()).isNull();
         assertThat(saved.getPasswordHash()).isNotEqualTo("password123");
         assertThat(saved.getPasswordHash()).startsWith("$2");
+        assertThat(saved.getName()).isEqualTo("홍길동");
+        assertThat(saved.getContact()).isEqualTo("010-1234-5678");
+    }
+
+    @Test
+    void 이름이_없으면_400() throws Exception {
+        String badBody = SIGNUP_BODY.replace("\"홍길동\"", "\"\"");
+
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(badBody))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

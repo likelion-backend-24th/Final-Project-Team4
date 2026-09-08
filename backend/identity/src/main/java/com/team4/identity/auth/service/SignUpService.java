@@ -29,7 +29,7 @@ public class SignUpService {
         }
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
-        User user = User.createMember(request.getEmail(), passwordHash);
+        User user = User.createMember(request.getEmail(), passwordHash, request.getName(), request.getPhone());
 
         try {
             userRepository.save(user);
