@@ -56,7 +56,10 @@ public class IdentityHttpClient implements IdentityClient {
 
             return Optional.of(new ExhibitorProfile(
                     data.path("companyName").asText(null),
-                    data.path("industry").asText(null)
+                    data.path("industry").asText(null),
+                    data.path("businessNo").asText(null),
+                    data.path("representativeName").asText(null),
+                    data.path("email").asText(null)
             ));
         } catch (IOException | InterruptedException e) {
             // 부가 표시 정보 조회 실패는 부스 목록 조회 자체를 막으면 안 되므로 예외를 삼키고 빈 값 반환
