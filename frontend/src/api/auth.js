@@ -1,3 +1,5 @@
+import { jwtDecode } from 'jwt-decode';
+
 // 데모용 토큰 저장소. accessToken은 body로 받아 localStorage에 보관,
 // 요청 시 client.js 인터셉터가 Authorization: Bearer로 실어 보냄
 const TOKEN_KEY = 'accessToken';
@@ -25,7 +27,7 @@ export const getUserId = () => {
   const token = getToken();
   if (!token) return null;
   try {
-    return Number(JSON.parse(atob(token.split('.')[1])).sub);
+    return Number(jwtDecode(token).sub);
   } catch {
     return null;
   }
