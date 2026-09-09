@@ -105,17 +105,25 @@ services:
     networks:
       - backend
 
-  payment: # payment H2라 재기동 시 데이터 초기화될수도
+  payment:
     image: ghcr.io/likelion-backend-24th/team4-payment:${IMAGE_TAG:-latest}
     container_name: car-expo-payment
     restart: unless-stopped
     environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: app
+      DB_PASSWORD: ${DB_PASSWORD}
       PORTONE_API_SECRET: ${PORTONE_API_SECRET:-}
       EXPO_BASE_URL: http://expo:8082
+      RESERVATION_BASE_URL: http://reservation:8084
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
       SPRING_JPA_SHOW_SQL: "false"
     networks:
       - backend
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   gateway:
     image: ghcr.io/likelion-backend-24th/team4-gateway:${IMAGE_TAG:-latest}
