@@ -42,14 +42,9 @@ function CustomerHeader() {
           박람회 목록
         </NavLink>
         {loggedIn && (
-          <>
-            <NavLink to="/customer/mypage/consultations" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              참가 신청 관리
-            </NavLink>
-            <NavLink to="/customer/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-              마이페이지
-            </NavLink>
-          </>
+          <NavLink to="/customer/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+            마이페이지
+          </NavLink>
         )}
       </nav>
       <div className="app-header__account">
