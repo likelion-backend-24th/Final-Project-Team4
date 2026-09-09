@@ -2,6 +2,8 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.ExhibitorProfile;
+import com.team4.expo.client.IdentityClient;
 import com.team4.expo.domain.*;
 import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
@@ -9,6 +11,7 @@ import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,14 +27,38 @@ public class ExpoService {
     private final BoothRepository boothRepository;
     private final BoothApplicationRepository boothApplicationRepository;
     private final BoothApplicationValidator validator;
+    private final IdentityClient identityClient;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
-                        BoothApplicationRepository boothApplicationRepository,
-                        BoothApplicationValidator validator) {
+                       BoothApplicationRepository boothApplicationRepository,
+                       BoothApplicationValidator validator,
+                       IdentityClient identityClient) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.validator = validator;
+        this.identityClient = identityClient;
+    }
+
+    // 부스가 배정 완료(ASSIGNED) 상태면 확정된 신청의 exhibitorId로 Identity에서 회사명/업종을 붙여줌.
+    // 미배정이거나 Identity 조회가 실패하면 companyName/industry는 null로 내려감(화면 표시만 못 할 뿐 전체 조회는 계속 성공).
+    private BoothDetail toBoothDetail(Booth booth, boolean withinApplyPeriod) {
+        String companyName = null;
+        String industry = null;
+
+        if (booth.getStatus() == BoothStatus.ASSIGNED) {
+            Optional<BoothApplication> confirmed =
+                    boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED);
+            if (confirmed.isPresent()) {
+                Optional<ExhibitorProfile> profile = identityClient.getExhibitorProfile(confirmed.get().getExhibitorId());
+                if (profile.isPresent()) {
+                    companyName = profile.get().companyName();
+                    industry = profile.get().industry();
+                }
+            }
+        }
+
+        return BoothDetail.of(booth, withinApplyPeriod, companyName, industry);
     }
 
     // 내부 API(Reservation -> Expo)용 — 방문 예약 시점에 무료/유료를 가르는 데 필요한 최소 정보만 조회.
@@ -112,7 +139,7 @@ public class ExpoService {
         List<Booth> allBooths = boothRepository.findByExpo_IdOrderByBoothNo(expoId);
         boolean withinApplyPeriod = validator.isWithinApplyPeriod(expo, LocalDateTime.now());
         int availableCount = (int) allBooths.stream().filter(b -> b.getStatus() == BoothStatus.AVAILABLE).count();
-        List<BoothDetail> views = allBooths.stream().map(b -> BoothDetail.of(b, withinApplyPeriod)).toList();
+        List<BoothDetail> views = allBooths.stream().map(b -> toBoothDetail(b, withinApplyPeriod)).toList();
 
         return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
     }
@@ -152,7 +179,7 @@ public class ExpoService {
 
         List<BoothDetail> views = allBooths.stream()
                 .filter(b -> status == null || b.getStatus() == status)
-                .map(b -> BoothDetail.of(b, withinApplyPeriod))
+                .map(b -> toBoothDetail(b, withinApplyPeriod))
                 .toList();
 
         return new ExpoBoothsResponse(expo.getId(), expo.getTitle(), allBooths.size(), availableCount, views);
