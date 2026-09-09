@@ -4,15 +4,62 @@
 }
 
 .expo-detail__hero {
-  background: #0b1220;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  background: linear-gradient(120deg, #0b1220 0%, #111c33 55%, #1c2a4a 100%);
   color: #fff;
   padding: 32px;
+  overflow: hidden;
+}
+
+.expo-detail__hero-main {
+  min-width: 0;
 }
 
 .expo-detail__hero-badges {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+}
+
+.expo-detail__hero-meta {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+
+.expo-detail__hero-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.expo-detail__hero-icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid #94a3b8;
+  flex-shrink: 0;
+}
+
+.expo-detail__hero-icon--calendar {
+  border-radius: 2px;
+}
+
+.expo-detail__hero-icon--pin {
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(45deg);
+}
+
+@media (max-width: 700px) {
+  .expo-detail__hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .expo-detail__badge {
@@ -149,22 +196,44 @@
   margin-bottom: 24px;
 }
 
-.expo-detail__info dl {
+.expo-detail__side {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  height: fit-content;
+}
+
+.expo-detail__side h3 {
+  margin: 4px 0 16px;
+}
+
+.expo-detail__side-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.expo-detail__side-hint {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.expo-detail__info-list {
   display: grid;
   grid-template-columns: 120px 1fr;
   row-gap: 8px;
   font-size: 14px;
 }
 
-.expo-detail__info dt {
+.expo-detail__info-list dt {
   color: #64748b;
-}
-
-.expo-detail__side {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 20px;
-  height: fit-content;
 }
 
 .expo-detail__cta {
@@ -199,64 +268,67 @@
   gap: 24px;
 }
 
-.expo-detail__allmap {
-  width: 380px;
+.expo-detail__boothmap-side {
+  width: 160px;
   flex-shrink: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.expo-detail__allmap h3 {
-  margin: 0;
-  padding: 12px 20px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  background: #0f172a;
-}
-
-.expo-detail__allmap-scroll {
-  max-height: 520px;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.expo-detail__current {
-  flex: 1;
-  min-width: 0;
-}
-
-.expo-detail__current h2 {
-  margin: 0 0 12px;
-  font-size: 16px;
-}
-
-.expo-detail__view-toggle {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.expo-detail__view-toggle button {
-  padding: 8px 16px;
+.expo-detail__hall-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.expo-detail__hall-filters button {
+  box-sizing: border-box;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   background: #fff;
-  color: #64748b;
-  font-size: 13px;
+  color: #334155;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  text-align: left;
 }
 
-.expo-detail__view-toggle button.is-active {
-  background: #0f172a;
-  border-color: #0f172a;
+.expo-detail__hall-filters button.is-active {
+  background: #2563eb;
+  border-color: #2563eb;
   color: #fff;
 }
 
-.expo-detail__current .expo-detail__legend {
-  margin-bottom: 12px;
+.expo-detail__legend--vertical {
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.dot--booth {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+}
+
+.dot--food {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.dot--rest {
+  background: #dcfce7;
+}
+
+.expo-detail__hallmap-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  overflow-x: auto;
 }
 
 @media (max-width: 900px) {
@@ -264,8 +336,14 @@
     flex-direction: column;
   }
 
-  .expo-detail__allmap {
+  .expo-detail__boothmap-side {
     width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .expo-detail__hall-filters {
+    flex-direction: row;
   }
 }
 
@@ -289,7 +367,7 @@
     font-size: 20px;
   }
 
-  .expo-detail__info dl {
+  .expo-detail__info-list {
     grid-template-columns: 100px 1fr;
     font-size: 13px;
   }

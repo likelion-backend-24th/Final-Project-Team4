@@ -76,6 +76,19 @@ class AdmissionContextAcceptanceTest {
     }
 
     @Test
+    @DisplayName("오늘이 아닌 다른 날짜의 무료 QR만 있으면 hasFreeAdmission=false (날짜별 판정)")
+    void 다른_날짜_무료_QR은_당일_무료입장으로_안_친다() throws Exception {
+        when(expoClient.getExpo(EXPO_ID)).thenReturn(Optional.of(
+                new ExpoInfo(EXPO_ID, "OPEN", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 15_000L)));
+        ticketRepository.save(Ticket.issueFree(CUSTOMER_ID, EXPO_ID, LocalDate.now().plusDays(1)));
+
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.hasFreeAdmission").value(false))
+                .andExpect(jsonPath("$.data.admissionFee").value(15_000));
+    }
+
+    @Test
     @DisplayName("존재하지 않는 박람회는 404")
     void 없는_박람회_404() throws Exception {
         when(expoClient.getExpo(999_999L)).thenReturn(Optional.empty());
