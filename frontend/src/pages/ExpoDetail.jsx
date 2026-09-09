@@ -5,7 +5,7 @@ import HallMap, { HallPlaza } from '../components/HallMap';
 import { getBoothHall } from '../utils/boothType';
 import './ExpoDetail.css';
 
-const TABS = ['개요', '부스 배치도', '참가 안내'];
+const TABS = ['개요', '부스 배치도'];
 
 // ISO(2026-05-12T10:00:00) → 2026.05.12
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-');
@@ -154,13 +154,6 @@ function ExpoDetail() {
                   총 {detail.totalCount}개 중 {detail.availableCount}개 신청 가능
                 </dd>
               </dl>
-            </section>
-          )}
-
-          {tab === '참가 안내' && (
-            <section className="expo-detail__booths">
-              <h2>참가 안내</h2>
-              <p>부스 참가 절차 및 유의사항 안내 영역입니다.</p>
             </section>
           )}
         </div>
