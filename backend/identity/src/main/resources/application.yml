@@ -40,3 +40,13 @@ admin:
 cookie:
   secure: ${COOKIE_SECURE:false} # 운영 환경에서 true
   same-site: ${COOKIE_SAMESITE:Strict}
+
+# 내부 서비스 간 호출(/internal/**) 인증용. Gateway·OpenAPI에 미노출.
+service:
+  token:
+    expo: ${SVC_TOKEN_EXPO:local_dev_expo_token}
+
+# 부스 상세(배정 참가업체 회사명/업종) 조회용 - Expo -> Identity
+identity:
+  base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
+  service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}

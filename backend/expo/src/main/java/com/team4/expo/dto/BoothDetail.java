@@ -17,8 +17,10 @@ public class BoothDetail {
     private final BoothStatus status;
     private final boolean applicable; // 지금 신청 가능한지 (신청 기간 내 && AVAILABLE)
     private final String bannerImageUrl; // 부스 배너 이미지 (없으면 null)
+    private final String companyName; // 배정된 참가업체 회사명 (미배정이거나 Identity 조회 실패 시 null)
+    private final String industry;    // 배정된 참가업체 업종 (미배정이거나 Identity 조회 실패 시 null)
 
-    public static BoothDetail of(Booth booth, boolean withinApplyPeriod) {
+    public static BoothDetail of(Booth booth, boolean withinApplyPeriod, String companyName, String industry) {
         return new BoothDetail(
                 booth.getId(),
                 booth.getBoothNo(),
@@ -26,7 +28,9 @@ public class BoothDetail {
                 booth.getFee(),
                 booth.getStatus(),
                 withinApplyPeriod && booth.getStatus() == BoothStatus.AVAILABLE,
-                booth.getBannerImageUrl()
+                booth.getBannerImageUrl(),
+                companyName,
+                industry
         );
     }
 }

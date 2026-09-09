@@ -23,7 +23,7 @@ public class TicketService {
     private final TicketRepository ticketRepository;
     private final ExpoClient expoClient;
 
-    // 사용자가 박람회 방문을 예약하며 날짜(들)를 고르면 호출됨. 날짜 하나당 티켓 하나씩, 각각 멱등 —
+    // 사용자가 박람회 방문을 예약하며 날짜를 고르면 호출됨. 날짜 하나당 티켓 하나씩, 각각 멱등
     // 이미 그 날짜 티켓이 있으면 새로 만들지 않고 기존 걸 그대로 돌려준다.
     public VisitApplicationResponse applyVisit(Long customerId, Long expoId, List<LocalDate> visitDates) {
         ExpoInfo expo = expoClient.getExpo(expoId)
@@ -57,8 +57,7 @@ public class TicketService {
     }
 
     // Payment -> Reservation. 당일 유료 입장권 결제 전에 호출. "오늘" 날짜로 이 박람회 무료 QR을 이미 가진
-    // 고객이면 hasFreeAdmission=true(결제 스킵), 아니면 Expo가 등록해둔 당일 입장료를 그대로 돌려준다.
-    // 날짜를 안 보고 판정하면 다른 날짜 무료 QR로 당일 유료 입장을 우회할 수 있어 반드시 오늘 날짜로 한정한다.
+    // 고객이면 결제 스킵, 아니면 Expo가 등록해둔 당일 입장료를 그대로 돌려준다.
     public AdmissionContextResponse getAdmissionContext(Long customerId, Long expoId) {
         ExpoInfo expo = expoClient.getExpo(expoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
@@ -94,10 +93,8 @@ public class TicketService {
                 .toList();
     }
 
-    // Payment -> Reservation. 당일 유료 입장권 결제 완료 직후 호출 — "당일"권이므로 visitDate는 반드시 오늘이어야 한다.
-    // 멱등 처리는 기존 티켓이 PAID일 때만(같은 결제 발급 호출의 재시도) — 기존 티켓이 FREE라면 Payment가
-    // getAdmissionContext에서 hasFreeAdmission=true를 못 보고 결제를 그대로 진행시킨 것이므로 조용히 티켓을
-    // 반환하지 않고 막아서 "결제는 됐는데 여전히 무료권" 정합성 문제를 드러낸다.
+    // Payment -> Reservation. 당일 유료 입장권 결제 완료 직후 호출 — "당일"권이므로 visitDate는 오늘이어야 한다.
+    // 멱등 처리는 기존 티켓이 PAID일 때만(같은 결제 발급 호출의 재시도)
     public TicketResponse issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
         if (!visitDate.isEqual(LocalDate.now())) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "당일 입장권은 오늘 날짜로만 발급할 수 있습니다.");

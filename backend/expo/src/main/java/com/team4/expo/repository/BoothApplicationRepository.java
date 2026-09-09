@@ -5,11 +5,15 @@ import com.team4.expo.domain.BoothApplication;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface BoothApplicationRepository extends JpaRepository<BoothApplication, Long> {
 
     // "동일 부스 + 동일 업체 + 진행 중인 상태(SUBMITTED/PAYMENT_PENDING/CONFIRMED)"의 신청이 있는지 확인
     boolean existsByBooth_IdAndExhibitorIdAndStatusIn(Long boothId, Long exhibitorId, List<ApplicationStatus> statuses);
+
+    // 부스에 배정 확정된(CONFIRMED) 신청 1건 조회 - 부스 상세에 참가업체 정보를 붙일 때 사용
+    Optional<BoothApplication> findByBooth_IdAndStatus(Long boothId, ApplicationStatus status);
 
     // 그룹에 속한 모든 부스 신청 조회 (제출/취소 시 그룹 단위 처리에 사용)
     List<BoothApplication> findByGroup_Id(String groupId);

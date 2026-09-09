@@ -30,3 +30,7 @@ service:
 
 payment:
   base-url: ${PAYMENT_BASE_URL:http://localhost:8083}
+
+identity:
+  base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
+  service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}

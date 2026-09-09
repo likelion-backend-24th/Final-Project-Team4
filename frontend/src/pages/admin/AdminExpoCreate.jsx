@@ -1,7 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerExpo, openExpo } from '../../api/expo';
+import { getBoothHall, isFoodBooth } from '../../utils/boothType';
 import './AdminExpoCreate.css';
+
+// 홀(A/B 등)당 등록 가능한 최대 부스 수 — 부스 배치도 화면의 격자 크기에 맞춘 제한
+const MAX_BOOTHS_PER_HALL = 16; // 일반 부스(조립/독립)
+const MAX_FOOD_PER_HALL = 4; // 먹거리 부스
 
 // datetime-local 입력용 문자열(YYYY-MM-DDTHH:mm) 생성 - 지금부터 days일 뒤 09:00
 const isoLocal = (days) => {
@@ -12,7 +17,7 @@ const isoLocal = (days) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const BOOTH_TYPES = ['조립 부스 (3m x 3m)', '독립 부스 (6m x 3m)'];
+const BOOTH_TYPES = ['조립 부스 (3m x 3m)', '독립 부스 (6m x 3m)', '푸드 부스 (3m x 3m)'];
 
 function AdminExpoCreate() {
   const navigate = useNavigate();
@@ -40,17 +45,46 @@ function AdminExpoCreate() {
   const setField = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setGenField = (k) => (e) => setGen((g) => ({ ...g, [k]: e.target.value }));
 
+  // 홀(A/B 등)별 일반 부스·먹거리 부스 개수 집계. boothNo("A-101")의 "-" 앞부분을 홀로 봄 (getBoothHall과 동일 규칙).
+  const hallCounts = useMemo(() => {
+    const map = {};
+    booths.forEach((b) => {
+      const hall = getBoothHall(b.boothNo);
+      if (!map[hall]) map[hall] = { normal: 0, food: 0 };
+      if (isFoodBooth(b.type)) map[hall].food += 1;
+      else map[hall].normal += 1;
+    });
+    return map;
+  }, [booths]);
+
   const addGenerated = () => {
     const start = Number(gen.start);
     const count = Number(gen.count);
     const fee = Number(gen.fee);
     if (!gen.prefix || !Number.isFinite(start) || !Number.isFinite(count) || count < 1) return;
+
+    const hall = getBoothHall(`${gen.prefix}${start}`);
+    const isFood = isFoodBooth(gen.type);
+    const limit = isFood ? MAX_FOOD_PER_HALL : MAX_BOOTHS_PER_HALL;
+    const current = hallCounts[hall]?.[isFood ? 'food' : 'normal'] ?? 0;
+
+    if (current + count > limit) {
+      setError(
+        `${hall}홀 ${isFood ? '먹거리 부스' : '일반 부스'}는 최대 ${limit}개까지만 등록할 수 있습니다. ` +
+          `(현재 ${current}개 + 추가 시도 ${count}개)`
+      );
+      return;
+    }
+
+    setError(null);
     const rows = Array.from({ length: count }, (_, i) => ({
       boothNo: `${gen.prefix}${start + i}`,
       type: gen.type,
       fee,
     }));
     setBooths((prev) => [...prev, ...rows]);
+    // 다음에 "추가"를 또 누르면 이어지는 번호부터 생성되도록 시작 번호를 자동으로 갱신
+    setGen((g) => ({ ...g, start: start + count }));
   };
 
   const addRow = () => setBooths((prev) => [...prev, { boothNo: '', type: BOOTH_TYPES[0], fee: 3000000 }]);
@@ -74,6 +108,19 @@ function AdminExpoCreate() {
     const invalid = booths.some((b) => !b.boothNo.trim() || !b.type.trim() || Number(b.fee) <= 0);
     if (invalid) {
       setError('부스 번호 / 유형 / 임차료(양수)를 모두 채워주세요.');
+      return;
+    }
+    // 수동으로 "행 추가"하거나 유형/부스번호를 고쳐서 일괄 생성 시 체크를 우회했을 수 있어 제출 직전 다시 확인
+    const overLimitHall = Object.entries(hallCounts).find(
+      ([, c]) => c.normal > MAX_BOOTHS_PER_HALL || c.food > MAX_FOOD_PER_HALL
+    );
+    if (overLimitHall) {
+      const [hall, c] = overLimitHall;
+      setError(
+        c.normal > MAX_BOOTHS_PER_HALL
+          ? `${hall}홀의 일반 부스가 ${c.normal}개입니다. 최대 ${MAX_BOOTHS_PER_HALL}개까지만 등록할 수 있습니다.`
+          : `${hall}홀의 먹거리 부스가 ${c.food}개입니다. 최대 ${MAX_FOOD_PER_HALL}개까지만 등록할 수 있습니다.`
+      );
       return;
     }
     if (form.admissionFee === '' || Number(form.admissionFee) < 0) {
@@ -187,10 +234,19 @@ function AdminExpoCreate() {
         <section className="admin-expo-create__panel">
           <div className="admin-expo-create__panel-head">
             <h2>부스 목록 ({booths.length}개)</h2>
-            <button type="button" className="admin-expo-create__row-add" onClick={addRow}>
-              + 행 추가
-            </button>
           </div>
+
+          {Object.keys(hallCounts).length > 0 && (
+            <p className="admin-expo-create__hint">
+              {Object.entries(hallCounts)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(
+                  ([hall, c]) =>
+                    `${hall}홀 — 일반 ${c.normal}/${MAX_BOOTHS_PER_HALL}개, 먹거리 ${c.food}/${MAX_FOOD_PER_HALL}개`
+                )
+                .join('  ·  ')}
+            </p>
+          )}
 
           {booths.length === 0 ? (
             <p className="admin-expo-create__empty">아직 부스가 없습니다. 위에서 일괄 생성하거나 행을 추가하세요.</p>
