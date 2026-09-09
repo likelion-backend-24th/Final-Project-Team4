@@ -1,11 +1,20 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { clearAuth } from '../api/auth';
+import { getMyProfile } from '../api/identity';
 import './Header.css';
 
 function Header() {
   const navigate = useNavigate();
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    getMyProfile()
+      .then((p) => setCompanyName(p.companyName ?? ''))
+      .catch(() => setCompanyName(''));
+  }, []);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -38,7 +47,7 @@ function Header() {
       <div className="app-header__account">
         <Link to="/mypage" className="app-header__user">
           <span className="app-header__avatar" />
-          <span>현대모비스(주)</span>
+          <span>{companyName || '내 정보'}</span>
         </Link>
         <Link to="/login" className="app-header__logout" onClick={handleLogout}>
           로그아웃

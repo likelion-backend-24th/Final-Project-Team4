@@ -1,13 +1,22 @@
+import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '../../assets/logo-icon.png';
 import apiClient from '../../api/client';
 import { clearAuth } from '../../api/auth';
+import { getMyProfile } from '../../api/identity';
 import '../Header.css';
 
 // 일반 사용자(방문객)용 상단 헤더. 참가업체용 Header와 레이아웃은 동일하되
 // 계정 표시가 "OOO(사용자)"로 나오고, 네비게이션 목적지가 고객 화면(/customer/*)을 가리킴.
 function CustomerHeader() {
   const navigate = useNavigate();
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    getMyProfile()
+      .then((p) => setName(p.name ?? ''))
+      .catch(() => setName(''));
+  }, []);
 
   const handleLogout = async (e) => {
     e.preventDefault();
@@ -40,7 +49,7 @@ function CustomerHeader() {
       <div className="app-header__account">
         <Link to="/customer/mypage" className="app-header__user">
           <span className="app-header__avatar" />
-          <span>홍길동(사용자)</span>
+          <span>{name ? `${name}(사용자)` : '내 정보'}</span>
         </Link>
         <Link to="/login" className="app-header__logout" onClick={handleLogout}>
           로그아웃
