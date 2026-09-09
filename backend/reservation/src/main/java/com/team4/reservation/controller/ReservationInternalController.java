@@ -5,9 +5,11 @@ import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.IssueAdmissionTicketRequest;
+import com.team4.reservation.dto.TicketExistsResponse;
 import com.team4.reservation.dto.TicketResponse;
 import com.team4.reservation.service.TicketService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +29,9 @@ public class ReservationInternalController {
 
     @Value("${service.token.payment}")
     private String paymentServiceToken;
+
+    @Value("${service.token.expo}")
+    private String expoServiceToken;
 
     public ReservationInternalController(TicketService ticketService) {
         this.ticketService = ticketService;
@@ -58,8 +63,29 @@ public class ReservationInternalController {
                 ticketService.issueAdmissionTicket(customerId, expoId, request.getVisitDate())));
     }
 
+    // Expo -> Reservation. 상담 신청 접수 시점에 그 날짜 입장권 보유 여부를 확인.
+    @GetMapping("/customers/{customerId}/expos/{expoId}/tickets/{visitDate}")
+    public ResponseEntity<ApiResponse<TicketExistsResponse>> hasTicketForDate(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long customerId,
+            @PathVariable Long expoId,
+            @PathVariable LocalDate visitDate) {
+
+        requireExpoService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                ticketService.hasTicketForDate(customerId, expoId, visitDate)));
+    }
+
     private void requirePaymentService(String authorization) {
         String expected = "Bearer " + paymentServiceToken;
+        if (authorization == null || !authorization.equals(expected)) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
+        }
+    }
+
+    private void requireExpoService(String authorization) {
+        String expected = "Bearer " + expoServiceToken;
         if (authorization == null || !authorization.equals(expected)) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
         }

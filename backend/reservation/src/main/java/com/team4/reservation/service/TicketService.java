@@ -7,6 +7,7 @@ import com.team4.reservation.client.ExpoInfo;
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.domain.TicketType;
 import com.team4.reservation.dto.AdmissionContextResponse;
+import com.team4.reservation.dto.TicketExistsResponse;
 import com.team4.reservation.dto.TicketResponse;
 import com.team4.reservation.dto.VisitApplicationResponse;
 import com.team4.reservation.repository.TicketRepository;
@@ -66,6 +67,14 @@ public class TicketService {
                 customerId, expoId, TicketType.FREE, LocalDate.now());
 
         return new AdmissionContextResponse(expoId, customerId, hasFreeAdmission, expo.admissionFee());
+    }
+
+    // Expo -> Reservation. 상담 신청 접수 시점에 "이 고객이 이 박람회 이 날짜 입장권을 갖고 있는지"만 확인.
+    // 티켓 타입(FREE/PAID)·상태(ISSUED/USED) 무관 — 그 날짜에 티켓이 존재하기만 하면 true.
+    public TicketExistsResponse hasTicketForDate(Long customerId, Long expoId, LocalDate visitDate) {
+        boolean hasTicket = ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
+                .isPresent();
+        return new TicketExistsResponse(hasTicket);
     }
 
     private TicketResponse issueOrGetTicket(Long customerId, Long expoId, LocalDate visitDate) {

@@ -98,6 +98,7 @@ services:
       EXPO_BASE_URL: http://expo:8082
       SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
+      SVC_TOKEN_EXPO: ${SVC_TOKEN_EXPO}
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
