@@ -72,7 +72,7 @@ class PublicExpoQueryTest {
         saveBooth(open, "A-3", false); // AVAILABLE - 참여부스 수에서 제외
         saveExpo("비공개 준비중", false);
 
-        mockMvc.perform(get("/api/expos"))
+        mockMvc.perform(get("/api/customer/expos"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.content.length()").value(1))
                 .andExpect(jsonPath("$.data.content[0].title").value("서울 모빌리티쇼"))
@@ -84,7 +84,7 @@ class PublicExpoQueryTest {
     void 단건_조회는_OPEN이면_200() throws Exception {
         Expo open = saveExpo("서울 모빌리티쇼", true);
 
-        mockMvc.perform(get("/api/expos/" + open.getId()))
+        mockMvc.perform(get("/api/customer/expos/" + open.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.venue").value("COEX"))
                 .andExpect(jsonPath("$.data.phase").value("모집중"));
@@ -94,13 +94,13 @@ class PublicExpoQueryTest {
     void 비공개_박람회_단건은_404() throws Exception {
         Expo draft = saveExpo("비공개", false);
 
-        mockMvc.perform(get("/api/expos/" + draft.getId()))
+        mockMvc.perform(get("/api/customer/expos/" + draft.getId()))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void 없는_박람회는_404() throws Exception {
-        mockMvc.perform(get("/api/expos/99999"))
+        mockMvc.perform(get("/api/customer/expos/99999"))
                 .andExpect(status().isNotFound());
     }
 
@@ -112,7 +112,7 @@ class PublicExpoQueryTest {
         boothRepository.save(assigned);
         saveBooth(open, "A-2", false); // AVAILABLE - 제외
 
-        mockMvc.perform(get("/api/expos/" + open.getId() + "/booths"))
+        mockMvc.perform(get("/api/customer/expos/" + open.getId() + "/booths"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.booths.length()").value(1))
                 .andExpect(jsonPath("$.data.booths[0].status").value("ASSIGNED"))

@@ -10,3 +10,4 @@ dist/
 HELP.md
 backend/*/uploads/
 CLAUDE.md
+.vercel

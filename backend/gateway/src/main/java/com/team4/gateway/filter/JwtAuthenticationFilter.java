@@ -33,9 +33,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // 화이트리스트 - 토큰 없이 통과 가능 경로 (로그인,회원가입,토큰 재발급,로그아웃, 비회원 박람회 접근 api)
     private static final List<PathPattern> WHITELIST = List.of(
             parse("/api/auth/**"),
-            parse("/api/expos"),
-            parse("/api/expos/{id}"),
-            parse("/api/expos/{id}/booths")
+            parse("/api/customer/expos"),
+            parse("/api/customer/expos/{id}"),
+            parse("/api/customer/expos/{id}/booths")
     );
 
     // 화이트리스트 패턴 문자열을 Spring Cloud Gateway 라우팅과 동일한 PathPattern으로 컴파일
