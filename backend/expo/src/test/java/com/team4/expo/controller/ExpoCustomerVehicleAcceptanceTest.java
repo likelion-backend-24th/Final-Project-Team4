@@ -4,6 +4,8 @@ import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.Post;
 import com.team4.expo.domain.Vehicle;
+import com.team4.expo.repository.BoothApplicationGroupRepository;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import com.team4.expo.repository.PostRepository;
@@ -34,11 +36,15 @@ class ExpoCustomerVehicleAcceptanceTest {
     @Autowired BoothRepository boothRepository;
     @Autowired PostRepository postRepository;
     @Autowired VehicleRepository vehicleRepository;
+    @Autowired BoothApplicationRepository boothApplicationRepository;
+    @Autowired BoothApplicationGroupRepository boothApplicationGroupRepository;
 
     @BeforeEach
     void clean() {
         vehicleRepository.deleteAllInBatch();
         postRepository.deleteAllInBatch();
+        boothApplicationRepository.deleteAllInBatch();
+        boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
         expoRepository.deleteAllInBatch();
     }
@@ -54,7 +60,7 @@ class ExpoCustomerVehicleAcceptanceTest {
     private Booth assignedBooth(Expo expo, String boothNo) {
         Booth booth = boothRepository.save(new Booth(expo, boothNo, "조립 부스", 3_000_000));
         booth.assign();
-        return booth;
+        return boothRepository.save(booth);
     }
 
     private Vehicle saveVehicle(Booth booth, String name) {
