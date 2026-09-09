@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockMyProfile, mockPastExhibits } from "../mock/data";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
+import { getMyProfile } from "../api/identity";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -15,6 +15,8 @@ const STATUS_BADGE = {
   결제완료: "badge--paid",
   결제실패: "badge--rejected",
   결제중: "badge--pending",
+  "참가 예정": "badge--pending",
+  참가중: "badge--approved",
   "참가 완료": "badge--done",
 };
 
@@ -40,11 +42,19 @@ const PAYMENT_STATUS_LABEL = {
 const fmtDateTime = (iso) =>
   iso ? iso.slice(0, 16).replace("T", " ").replace(/-/g, ".") : null;
 
+// ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12)
+const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : null);
+
 function MyPage() {
   const navigate = useNavigate();
   const [myApplications, setMyApplications] = useState([]);
+  const [applicationGroups, setApplicationGroups] = useState([]); // 원본 신청 그룹 (부스 참가 이력 산출용)
   const [loadError, setLoadError] = useState(null);
   const [openId, setOpenId] = useState(null);
+
+  // 업체 및 담당자 정보: 로그인한 사용자 프로필 (없으면 null - 로딩 중이거나 조회 실패)
+  const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState(null);
 
   // 참가비 결제 내역: 실제 결제된 건 목록 (없으면 빈 배열 - 아직 결제한 게 없다는 뜻)
   const [payments, setPayments] = useState([]);
@@ -79,11 +89,23 @@ function MyPage() {
           }));
         });
         setMyApplications(rows);
+        setApplicationGroups(res.content);
       })
       .catch((err) =>
         setLoadError(
           err.response?.data?.error?.message ??
             "신청 내역을 불러오지 못했습니다.",
+        ),
+      );
+  }, []);
+
+  useEffect(() => {
+    getMyProfile()
+      .then(setProfile)
+      .catch((err) =>
+        setProfileError(
+          err.response?.data?.error?.message ??
+            "업체 정보를 불러오지 못했습니다.",
         ),
       );
   }, []);
@@ -143,6 +165,37 @@ function MyPage() {
       });
   }, [myApplications, payments]);
 
+  // 부스 참가 이력: 확정(CONFIRMED)된 부스가 하나라도 있는 신청 그룹.
+  // 확정 후엔 되돌릴 수 없으므로 행사 일정으로 참가 예정 / 참가중 / 참가 완료를 구분함.
+  // 같은 박람회에 여러 번 신청(그룹)했어도 이력에서는 박람회 1건으로 합침 (행 값이 전부 expo에서만 나옴).
+  const participationHistory = useMemo(() => {
+    const now = Date.now();
+    const seen = new Set();
+    return applicationGroups
+      .filter((g) => g.applications.some((a) => a.status === "CONFIRMED"))
+      .filter((g) => {
+        if (seen.has(g.expoId)) return false;
+        seen.add(g.expoId);
+        return true;
+      })
+      .map((g) => {
+        const start = g.expoStartsAt ? new Date(g.expoStartsAt).getTime() : null;
+        const end = g.expoEndsAt ? new Date(g.expoEndsAt).getTime() : null;
+        let status = "참가중";
+        if (start && now < start) status = "참가 예정";
+        else if (end && now > end) status = "참가 완료";
+        return {
+          id: g.expoId,
+          expoTitle: g.expoTitle,
+          venue: g.expoVenue ?? "-",
+          period: `${fmtDate(g.expoStartsAt)} - ${fmtDate(g.expoEndsAt)}`,
+          status,
+          sortKey: start ?? 0,
+        };
+      })
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [applicationGroups]);
+
   const facilityLabel = (app) => {
     const facilities = [];
     if (app.powerRequested) facilities.push("전기");
@@ -162,50 +215,56 @@ function MyPage() {
             </button>
           </div>
           <div className="mypage__divider" />
-          <div className="mypage__profile-grid">
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">업체명</span>
-                <span className="mypage__profile-value">
-                  {mockMyProfile.companyName}
-                </span>
+          {profileError && <p className="mypage__cell-muted">{profileError}</p>}
+          {!profile && !profileError && (
+            <p className="mypage__cell-muted">불러오는 중...</p>
+          )}
+          {profile && (
+            <div className="mypage__profile-grid">
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">업체명</span>
+                  <span className="mypage__profile-value">
+                    {profile.companyName ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">사업자등록번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.businessNo ?? "-"}
+                  </span>
+                </div>
               </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">사업자등록번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.businessNumber}
-                </span>
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">담당자명</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.managerName ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">이메일 주소</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.email ?? "-"}
+                  </span>
+                </div>
+              </div>
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">휴대폰 번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.contact ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">대표 전화번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.companyContact ?? "-"}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">담당자명 / 직급</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.managerName}
-                </span>
-              </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">이메일 주소</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.email}
-                </span>
-              </div>
-            </div>
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">휴대폰 번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.mobile}
-                </span>
-              </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">대표 전화번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.companyPhone}
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         <section className="mypage__card">
@@ -359,7 +418,7 @@ function MyPage() {
         </section>
 
         <section className="mypage__card">
-          <h2>과거 참가 및 전시 이력</h2>
+          <h2>부스 참가 이력</h2>
           <div className="mypage__table-scroll">
             <table className="mypage__table">
               <thead>
@@ -367,25 +426,28 @@ function MyPage() {
                   <th className="mypage__col-flex">박람회명</th>
                   <th className="mypage__col-150">전시 장소</th>
                   <th className="mypage__col-140">개최 기간</th>
-                  <th className="mypage__col-120">상태</th>
-                  <th className="mypage__col-120 mypage__col-right">피드백</th>
+                  <th className="mypage__col-120 mypage__col-right">상태</th>
                 </tr>
               </thead>
               <tbody>
-                {mockPastExhibits.map((h) => (
+                {participationHistory.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="mypage__cell-muted">
+                      참가 이력이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {participationHistory.map((h) => (
                   <tr key={h.id}>
                     <td className="mypage__cell-strong">{h.expoTitle}</td>
                     <td>{h.venue}</td>
                     <td>{h.period}</td>
-                    <td>
+                    <td className="mypage__col-right">
                       <span
                         className={`mypage__badge ${STATUS_BADGE[h.status] ?? ""}`}
                       >
                         {h.status}
                       </span>
-                    </td>
-                    <td className="mypage__col-right mypage__cell-muted">
-                      {h.feedback}
                     </td>
                   </tr>
                 ))}
