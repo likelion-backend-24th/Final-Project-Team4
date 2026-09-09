@@ -38,6 +38,7 @@ function AdminExpoCreate() {
   const [autoOpen, setAutoOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [genError, setGenError] = useState(null);
 
   // 부스 일괄 생성 입력값
   const [gen, setGen] = useState({ prefix: 'A-', start: 101, count: 10, type: BOOTH_TYPES[0], fee: 3000000 });
@@ -69,14 +70,14 @@ function AdminExpoCreate() {
     const current = hallCounts[hall]?.[isFood ? 'food' : 'normal'] ?? 0;
 
     if (current + count > limit) {
-      setError(
-        `${hall}홀 ${isFood ? '먹거리 부스' : '일반 부스'}는 최대 ${limit}개까지만 등록할 수 있습니다. ` +
-          `(현재 ${current}개 + 추가 시도 ${count}개)`
-      );
-      return;
-    }
+      setGenError(   // ← 여기 setError였던 걸 setGenError로 변경
+      `${hall}홀 ${isFood ? '먹거리 부스' : '일반 부스'}는 최대 ${limit}개까지만 등록할 수 있습니다. ` +
+        `(현재 ${current}개 + 추가 시도 ${count}개)`
+    );
+    return;
+  }
 
-    setError(null);
+    setGenError(null);
     const rows = Array.from({ length: count }, (_, i) => ({
       boothNo: `${gen.prefix}${start + i}`,
       type: gen.type,
@@ -110,20 +111,22 @@ function AdminExpoCreate() {
       setError('부스 번호 / 유형 / 임차료(양수)를 모두 채워주세요.');
       return;
     }
-    if (overLimitHall) {
-      const [hall, c] = overLimitHall;
-      setError(
-        c.normal > MAX_BOOTHS_PER_HALL
-          ? `${hall}홀의 일반 부스가 ${c.normal}개입니다. 최대 ${MAX_BOOTHS_PER_HALL}개까지만 등록할 수 있습니다.`
-          : `${hall}홀의 먹거리 부스가 ${c.food}개입니다. 최대 ${MAX_FOOD_PER_HALL}개까지만 등록할 수 있습니다.`
-      );
-      return;
-    }
+    
     // 수동으로 "행 추가"하거나 유형/부스번호를 고쳐서 일괄 생성 시 체크를 우회했을 수 있어 제출 직전 다시 확인
     const overLimitHall = Object.entries(hallCounts).find(
       ([, c]) => c.normal > MAX_BOOTHS_PER_HALL || c.food > MAX_FOOD_PER_HALL
     );
     
+    if (overLimitHall) {
+          const [hall, c] = overLimitHall;
+          setError(
+            c.normal > MAX_BOOTHS_PER_HALL
+              ? `${hall}홀의 일반 부스가 ${c.normal}개입니다. 최대 ${MAX_BOOTHS_PER_HALL}개까지만 등록할 수 있습니다.`
+              : `${hall}홀의 먹거리 부스가 ${c.food}개입니다. 최대 ${MAX_FOOD_PER_HALL}개까지만 등록할 수 있습니다.`
+          );
+          return;
+    }
+
     if (form.admissionFee === '' || Number(form.admissionFee) < 0) {
       setError('당일 입장료를 0 이상으로 입력해주세요.');
       return;
@@ -230,6 +233,7 @@ function AdminExpoCreate() {
               추가
             </button>
           </div>
+          {genError && <p className="admin-expo-create__error">{genError}</p>}   {/* ← 새로 추가 */}
         </section>
 
         <section className="admin-expo-create__panel">

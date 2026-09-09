@@ -177,3 +177,25 @@
     flex: 1 1 45%;
   }
 }
+
+.hall-map__cell--pending,
+.hall-map__cell--pending:disabled {
+  background: #fef9c3;
+  border-color: #facc15;
+  cursor: not-allowed;
+}
+
+.hall-map__cell--pending .hall-map__cell-no {
+  color: #854d0e;
+}
+
+.hall-map__cell-status {
+  font-size: 9px;
+  font-weight: 700;
+  color: #a16207;
+}
+
+.hall-map__cell--pending .hall-map__cell-no,
+.hall-map__cell--pending:disabled .hall-map__cell-no {
+  color: #000;
+}
