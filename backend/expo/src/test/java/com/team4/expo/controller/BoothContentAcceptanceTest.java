@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -110,6 +111,52 @@ class BoothContentAcceptanceTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(response).path("data").path("bannerImageUrl").asText();
+    }
+
+    @Test
+    @DisplayName("참가 확정 업체는 담당 부스 관리 정보를 조회할 수 있다")
+    void 참가확정_업체_부스_관리정보_조회_성공() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = saveConfirmedBooth(expo, "A-101", EXHIBITOR_ID);
+
+        mockMvc.perform(put("/api/exhibitor/booths/{boothId}/content", booth.getId())
+                        .with(exhibitor(EXHIBITOR_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(contentBody("전기차 충전 솔루션", "최신 급속 충전 기술을 소개합니다.")))
+                .andExpect(status().isOk());
+        String bannerImageUrl = uploadBanner(booth.getId(), new byte[]{1, 2, 3, 4});
+
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}", booth.getId())
+                        .with(exhibitor(EXHIBITOR_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.boothId").value(booth.getId()))
+                .andExpect(jsonPath("$.data.boothNo").value("A-101"))
+                .andExpect(jsonPath("$.data.expoTitle").value("2026 모빌리티 엑스포"))
+                .andExpect(jsonPath("$.data.bannerImageUrl").value(bannerImageUrl))
+                .andExpect(jsonPath("$.data.content.title").value("전기차 충전 솔루션"));
+    }
+
+    @Test
+    @DisplayName("콘텐츠를 등록하기 전에는 관리 정보의 content가 null이다")
+    void 콘텐츠_등록전_조회시_content_null() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = saveConfirmedBooth(expo, "A-101", EXHIBITOR_ID);
+
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}", booth.getId())
+                        .with(exhibitor(EXHIBITOR_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("참가 미확정 업체는 부스 관리 정보를 조회할 수 없다")
+    void 참가_미확정_업체_관리정보_조회_차단() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = saveSubmittedBooth(expo, "A-101", EXHIBITOR_ID);
+
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}", booth.getId())
+                        .with(exhibitor(EXHIBITOR_ID)))
+                .andExpect(status().isForbidden());
     }
 
     @Test

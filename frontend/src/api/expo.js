@@ -1,5 +1,8 @@
-import apiClient from './client';
+import apiClient, { apiBaseUrl } from './client';
 import { getUserId } from "./auth";
+
+// 서버가 내려주는 상대 경로(/uploads/...)를 화면에 표시 가능한 절대 URL로 변환
+export const toAssetUrl = (path) => (path ? `${apiBaseUrl}${path}` : null);
 
 // GET /api/exhibitor/expos — OPEN 박람회 목록 페이징 조회
 export const getExpoList = (params) =>
@@ -79,3 +82,66 @@ export const rejectBoothApplication = (applicationId, reason) =>
 // GET /api/customer/expos - 비회원 공개 박람회 목록 (게이트웨이 화이트리스트, 로그인 불필요)
 export const getCustomerExpoList = (params) =>
   apiClient.get('/api/customer/expos', { params }).then((res) => res.data.data);
+
+// GET /api/customer/expos/{expoId} - 비회원 공개 박람회 단건 상세
+export const getCustomerExpo = (expoId) =>
+  apiClient.get(`/api/customer/expos/${expoId}`).then((res) => res.data.data);
+
+// GET /api/customer/expos/{expoId}/vehicles - 참가 확정 부스별 전시 차량 목록 (비회원 조회 가능)
+export const getCustomerExpoVehicles = (expoId) =>
+  apiClient.get(`/api/customer/expos/${expoId}/vehicles`).then((res) => res.data.data);
+
+// GET /api/exhibitor/booths/{boothId} — 참가 확정 부스 관리 정보(부스 정보 + 콘텐츠 + 배너) 조회
+export const getBoothManageDetail = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}`).then((res) => res.data.data);
+
+// PUT /api/exhibitor/booths/{boothId}/content — 부스 소개 콘텐츠 등록/수정
+export const updateBoothContent = (boothId, payload) =>
+  apiClient.put(`/api/exhibitor/booths/${boothId}/content`, payload).then((res) => res.data.data);
+
+// PUT /api/exhibitor/booths/{boothId}/banner-image — 부스 배너 이미지 등록/교체 (multipart)
+export const uploadBoothBannerImage = (boothId, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiClient
+    .put(`/api/exhibitor/booths/${boothId}/banner-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((res) => res.data.data);
+};
+
+// GET /api/exhibitor/booths/{boothId}/vehicles — 부스에 등록된 전시 차량 목록
+export const getBoothVehicles = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/vehicles`).then((res) => res.data.data);
+
+// POST /api/exhibitor/booths/{boothId}/vehicles — 전시 차량 등록
+// payload: { name, tags: string[], startPrice, summary, description, features, colors, range, battery, power }
+export const registerVehicle = (boothId, payload) =>
+  apiClient.post(`/api/exhibitor/booths/${boothId}/vehicles`, payload).then((res) => res.data.data);
+
+// PUT /api/exhibitor/booths/{boothId}/vehicles/{vehicleId} — 전시 차량 수정
+export const updateVehicle = (boothId, vehicleId, payload) =>
+  apiClient
+    .put(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}`, payload)
+    .then((res) => res.data.data);
+
+// DELETE /api/exhibitor/booths/{boothId}/vehicles/{vehicleId} — 전시 차량 삭제
+export const deleteVehicle = (boothId, vehicleId) =>
+  apiClient.delete(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}`).then((res) => res.data.data);
+
+// POST /api/exhibitor/booths/{boothId}/vehicles/{vehicleId}/images — 차량 이미지 추가 (multipart, 최대 5장)
+export const addVehicleImage = (boothId, vehicleId, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiClient
+    .post(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((res) => res.data.data);
+};
+
+// DELETE /api/exhibitor/booths/{boothId}/vehicles/{vehicleId}/images/{imageId} — 차량 이미지 삭제
+export const deleteVehicleImage = (boothId, vehicleId, imageId) =>
+  apiClient
+    .delete(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}/images/${imageId}`)
+    .then((res) => res.data.data);

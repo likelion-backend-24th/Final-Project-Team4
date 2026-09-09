@@ -71,6 +71,7 @@ function MyPage() {
           return group.applications.map((app) => ({
             id: app.applicationId,
             groupId: group.groupId,
+            boothId: app.boothId,
             payableTotal,
             expoTitle: group.expoTitle,
             boothNo: `${app.boothNo} (${app.boothType})`,
@@ -316,6 +317,13 @@ function MyPage() {
                               }
                             >
                               결제하기
+                            </button>
+                          ) : app.status === "참가 확정" ? (
+                            <button
+                              className="mypage__link"
+                              onClick={() => navigate(`/mypage/booths/${app.boothId}`)}
+                            >
+                              부스 관리
                             </button>
                           ) : (
                             <button

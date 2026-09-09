@@ -3,9 +3,12 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.domain.BoothStatus;
+import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
+import com.team4.expo.service.CustomerVehicleService;
 import com.team4.expo.service.ExpoService;
+import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExpoCustomerController {
 
     private final ExpoService expoService;
+    private final CustomerVehicleService customerVehicleService;
 
-    public ExpoCustomerController(ExpoService expoService) {
+    public ExpoCustomerController(ExpoService expoService, CustomerVehicleService customerVehicleService) {
         this.expoService = expoService;
+        this.customerVehicleService = customerVehicleService;
     }
 
     // 공개 박람회 목록 (OPEN만)
@@ -45,5 +50,12 @@ public class ExpoCustomerController {
     public ResponseEntity<ApiResponse<ExpoBoothsResponse>> getPublicExpoBooths(@PathVariable Long expoId) {
 
         return ResponseEntity.ok(ApiResponse.success(expoService.getExpoBooths(expoId, BoothStatus.ASSIGNED)));
+    }
+
+    // 참가 확정 부스별 전시 차량 목록 (차량이 1대 이상 등록된 부스만)
+    @GetMapping("/{expoId}/vehicles")
+    public ResponseEntity<ApiResponse<List<CustomerBoothVehiclesResponse>>> getPublicExpoVehicles(@PathVariable Long expoId) {
+
+        return ResponseEntity.ok(ApiResponse.success(customerVehicleService.getExpoVehicles(expoId)));
     }
 }

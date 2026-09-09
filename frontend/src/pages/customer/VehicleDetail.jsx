@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ConsultationCompleteModal from '../../components/customer/ConsultationCompleteModal';
-import { CONSULTATION_TIME_SLOTS, findVehicle } from '../../mock/customerData';
+import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
+import { getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './VehicleDetail.css';
 
-const TABS = ['차량 소개', '주요 특징', '컬러', '다운로드'];
+const TABS = ['차량 소개', '주요 특징', '컬러'];
 
 function buildCalendar(year, month) {
   // month: 0-indexed
@@ -21,7 +22,9 @@ const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function VehicleDetail() {
   const { expoId, vehicleId } = useParams();
-  const found = findVehicle(expoId, vehicleId);
+  const [found, setFound] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
 
   const [tab, setTab] = useState('차량 소개');
   const [viewYear] = useState(2026);
@@ -34,11 +37,33 @@ function VehicleDetail() {
 
   const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
 
+  useEffect(() => {
+    getCustomerExpoVehicles(expoId)
+      .then((groups) => {
+        for (const group of groups) {
+          const vehicle = group.vehicles.find((v) => String(v.vehicleId) === vehicleId);
+          if (vehicle) {
+            setFound({ vehicle, group });
+            return;
+          }
+        }
+        setLoadError('차량 정보를 찾을 수 없습니다.');
+      })
+      .catch((err) =>
+        setLoadError(err.response?.data?.error?.message ?? '차량 정보를 불러오지 못했습니다.')
+      );
+  }, [expoId, vehicleId]);
+
+  if (loadError) {
+    return <p className="c-vehicle-detail__status">{loadError}</p>;
+  }
   if (!found) {
-    return <p className="c-vehicle-detail__status">차량 정보를 찾을 수 없습니다.</p>;
+    return <p className="c-vehicle-detail__status">불러오는 중...</p>;
   }
 
   const { vehicle, group } = found;
+  const images = vehicle.images;
+  const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
 
   const canSubmit =
     form.name.trim() && form.phone.trim() && form.email.trim() && selectedDay && selectedTime;
@@ -63,18 +88,29 @@ function VehicleDetail() {
   return (
     <div className="c-vehicle-detail">
       <div className="c-vehicle-detail__crumb">
-        <Link to="/customer">홈</Link> &gt; <span>{group.name}</span> &gt; <span>{vehicle.name}</span>
+        <Link to="/customer">홈</Link> &gt; <span>{group.title}</span> &gt; <span>{vehicle.name}</span>
       </div>
 
       <div className="c-vehicle-detail__body">
         <div className="c-vehicle-detail__main">
           <div className="c-vehicle-detail__gallery">
-            <div className="c-vehicle-detail__gallery-main" />
-            <div className="c-vehicle-detail__gallery-thumbs">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="c-vehicle-detail__gallery-thumb" />
-              ))}
+            <div className="c-vehicle-detail__gallery-main">
+              {mainImageUrl && <img src={mainImageUrl} alt={vehicle.name} />}
             </div>
+            {images.length > 0 && (
+              <div className="c-vehicle-detail__gallery-thumbs">
+                {images.map((img, i) => (
+                  <button
+                    key={img.imageId}
+                    type="button"
+                    className={`c-vehicle-detail__gallery-thumb${i === activeImageIdx ? ' is-active' : ''}`}
+                    onClick={() => setActiveImageIdx(i)}
+                  >
+                    <img src={toAssetUrl(img.imageUrl)} alt={`${vehicle.name} ${i + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <h1>{vehicle.name}</h1>
@@ -104,11 +140,6 @@ function VehicleDetail() {
             </div>
           </div>
 
-          <div className="c-vehicle-detail__linkrow">
-            <span>주요 제원 보기 &gt;</span>
-            <span>옵션 및 트림 보기 &gt;</span>
-          </div>
-
           <nav className="c-vehicle-detail__tabs">
             {TABS.map((t) => (
               <button key={t} type="button" className={tab === t ? 'is-active' : ''} onClick={() => setTab(t)}>
@@ -119,9 +150,14 @@ function VehicleDetail() {
 
           <section className="c-vehicle-detail__tabcontent">
             {tab === '차량 소개' && vehicle.description.split('\n').map((line) => <p key={line}>{line}</p>)}
-            {tab === '주요 특징' && <p>{vehicle.name}의 주요 특징 콘텐츠 영역입니다.</p>}
-            {tab === '컬러' && <p>{vehicle.name}의 컬러 옵션 콘텐츠 영역입니다.</p>}
-            {tab === '다운로드' && <p>{vehicle.name}의 카탈로그/자료 다운로드 영역입니다.</p>}
+            {tab === '주요 특징' &&
+              (vehicle.features
+                ? vehicle.features.split('\n').map((line) => <p key={line}>{line}</p>)
+                : <p>등록된 주요 특징 정보가 없습니다.</p>)}
+            {tab === '컬러' &&
+              (vehicle.colors
+                ? vehicle.colors.split('\n').map((line) => <p key={line}>{line}</p>)
+                : <p>등록된 컬러 정보가 없습니다.</p>)}
           </section>
         </div>
 
