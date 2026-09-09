@@ -259,39 +259,6 @@ function ExpoDetail() {
                 </div>
               </div>
             </section>
-
-            <section className="expo-detail__booths">
-              <h2>참가 안내</h2>
-              <ol className="expo-detail__steps">
-                <li>
-                  <span className="expo-detail__step-icon"><IconDoc /></span>
-                  <span className="expo-detail__step-no">1</span>
-                  <strong>참가 신청</strong>
-                  <p>원하는 부스를 선택하여 참가 신청을 진행합니다.</p>
-                </li>
-                <li className="expo-detail__step-arrow"><IconArrow /></li>
-                <li>
-                  <span className="expo-detail__step-icon"><IconDocCheck /></span>
-                  <span className="expo-detail__step-no">2</span>
-                  <strong>승인 및 계약</strong>
-                  <p>운영사 검토 후 승인되며, 계약 안내가 진행됩니다.</p>
-                </li>
-                <li className="expo-detail__step-arrow"><IconArrow /></li>
-                <li>
-                  <span className="expo-detail__step-icon"><IconCard /></span>
-                  <span className="expo-detail__step-no">3</span>
-                  <strong>참가비 결제</strong>
-                  <p>안내된 기한 내 참가비를 결제합니다.</p>
-                </li>
-                <li className="expo-detail__step-arrow"><IconArrow /></li>
-                <li>
-                  <span className="expo-detail__step-icon"><IconCheckCircle /></span>
-                  <span className="expo-detail__step-no">4</span>
-                  <strong>참가 확정</strong>
-                  <p>결제 완료 시 부스 배정이 확정됩니다.</p>
-                </li>
-              </ol>
-            </section>
             </>
           )}
         </div>

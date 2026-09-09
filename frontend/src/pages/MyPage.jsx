@@ -165,9 +165,7 @@ function MyPage() {
       });
   }, [myApplications, payments]);
 
-  // 부스 참가 이력: 확정(CONFIRMED)된 부스가 하나라도 있는 신청 그룹.
-  // 확정 후엔 되돌릴 수 없으므로 행사 일정으로 참가 예정 / 참가중 / 참가 완료를 구분함.
-  // 같은 박람회에 여러 번 신청(그룹)했어도 이력에서는 박람회 1건으로 합침 (행 값이 전부 expo에서만 나옴).
+  // 부스 참가 이력 - 확정된 부스가 하나라도 있는 신청 그룹.
   const participationHistory = useMemo(() => {
     const now = Date.now();
     const seen = new Set();
