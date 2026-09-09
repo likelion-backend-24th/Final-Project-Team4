@@ -22,6 +22,9 @@ public class VehicleRequest {
     @NotBlank
     private String description;
 
+    private String features;
+    private String colors;
+
     private String range;
     private String battery;
     private String power;

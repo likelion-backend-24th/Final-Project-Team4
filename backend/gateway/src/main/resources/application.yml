@@ -28,6 +28,11 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
+        # 부스 배너/차량 이미지 등 업로드 파일. <img> 태그는 Authorization 헤더를 못 실어서 화이트리스트 처리됨
+        - id: expo-uploads
+          uri: http://localhost:8082
+          predicates:
+            - Path=/uploads/**
       globalcors: # gateway CORS 설정
         cors-configurations:
           '[/**]':

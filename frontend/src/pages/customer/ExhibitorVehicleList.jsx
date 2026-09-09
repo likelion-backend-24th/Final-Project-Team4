@@ -1,36 +1,48 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { VEHICLE_BRANDS, mockCustomerExpos, mockExhibitorGroups } from '../../mock/customerData';
+import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
 function ExhibitorVehicleList() {
   const { expoId } = useParams();
-  const [brand, setBrand] = useState('ALL');
+  const [expo, setExpo] = useState(null);
+  const [groups, setGroups] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [keyword, setKeyword] = useState('');
 
-  const expo = mockCustomerExpos.find((e) => String(e.expoId) === expoId);
-  const groups = mockExhibitorGroups[expoId] ?? [];
+  useEffect(() => {
+    Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
+      .then(([expoRes, groupsRes]) => {
+        setExpo(expoRes);
+        setGroups(groupsRes);
+      })
+      .catch((err) =>
+        setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
+      );
+  }, [expoId]);
 
   const filteredGroups = useMemo(
     () =>
       groups
-        .filter((g) => brand === 'ALL' || g.brand === brand)
         .map((g) => ({
           ...g,
           vehicles: g.vehicles.filter(
             (v) =>
               v.name.toLowerCase().includes(keyword.toLowerCase()) ||
-              g.name.toLowerCase().includes(keyword.toLowerCase())
+              g.title.toLowerCase().includes(keyword.toLowerCase())
           ),
         }))
         .filter((g) => g.vehicles.length > 0),
-    [groups, brand, keyword]
+    [groups, keyword]
   );
 
+  if (loadError) {
+    return <p className="c-vehicle-list__status">{loadError}</p>;
+  }
   if (!expo) {
-    return <p className="c-vehicle-list__status">박람회 정보를 찾을 수 없습니다.</p>;
+    return <p className="c-vehicle-list__status">불러오는 중...</p>;
   }
 
   return (
@@ -44,23 +56,11 @@ function ExhibitorVehicleList() {
       </section>
 
       <div className="c-vehicle-list__toolbar">
-        <div className="c-vehicle-list__filters">
-          {VEHICLE_BRANDS.map((b) => (
-            <button
-              key={b.key}
-              type="button"
-              className={b.key === brand ? 'is-active' : ''}
-              onClick={() => setBrand(b.key)}
-            >
-              {b.label}
-            </button>
-          ))}
-        </div>
         <div className="c-vehicle-list__search-wrap">
           <span className="c-vehicle-list__search-icon" />
           <input
             className="c-vehicle-list__search"
-            placeholder="차량명 또는 업체명을 검색하세요."
+            placeholder="차량명 또는 부스명을 검색하세요."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
           />
@@ -73,22 +73,23 @@ function ExhibitorVehicleList() {
         )}
 
         {filteredGroups.map((g) => (
-          <section key={g.brand} className="c-vehicle-group">
+          <section key={g.boothId} className="c-vehicle-group">
             <div className="c-vehicle-group__header">
-              <span className="c-vehicle-group__logo">{g.name.slice(0, 1)}</span>
-              <h2>{g.name}</h2>
+              <span className="c-vehicle-group__logo">{g.title.slice(0, 1)}</span>
+              <h2>{g.title}</h2>
               <span className="c-vehicle-group__booth">부스 {g.boothNo}</span>
-              <span className="c-vehicle-group__link">업체 정보 보기 &gt;</span>
             </div>
 
             <div className="c-vehicle-group__grid">
               {g.vehicles.map((v) => (
                 <Link
-                  key={v.id}
-                  to={`/customer/expos/${expoId}/vehicles/${v.id}`}
+                  key={v.vehicleId}
+                  to={`/customer/expos/${expoId}/vehicles/${v.vehicleId}`}
                   className="c-vehicle-card"
                 >
-                  <div className="c-vehicle-card__thumb" />
+                  <div className="c-vehicle-card__thumb">
+                    {v.images[0] && <img src={toAssetUrl(v.images[0].imageUrl)} alt={v.name} />}
+                  </div>
                   <div className="c-vehicle-card__body">
                     <h3>{v.name}</h3>
                     <div className="c-vehicle-card__tags">

@@ -29,6 +29,12 @@ public class Vehicle {
     @Column(length = 2000)
     private String description;
 
+    @Column(length = 2000)
+    private String features;
+
+    @Column(length = 2000)
+    private String colors;
+
     @Column(name = "range_info")
     private String range;
     private String battery;
@@ -38,13 +44,15 @@ public class Vehicle {
     private LocalDateTime updatedAt;
 
     public Vehicle(Booth booth, String name, String tags, Long startPrice, String summary,
-                   String description, String range, String battery, String power) {
+                   String description, String features, String colors, String range, String battery, String power) {
         this.booth = booth;
         this.name = name;
         this.tags = tags;
         this.startPrice = startPrice;
         this.summary = summary;
         this.description = description;
+        this.features = features;
+        this.colors = colors;
         this.range = range;
         this.battery = battery;
         this.power = power;
@@ -53,12 +61,14 @@ public class Vehicle {
     }
 
     public void update(String name, String tags, Long startPrice, String summary,
-                        String description, String range, String battery, String power) {
+                        String description, String features, String colors, String range, String battery, String power) {
         this.name = name;
         this.tags = tags;
         this.startPrice = startPrice;
         this.summary = summary;
         this.description = description;
+        this.features = features;
+        this.colors = colors;
         this.range = range;
         this.battery = battery;
         this.power = power;

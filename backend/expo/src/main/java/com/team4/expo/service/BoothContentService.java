@@ -7,6 +7,7 @@ import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.Post;
 import com.team4.expo.dto.BoothContentRequest;
 import com.team4.expo.dto.BoothContentResponse;
+import com.team4.expo.dto.BoothManageDetailResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.PostRepository;
@@ -44,6 +45,18 @@ public class BoothContentService {
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.postRepository = postRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public BoothManageDetailResponse getBoothManageDetail(Long exhibitorId, Long boothId) {
+        Booth booth = boothRepository.findById(boothId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+        validateBoothOwnershipConfirmed(boothId, exhibitorId);
+
+        Post post = postRepository.findByBooth_Id(boothId).orElse(null);
+        BoothContentResponse content = post == null ? null : BoothContentResponse.from(post);
+
+        return BoothManageDetailResponse.of(booth, content);
     }
 
     public BoothContentResponse registerOrUpdateContent(Long exhibitorId, Long boothId, BoothContentRequest request) {

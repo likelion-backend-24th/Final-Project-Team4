@@ -74,6 +74,8 @@ public class VehicleService {
                 request.getStartPrice(),
                 request.getSummary(),
                 request.getDescription(),
+                request.getFeatures(),
+                request.getColors(),
                 request.getRange(),
                 request.getBattery(),
                 request.getPower()
@@ -93,6 +95,8 @@ public class VehicleService {
                 request.getStartPrice(),
                 request.getSummary(),
                 request.getDescription(),
+                request.getFeatures(),
+                request.getColors(),
                 request.getRange(),
                 request.getBattery(),
                 request.getPower()

@@ -17,6 +17,8 @@ public class VehicleResponse {
     private final Long startPrice;
     private final String summary;
     private final String description;
+    private final String features;
+    private final String colors;
     private final String range;
     private final String battery;
     private final String power;
@@ -24,7 +26,8 @@ public class VehicleResponse {
     private final LocalDateTime updatedAt;
 
     public VehicleResponse(Long vehicleId, Long boothId, String name, List<String> tags, Long startPrice,
-                            String summary, String description, String range, String battery, String power,
+                            String summary, String description, String features, String colors,
+                            String range, String battery, String power,
                             List<VehicleImageResponse> images, LocalDateTime updatedAt) {
         this.vehicleId = vehicleId;
         this.boothId = boothId;
@@ -33,6 +36,8 @@ public class VehicleResponse {
         this.startPrice = startPrice;
         this.summary = summary;
         this.description = description;
+        this.features = features;
+        this.colors = colors;
         this.range = range;
         this.battery = battery;
         this.power = power;
@@ -57,6 +62,8 @@ public class VehicleResponse {
                 vehicle.getStartPrice(),
                 vehicle.getSummary(),
                 vehicle.getDescription(),
+                vehicle.getFeatures(),
+                vehicle.getColors(),
                 vehicle.getRange(),
                 vehicle.getBattery(),
                 vehicle.getPower(),

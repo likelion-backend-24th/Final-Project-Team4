@@ -3,12 +3,14 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.BoothContentRequest;
 import com.team4.expo.dto.BoothContentResponse;
+import com.team4.expo.dto.BoothManageDetailResponse;
 import com.team4.expo.security.GatewayUser;
 import com.team4.expo.service.BoothContentService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,6 +29,14 @@ public class BoothContentController {
 
     public BoothContentController(BoothContentService boothContentService) {
         this.boothContentService = boothContentService;
+    }
+
+    @GetMapping("/{boothId}")
+    public ResponseEntity<ApiResponse<BoothManageDetailResponse>> getBoothManageDetail(
+            @AuthenticationPrincipal GatewayUser exhibitor,
+            @PathVariable Long boothId) {
+        BoothManageDetailResponse response = boothContentService.getBoothManageDetail(exhibitor.getId(), boothId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PutMapping("/{boothId}/content")
