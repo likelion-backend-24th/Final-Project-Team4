@@ -97,7 +97,7 @@ class JwtAuthenticationFilterTest {
 
     // 비회원 공개 박람회 조회 경로는 토큰 없이 통과
     @ParameterizedTest
-    @ValueSource(strings = {"/api/expos", "/api/expos/1", "/api/expos/1/booths"})
+    @ValueSource(strings = {"/api/customer/expos", "/api/customer/expos/1", "/api/customer/expos/1/booths"})
     void 토큰이_없어도_공개_박람회_조회_경로면_통과하고_신원헤더는_없다(String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path));
 
@@ -110,7 +110,7 @@ class JwtAuthenticationFilterTest {
 
     // 화이트리스트에 없는 박람회 하위 경로는 토큰 없으면 401
     @ParameterizedTest
-    @ValueSource(strings = {"/api/expos/1/details", "/api/expos/1/reviews"})
+    @ValueSource(strings = {"/api/customer/expos/1/details", "/api/customer/expos/1/reviews"})
     void 공개_화이트리스트가_아닌_박람회_하위경로는_토큰_없으면_401(String path) {
         MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get(path));
 

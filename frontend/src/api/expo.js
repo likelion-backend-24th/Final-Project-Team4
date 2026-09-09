@@ -76,6 +76,6 @@ export const rejectBoothApplication = (applicationId, reason) =>
     .post(`/api/admin/booth-applications/${applicationId}/reject`, { reason })
     .then((res) => res.data.data);
 
-// GET /api/expos - 비회원 공개 박람회 목록 (로그인 불필요)
+// GET /api/customer/expos - 비회원 공개 박람회 목록 (게이트웨이 화이트리스트, 로그인 불필요)
 export const getCustomerExpoList = (params) =>
-  apiClient.get('/api/expos', { params }).then((res) => res.data.data);
+  apiClient.get('/api/customer/expos', { params }).then((res) => res.data.data);

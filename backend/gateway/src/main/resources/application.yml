@@ -28,10 +28,6 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
-        - id: expos # 비회원 엔드포인트
-          uri: http://localhost:8082
-          predicates:
-            - Path=/api/expos/**
       globalcors: # gateway CORS 설정
         cors-configurations:
           '[/**]':

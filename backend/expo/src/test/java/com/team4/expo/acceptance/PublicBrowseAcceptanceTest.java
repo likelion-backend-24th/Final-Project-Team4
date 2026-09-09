@@ -55,7 +55,7 @@ class PublicBrowseAcceptanceTest {
         Expo draft = saveDraftExpo("비공개 준비중");   // OPEN 아님 - 목록, 단건에서 제외
 
         // 1) 목록: OPEN 만, phase 와 확정 부스 수 포함
-        ResponseEntity<String> list = http.getForEntity("/api/expos", String.class);
+        ResponseEntity<String> list = http.getForEntity("/api/customer/expos", String.class);
         assertThat(list.getStatusCode()).isEqualTo(HttpStatus.OK);
         DocumentContext listJson = JsonPath.parse(list.getBody());
         assertThat(listJson.read("$.data.content.length()", Integer.class)).isEqualTo(1);
@@ -64,13 +64,13 @@ class PublicBrowseAcceptanceTest {
         assertThat(listJson.read("$.data.content[0].boothCount", Long.class)).isEqualTo(1L);
 
         // 2) 단건: OPEN 이면 홈 정보 200
-        ResponseEntity<String> single = http.getForEntity("/api/expos/" + open.getId(), String.class);
+        ResponseEntity<String> single = http.getForEntity("/api/customer/expos/" + open.getId(), String.class);
         assertThat(single.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(JsonPath.parse(single.getBody()).read("$.data.venue", String.class)).isEqualTo("COEX");
         assertThat(JsonPath.parse(single.getBody()).read("$.data.phase", String.class)).isEqualTo("모집중");
 
         // 3) 부스: ASSIGNED 상태인 부스, 배너와 함께
-        ResponseEntity<String> booths = http.getForEntity("/api/expos/" + open.getId() + "/booths", String.class);
+        ResponseEntity<String> booths = http.getForEntity("/api/customer/expos/" + open.getId() + "/booths", String.class);
         assertThat(booths.getStatusCode()).isEqualTo(HttpStatus.OK);
         DocumentContext boothsJson = JsonPath.parse(booths.getBody());
         assertThat(boothsJson.read("$.data.booths.length()", Integer.class)).isEqualTo(1);
@@ -78,9 +78,9 @@ class PublicBrowseAcceptanceTest {
         assertThat(boothsJson.read("$.data.booths[0].bannerImageUrl", String.class)).isEqualTo("/uploads/banner/x.png");
 
         // 4) 비공개, 없는 박람회 단건은 404
-        assertThat(http.getForEntity("/api/expos/" + draft.getId(), String.class).getStatusCode())
+        assertThat(http.getForEntity("/api/customer/expos/" + draft.getId(), String.class).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(http.getForEntity("/api/expos/99999", String.class).getStatusCode())
+        assertThat(http.getForEntity("/api/customer/expos/99999", String.class).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
