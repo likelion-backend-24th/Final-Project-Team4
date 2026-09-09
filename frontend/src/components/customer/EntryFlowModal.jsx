@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
 import QrPlaceholder from './QrPlaceholder';
-import { addMyTicket, getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
+import { getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import { isLoggedIn } from '../../api/auth';
 import { payAdmission } from '../../api/payment';
@@ -27,6 +27,14 @@ function nowLabel() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// "오늘" 날짜 문자열(YYYY-MM-DD) — new Date().toISOString().slice(0,10)은 UTC로 변환되면서
+// 한국(UTC+9)에서 하루가 밀리는 버그가 있어(expoDateRange와 같은 문제) 로컬 값으로 직접 조합함.
+function todayDateString() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 // 박람회 기간(startsAt~endsAt)의 날짜 목록 ('YYYY-MM-DD' 배열).
@@ -58,13 +66,15 @@ function isFreeReservation(expo) {
   return today < start;
 }
 
-// 당일 결제 완료 후 화면에 보여줄 티켓 객체.
-// 결제(payAdmission) 자체와 서버 쪽 QR 발급(issueAdmissionTicket)은 실제로 이뤄지지만,
-// 그 결과로 발급된 진짜 QR을 프론트가 돌려받는 응답 계약이 아직 확정되지 않아서
-// 화면 확인용으로만 이 객체를 만들어 보여줌. (백엔드 응답에 티켓 정보 포함되면 교체 예정)
-function buildMockPaidTicket(expo, visitDate) {
+// 당일 결제 완료(POST /api/customer/admission-payments) 응답을 화면에 보여줄 티켓 객체로 변환.
+// 결제 성공 시 Payment가 내부적으로 Reservation의 issueAdmissionTicket을 호출해 실제 QR을 발급하고,
+// 그 결과(ticketId/qrToken/qrImageBase64)를 이 결제 응답에 그대로 실어 돌려준다 — 응답을 안 쓰고
+// 화면용으로 새로 fake 티켓을 만들면(예전 buildMockPaidTicket) "나의 입장권"(실제 API 기반)에는
+// 이 fake 티켓이 안 보이는 문제가 있었음. 진짜 발급된 티켓을 그대로 써야 마이페이지와 일치한다.
+function mapAdmissionPaymentTicket(expo, payment, visitDate) {
   return {
-    id: `${expo.expoId}-${visitDate}-${Date.now()}`,
+    id: `ticket-${payment.ticketId ?? payment.id}`,
+    ticketId: payment.ticketId,
     expoId: expo.expoId,
     expoTitle: expo.title,
     startsAt: expo.startsAt,
@@ -73,9 +83,10 @@ function buildMockPaidTicket(expo, visitDate) {
     visitDate,
     holderName: '홍길동',
     ticketType: '당일 입장권 · 1인',
-    bookingNo: `EX${visitDate.replace(/-/g, '')}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-    purchasedAt: nowLabel(),
+    bookingNo: `TICKET-${payment.ticketId ?? payment.id}`,
+    purchasedAt: payment.approvedAt ? payment.approvedAt.replace('T', ' ').slice(0, 16) : nowLabel(),
     usedAt: null,
+    qrImageBase64: payment.qrImageBase64,
   };
 }
 
@@ -121,6 +132,7 @@ function EntryFlowModal({ expo, onClose }) {
   const [checkInError, setCheckInError] = useState(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
+  const [paidPayment, setPaidPayment] = useState(null);
 
   const freeMode = isFreeReservation(expo);
   const admissionFee = expo.admissionFee ?? 0;
@@ -243,12 +255,13 @@ function EntryFlowModal({ expo, onClose }) {
         return;
       }
 
-      await payAdmission({
+      const payment = await payAdmission({
         expoId: expo.expoId,
         amount: admissionFee,
         payMethod: PAY_METHOD_CODE[payMethod],
         paymentId,
       });
+      setPaidPayment(payment);
 
       setStep('pay-done');
     } catch (err) {
@@ -258,11 +271,11 @@ function EntryFlowModal({ expo, onClose }) {
     }
   };
 
-  // 당일 결제 완료 후 QR 발급 화면으로. 실제 QR을 응답으로 받는 계약이 아직 없어 화면 확인용 티켓 생성
+  // 당일 결제 완료 후 QR 발급 화면으로 — handlePay에서 받아둔 실제 결제 응답(진짜 발급된 QR 포함)을 그대로 씀.
+  // ticketId가 없으면(Reservation 발급 호출이 실패해 결제만 완료된 예외 상황) QR 없이 안내만 보여줌 —
+  // "나의 입장권"은 실제 Reservation API 기준이라, 이 경우엔 거기에도 안 뜨는 게 맞는 상태.
   const issuePaidTickets = () => {
-    const issued = selectedDates.map((d) => buildMockPaidTicket(expo, d));
-    issued.forEach(addMyTicket);
-    setTickets(issued);
+    setTickets([mapAdmissionPaymentTicket(expo, paidPayment, todayDateString())]);
     setStep('ticket-qr');
   };
 
