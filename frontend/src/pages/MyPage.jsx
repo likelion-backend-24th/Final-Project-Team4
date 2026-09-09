@@ -1,6 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockPastExhibits } from "../mock/data";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
 import { getMyProfile } from "../api/identity";
@@ -16,6 +15,8 @@ const STATUS_BADGE = {
   결제완료: "badge--paid",
   결제실패: "badge--rejected",
   결제중: "badge--pending",
+  "참가 예정": "badge--pending",
+  참가중: "badge--approved",
   "참가 완료": "badge--done",
 };
 
@@ -41,9 +42,13 @@ const PAYMENT_STATUS_LABEL = {
 const fmtDateTime = (iso) =>
   iso ? iso.slice(0, 16).replace("T", " ").replace(/-/g, ".") : null;
 
+// ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12)
+const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : null);
+
 function MyPage() {
   const navigate = useNavigate();
   const [myApplications, setMyApplications] = useState([]);
+  const [applicationGroups, setApplicationGroups] = useState([]); // 원본 신청 그룹 (부스 참가 이력 산출용)
   const [loadError, setLoadError] = useState(null);
   const [openId, setOpenId] = useState(null);
 
@@ -84,6 +89,7 @@ function MyPage() {
           }));
         });
         setMyApplications(rows);
+        setApplicationGroups(res.content);
       })
       .catch((err) =>
         setLoadError(
@@ -158,6 +164,37 @@ function MyPage() {
         };
       });
   }, [myApplications, payments]);
+
+  // 부스 참가 이력: 확정(CONFIRMED)된 부스가 하나라도 있는 신청 그룹.
+  // 확정 후엔 되돌릴 수 없으므로 행사 일정으로 참가 예정 / 참가중 / 참가 완료를 구분함.
+  // 같은 박람회에 여러 번 신청(그룹)했어도 이력에서는 박람회 1건으로 합침 (행 값이 전부 expo에서만 나옴).
+  const participationHistory = useMemo(() => {
+    const now = Date.now();
+    const seen = new Set();
+    return applicationGroups
+      .filter((g) => g.applications.some((a) => a.status === "CONFIRMED"))
+      .filter((g) => {
+        if (seen.has(g.expoId)) return false;
+        seen.add(g.expoId);
+        return true;
+      })
+      .map((g) => {
+        const start = g.expoStartsAt ? new Date(g.expoStartsAt).getTime() : null;
+        const end = g.expoEndsAt ? new Date(g.expoEndsAt).getTime() : null;
+        let status = "참가중";
+        if (start && now < start) status = "참가 예정";
+        else if (end && now > end) status = "참가 완료";
+        return {
+          id: g.expoId,
+          expoTitle: g.expoTitle,
+          venue: g.expoVenue ?? "-",
+          period: `${fmtDate(g.expoStartsAt)} - ${fmtDate(g.expoEndsAt)}`,
+          status,
+          sortKey: start ?? 0,
+        };
+      })
+      .sort((a, b) => b.sortKey - a.sortKey);
+  }, [applicationGroups]);
 
   const facilityLabel = (app) => {
     const facilities = [];
@@ -381,7 +418,7 @@ function MyPage() {
         </section>
 
         <section className="mypage__card">
-          <h2>과거 참가 및 전시 이력</h2>
+          <h2>부스 참가 이력</h2>
           <div className="mypage__table-scroll">
             <table className="mypage__table">
               <thead>
@@ -389,25 +426,28 @@ function MyPage() {
                   <th className="mypage__col-flex">박람회명</th>
                   <th className="mypage__col-150">전시 장소</th>
                   <th className="mypage__col-140">개최 기간</th>
-                  <th className="mypage__col-120">상태</th>
-                  <th className="mypage__col-120 mypage__col-right">피드백</th>
+                  <th className="mypage__col-120 mypage__col-right">상태</th>
                 </tr>
               </thead>
               <tbody>
-                {mockPastExhibits.map((h) => (
+                {participationHistory.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="mypage__cell-muted">
+                      참가 이력이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {participationHistory.map((h) => (
                   <tr key={h.id}>
                     <td className="mypage__cell-strong">{h.expoTitle}</td>
                     <td>{h.venue}</td>
                     <td>{h.period}</td>
-                    <td>
+                    <td className="mypage__col-right">
                       <span
                         className={`mypage__badge ${STATUS_BADGE[h.status] ?? ""}`}
                       >
                         {h.status}
                       </span>
-                    </td>
-                    <td className="mypage__col-right mypage__cell-muted">
-                      {h.feedback}
                     </td>
                   </tr>
                 ))}
