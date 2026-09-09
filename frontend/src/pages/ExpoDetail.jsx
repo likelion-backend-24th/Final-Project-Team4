@@ -5,17 +5,10 @@ import HallMap, { HallPlaza } from '../components/HallMap';
 import { getBoothHall } from '../utils/boothType';
 import './ExpoDetail.css';
 
-const TABS = ['개요', '부스 배치도'];
+const TABS = ['부스 배치도', '개요'];
 
 // ISO(2026-05-12T10:00:00) → 2026.05.12
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-');
-
-// 부스 배치도에서 선택한 부스의 신청 가능 여부를 사이드 패널에 표시할 때 씀 (HallMap.jsx의 라벨과 동일하게 유지)
-const STATUS_LABEL = {
-  AVAILABLE: '신청 가능',
-  RESERVED: '결제 대기중',
-  ASSIGNED: '배정 완료',
-};
 
 // 실제 이미지 에셋이 없어 아이콘은 인라인 SVG로 직접 그림 (외부 아이콘 라이브러리 의존 없음)
 const IconCalendar = () => (
@@ -88,8 +81,8 @@ function ExpoDetail() {
   const [detail, setDetail] = useState(null); // getExpoBooths 응답 (title, 집계, booths)
   const [summary, setSummary] = useState(null); // 목록 응답에서 찾은 날짜·장소
   const [loadError, setLoadError] = useState(null);
-  const [tab, setTab] = useState('개요');
-  const [selectedBoothId, setSelectedBoothId] = useState(null);
+  const [tab, setTab] = useState('부스 배치도');
+  const [selectedBoothIds, setSelectedBoothIds] = useState([]);
   const [hallFilter, setHallFilter] = useState('전체');
 
   useEffect(() => {
@@ -109,8 +102,9 @@ function ExpoDetail() {
     [booths],
   );
   const visibleHalls = hallFilter === '전체' ? halls : halls.filter((h) => h === hallFilter);
-  const selectedBooth = booths.find((b) => (b.boothId ?? b.id) === selectedBoothId) ?? null;
-
+  const selectedBooths = booths.filter((b) => selectedBoothIds.includes(b.boothId ?? b.id));
+  const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
+  
   if (loadError) {
     return <p className="expo-detail__status">{loadError}</p>;
   }
@@ -118,8 +112,15 @@ function ExpoDetail() {
     return <p className="expo-detail__status">불러오는 중...</p>;
   }
 
-  const goApply = () =>
-    navigate(`/expos/${expoId}/apply?boothId=${selectedBoothId ?? ''}`);
+  const toggleBoothSelection = (id) =>
+    setSelectedBoothIds((prev) =>
+      prev.includes(id) ? prev.filter((existingId) => existingId !== id) : [...prev, id]
+    );
+  
+  const goApply = () => {
+    const query = selectedBoothIds.map((id) => `boothId=${id}`).join('&');
+    navigate(`/expos/${expoId}/apply${query ? `?${query}` : ''}`);
+  };
 
   return (
     <div className="expo-detail">
@@ -201,8 +202,8 @@ function ExpoDetail() {
                       <HallMap
                         hallName={h}
                         booths={booths.filter((b) => getBoothHall(b.boothNo) === h)}
-                        selectedBoothId={selectedBoothId}
-                        onSelect={(id) => setSelectedBoothId(id === selectedBoothId ? null : id)}
+                        selectedBoothIds={selectedBoothIds}
+                        onSelect={toggleBoothSelection}
                         reverseFood={i % 2 === 1}
                       />
                     </Fragment>
@@ -298,58 +299,45 @@ function ExpoDetail() {
 
         <aside className="expo-detail__side">
           {tab === '부스 배치도' ? (
-            selectedBooth ? (
+            selectedBooths.length > 0 ? (
               <>
-                <span className="expo-detail__side-badge">{getBoothHall(selectedBooth.boothNo)}홀</span>
-                <span
-                  className={`expo-detail__side-status ${
-                    selectedBooth.status === 'AVAILABLE'
-                      ? 'expo-detail__side-status--open'
-                      : 'expo-detail__side-status--closed'
-                  }`}
-                >
-                  {STATUS_LABEL[selectedBooth.status] ?? selectedBooth.status}
-                </span>
-                <h3>{selectedBooth.boothNo}</h3>
-                {selectedBooth.bannerImageUrl ? (
-                  <img
-                    src={selectedBooth.bannerImageUrl}
-                    alt={selectedBooth.companyName ?? selectedBooth.boothNo}
-                    className="expo-detail__side-photo"
-                  />
-                ) : (
-                  <div className="expo-detail__side-photo expo-detail__side-photo--empty">
-                    {selectedBooth.status === 'ASSIGNED' ? '이미지 준비중' : '배정 전'}
-                  </div>
-                )}
-                {selectedBooth.companyName && (
-                  <p className="expo-detail__side-company">{selectedBooth.companyName}</p>
-                )}
+                <span className="expo-detail__side-badge">{selectedBooths.length}개 부스 선택됨</span>
+                <h3>선택한 부스</h3>
+                <ul className="expo-detail__side-list">
+                  {selectedBooths.map((b) => (
+                    <li key={b.boothId ?? b.id} className="expo-detail__side-list-item">
+                      <div className="expo-detail__side-list-info">
+                        <strong>{b.boothNo}</strong>
+                        <span className="expo-detail__side-list-meta">
+                          {getBoothHall(b.boothNo)}홀 · {b.type}
+                        </span>
+                      </div>
+                      <div className="expo-detail__side-list-right">
+                        <span>{b.fee.toLocaleString()}원</span>
+                        <button
+                          type="button"
+                          className="expo-detail__side-list-remove"
+                          onClick={() => toggleBoothSelection(b.boothId ?? b.id)}
+                          aria-label={`${b.boothNo} 선택 해제`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
                 <div className="expo-detail__perk">
-                  <p className="expo-detail__perk-label">유형</p>
-                  <p className="expo-detail__perk-value">{selectedBooth.type}</p>
+                  <p className="expo-detail__perk-label">임차료 합계</p>
+                  <p className="expo-detail__perk-value">{totalFee.toLocaleString()} 원</p>
                 </div>
-                <div className="expo-detail__perk">
-                  <p className="expo-detail__perk-label">임차료</p>
-                  <p className="expo-detail__perk-value">{selectedBooth.fee.toLocaleString()} 원</p>
-                </div>
-                {selectedBooth.industry && (
-                  <div className="expo-detail__perk">
-                    <p className="expo-detail__perk-label">업종</p>
-                    <p className="expo-detail__perk-value">{selectedBooth.industry}</p>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="expo-detail__cta"
-                  onClick={goApply}
-                  disabled={selectedBooth.status !== 'AVAILABLE'}
-                >
-                  {selectedBooth.status === 'AVAILABLE' ? '부스 선택 및 신청하기' : '신청 마감된 부스입니다'}
+                <button type="button" className="expo-detail__cta" onClick={goApply}>
+                  {selectedBooths.length}개 부스 선택 및 신청하기
                 </button>
               </>
             ) : (
-              <p className="expo-detail__side-hint">부스를 선택하면 상세 정보가 표시됩니다.</p>
+              <p className="expo-detail__side-hint">
+                부스를 클릭해서 선택하세요. (여러 개 부스를 함께 선택할 수 있어요)
+              </p>
             )
           ) : (
             <>

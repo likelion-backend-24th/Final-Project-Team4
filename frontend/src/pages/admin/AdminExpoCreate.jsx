@@ -110,10 +110,6 @@ function AdminExpoCreate() {
       setError('부스 번호 / 유형 / 임차료(양수)를 모두 채워주세요.');
       return;
     }
-    // 수동으로 "행 추가"하거나 유형/부스번호를 고쳐서 일괄 생성 시 체크를 우회했을 수 있어 제출 직전 다시 확인
-    const overLimitHall = Object.entries(hallCounts).find(
-      ([, c]) => c.normal > MAX_BOOTHS_PER_HALL || c.food > MAX_FOOD_PER_HALL
-    );
     if (overLimitHall) {
       const [hall, c] = overLimitHall;
       setError(
@@ -123,6 +119,11 @@ function AdminExpoCreate() {
       );
       return;
     }
+    // 수동으로 "행 추가"하거나 유형/부스번호를 고쳐서 일괄 생성 시 체크를 우회했을 수 있어 제출 직전 다시 확인
+    const overLimitHall = Object.entries(hallCounts).find(
+      ([, c]) => c.normal > MAX_BOOTHS_PER_HALL || c.food > MAX_FOOD_PER_HALL
+    );
+    
     if (form.admissionFee === '' || Number(form.admissionFee) < 0) {
       setError('당일 입장료를 0 이상으로 입력해주세요.');
       return;

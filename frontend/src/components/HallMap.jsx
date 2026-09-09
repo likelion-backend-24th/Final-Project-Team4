@@ -33,10 +33,7 @@ function BoothCell({ booth, selected, onSelect }) {
   );
 }
 
-// 박람회 부스 배치도의 한 홀(A홀/B홀 등)을 렌더링. boothNo("A-101")의 "-" 앞부분으로 홀을 묶는다.
-// 먹거리 부스는 홀 바깥쪽 열에, 나머지 부스는 가운데 격자에 배치하고, 휴게공간/안내데스크/출입구는
-// 실제 데이터가 없는 장식용 요소라 고정 라벨로만 표시한다.
-function HallMap({ hallName, booths, selectedBoothId, onSelect, reverseFood = false }) {
+function HallMap({ hallName, booths, selectedBoothIds = [], onSelect, reverseFood = false }) {
   const foodBooths = booths.filter((b) => isFoodBooth(b.type));
   const mainBooths = booths.filter((b) => !isFoodBooth(b.type));
 
@@ -46,7 +43,7 @@ function HallMap({ hallName, booths, selectedBoothId, onSelect, reverseFood = fa
         <BoothCell
           key={b.boothId ?? b.id}
           booth={b}
-          selected={(b.boothId ?? b.id) === selectedBoothId}
+          selected={selectedBoothIds.includes(b.boothId ?? b.id)}
           onSelect={onSelect}
         />
       ))}
@@ -63,7 +60,7 @@ function HallMap({ hallName, booths, selectedBoothId, onSelect, reverseFood = fa
             <BoothCell
               key={b.boothId ?? b.id}
               booth={b}
-              selected={(b.boothId ?? b.id) === selectedBoothId}
+              selected={selectedBoothIds.includes(b.boothId ?? b.id)}
               onSelect={onSelect}
             />
           ))}
@@ -78,7 +75,6 @@ function HallMap({ hallName, booths, selectedBoothId, onSelect, reverseFood = fa
   );
 }
 
-// 두 홀 사이의 중앙광장 장식 요소(실제 데이터 없음, 고정 라벨).
 export function HallPlaza() {
   return (
     <div className="hall-map-plaza">

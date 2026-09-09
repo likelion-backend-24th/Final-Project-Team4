@@ -16,10 +16,8 @@ function BoothApplication() {
   const [loadError, setLoadError] = useState(null);
   const [step, setStep] = useState(1);
   const [viewMode, setViewMode] = useState('BOOTH');
-  const initialBoothId = searchParams.get('boothId');
-  const [selectedBoothIds, setSelectedBoothIds] = useState(
-    initialBoothId ? [Number(initialBoothId)] : []
-  );
+  const initialBoothIds = searchParams.getAll('boothId').map(Number).filter((id) => !Number.isNaN(id));
+  const [selectedBoothIds, setSelectedBoothIds] = useState(initialBoothIds);
   const [form, setForm] = useState({
     exhibitionItem: '',
     conceptDescription: '',
