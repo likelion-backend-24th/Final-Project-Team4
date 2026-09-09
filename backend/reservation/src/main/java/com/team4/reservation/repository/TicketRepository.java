@@ -19,8 +19,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // 마이페이지 "나의 입장권" 목록 조회 — 최근 발급 순.
     List<Ticket> findByCustomerIdOrderByIssuedAtDesc(Long customerId);
 
-    // 이 고객이 이 박람회에 무료 QR을 하나라도 갖고 있는지(날짜 무관) — Payment가 당일 결제 전에 물어보는 값.
-    boolean existsByCustomerIdAndExpoIdAndTicketType(Long customerId, Long expoId, TicketType ticketType);
+    // 이 고객이 이 박람회의 "오늘" 날짜에 해당 타입 티켓을 갖고 있는지 — Payment가 당일 결제 전에 물어보는 값.
+    // 날짜 무관하게 판정하면 다른 날짜 무료 QR로 당일 유료 입장을 우회할 수 있어 반드시 visitDate까지 맞춰야 함.
+    boolean existsByCustomerIdAndExpoIdAndTicketTypeAndVisitDate(
+            Long customerId, Long expoId, TicketType ticketType, LocalDate visitDate);
 
     // 체크인할 때 QR 스캔값(qrToken)으로 대상 티켓을 찾는 용도.
     Optional<Ticket> findByQrToken(String qrToken);

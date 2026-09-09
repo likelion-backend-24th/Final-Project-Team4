@@ -42,8 +42,9 @@ class VisitApplicationAcceptanceTest {
 
     private static final long CUSTOMER_ID = 9001L;
     private static final long EXPO_ID = 1L;
-    private static final LocalDate DAY_1 = LocalDate.of(2026, 10, 1);
-    private static final LocalDate DAY_2 = LocalDate.of(2026, 10, 2);
+    // @BeforeEach의 스텁 박람회 기간(오늘+1년 ~ 오늘+1년+3일) 안에 들어와야 하므로 고정 날짜 대신 상대 날짜를 씀.
+    private static final LocalDate DAY_1 = LocalDate.now().plusYears(1);
+    private static final LocalDate DAY_2 = LocalDate.now().plusYears(1).plusDays(1);
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
@@ -164,6 +165,20 @@ class VisitApplicationAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(applyBody(EXPO_ID, DAY_1)))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @DisplayName("박람회 기간 밖 날짜로 신청하면 400")
+    void 기간_밖_날짜_신청은_400() throws Exception {
+        LocalDate outOfRange = LocalDateTime.now().plusYears(1).plusDays(10).toLocalDate(); // 기본 스텁 기간(시작+0~3일) 밖
+
+        mockMvc.perform(post("/api/customer/reservations").with(customer(CUSTOMER_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(EXPO_ID, outOfRange)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+
+        assertThat(ticketRepository.findAll()).isEmpty();
     }
 
     @Test
