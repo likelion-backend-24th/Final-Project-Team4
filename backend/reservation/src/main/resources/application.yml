@@ -29,6 +29,8 @@ expo:
 
 # 내부 서비스 간 호출(/internal/**) 인증용. Gateway·OpenAPI에 미노출.
 # Payment -> Reservation 당일 입장권 결제 문의(admission-context)에서 씀. expo의 SVC_TOKEN_PAYMENT와 같은 값 공유.
+# Expo -> Reservation 상담 신청 시 입장권 보유 확인(tickets exists)에서 씀. expo가 자기 식별로 쓰는 SVC_TOKEN_EXPO와 같은 값 공유.
 service:
   token:
     payment: ${SVC_TOKEN_PAYMENT:local_dev_payment_token}
+    expo: ${SVC_TOKEN_EXPO:local_dev_expo_token}
