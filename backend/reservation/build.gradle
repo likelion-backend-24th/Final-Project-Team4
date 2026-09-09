@@ -18,3 +18,23 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
+
+// "acceptance" 태그 테스트(Gateway+Identity+Reservation+Expo가 실제로 로컬에 떠 있어야 통과하는
+// 종단 시나리오, 예: Us12SignupAndVisitApplicationAcceptanceTest)는 일반 test 태스크(CI가 늘 돌리는
+// 것)에서 제외하고, 별도 acceptanceTest 태스크로만 돈다 — 안 그러면 서비스가 안 떠 있는 환경(CI 등)에서
+// 일반 단위/컴포넌트 테스트까지 같이 실패해버림.
+tasks.named('test') {
+    useJUnitPlatform {
+        excludeTags 'acceptance'
+    }
+}
+
+tasks.register('acceptanceTest', Test) {
+    description = '전체 스택(Gateway 8080/Identity 8081/Reservation 8084/Expo 8082)이 로컬에 떠 있을 때 수동 실행'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'acceptance'
+    }
+}
