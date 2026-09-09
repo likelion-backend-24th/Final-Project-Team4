@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockMyProfile, mockPastExhibits } from "../mock/data";
+import { mockPastExhibits } from "../mock/data";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
+import { getMyProfile } from "../api/identity";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -46,6 +47,10 @@ function MyPage() {
   const [loadError, setLoadError] = useState(null);
   const [openId, setOpenId] = useState(null);
 
+  // 업체 및 담당자 정보: 로그인한 사용자 프로필 (없으면 null - 로딩 중이거나 조회 실패)
+  const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState(null);
+
   // 참가비 결제 내역: 실제 결제된 건 목록 (없으면 빈 배열 - 아직 결제한 게 없다는 뜻)
   const [payments, setPayments] = useState([]);
   const [paymentsError, setPaymentsError] = useState(null);
@@ -84,6 +89,17 @@ function MyPage() {
         setLoadError(
           err.response?.data?.error?.message ??
             "신청 내역을 불러오지 못했습니다.",
+        ),
+      );
+  }, []);
+
+  useEffect(() => {
+    getMyProfile()
+      .then(setProfile)
+      .catch((err) =>
+        setProfileError(
+          err.response?.data?.error?.message ??
+            "업체 정보를 불러오지 못했습니다.",
         ),
       );
   }, []);
@@ -162,50 +178,56 @@ function MyPage() {
             </button>
           </div>
           <div className="mypage__divider" />
-          <div className="mypage__profile-grid">
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">업체명</span>
-                <span className="mypage__profile-value">
-                  {mockMyProfile.companyName}
-                </span>
+          {profileError && <p className="mypage__cell-muted">{profileError}</p>}
+          {!profile && !profileError && (
+            <p className="mypage__cell-muted">불러오는 중...</p>
+          )}
+          {profile && (
+            <div className="mypage__profile-grid">
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">업체명</span>
+                  <span className="mypage__profile-value">
+                    {profile.companyName ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">사업자등록번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.businessNo ?? "-"}
+                  </span>
+                </div>
               </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">사업자등록번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.businessNumber}
-                </span>
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">담당자명</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.managerName ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">이메일 주소</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.email ?? "-"}
+                  </span>
+                </div>
+              </div>
+              <div className="mypage__profile-col">
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">휴대폰 번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.contact ?? "-"}
+                  </span>
+                </div>
+                <div className="mypage__profile-row">
+                  <span className="mypage__profile-label">대표 전화번호</span>
+                  <span className="mypage__profile-value mypage__profile-value--regular">
+                    {profile.companyContact ?? "-"}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">담당자명 / 직급</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.managerName}
-                </span>
-              </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">이메일 주소</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.email}
-                </span>
-              </div>
-            </div>
-            <div className="mypage__profile-col">
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">휴대폰 번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.mobile}
-                </span>
-              </div>
-              <div className="mypage__profile-row">
-                <span className="mypage__profile-label">대표 전화번호</span>
-                <span className="mypage__profile-value mypage__profile-value--regular">
-                  {mockMyProfile.companyPhone}
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </section>
 
         <section className="mypage__card">
