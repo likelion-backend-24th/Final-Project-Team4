@@ -15,6 +15,9 @@ public class BoothApplicationGroupDetailResponse {
     private final String groupId;
     private final Long expoId;
     private final String expoTitle;
+    private final String expoVenue;          // 전시 장소 (마이페이지 부스 참가 이력)
+    private final LocalDateTime expoStartsAt; // 박람회 행사 시작일
+    private final LocalDateTime expoEndsAt;   // 박람회 행사 종료일 (지났으면 참가 완료로 분류)
     private final Long exhibitorId;
     private final String exhibitionItem;
     private final String conceptDescription;
@@ -33,7 +36,9 @@ public class BoothApplicationGroupDetailResponse {
     private final String ceoName;
     private final String managerEmail;
 
-    public BoothApplicationGroupDetailResponse(String groupId, Long expoId, String expoTitle, Long exhibitorId,
+    public BoothApplicationGroupDetailResponse(String groupId, Long expoId, String expoTitle,
+                                               String expoVenue, LocalDateTime expoStartsAt, LocalDateTime expoEndsAt,
+                                               Long exhibitorId,
                                                String exhibitionItem, String conceptDescription,
                                                boolean powerRequested, boolean waterSupplyRequested,
                                                boolean internetRequested, String additionalRequest,
@@ -43,6 +48,9 @@ public class BoothApplicationGroupDetailResponse {
         this.groupId = groupId;
         this.expoId = expoId;
         this.expoTitle = expoTitle;
+        this.expoVenue = expoVenue;
+        this.expoStartsAt = expoStartsAt;
+        this.expoEndsAt = expoEndsAt;
         this.exhibitorId = exhibitorId;
         this.exhibitionItem = exhibitionItem;
         this.conceptDescription = conceptDescription;
@@ -76,6 +84,9 @@ public class BoothApplicationGroupDetailResponse {
                 group.getId(),
                 group.getExpo().getId(),
                 group.getExpo().getTitle(),
+                group.getExpo().getVenue(),
+                group.getExpo().getStartsAt(),
+                group.getExpo().getEndsAt(),
                 group.getExhibitorId(),
                 group.getExhibitionItem(),
                 group.getConceptDescription(),

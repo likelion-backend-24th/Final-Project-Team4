@@ -9,9 +9,6 @@ dependencies {
     implementation 'org.flywaydb:flyway-mysql'
     runtimeOnly 'com.mysql:mysql-connector-j'
 
-    // 운영/개발 DB는 이제 MySQL. H2는 @DataJpaTest(PaymentRepositoryTest)가 내장 DB로 자동 대체해서 쓰는 용도로만 남김.
-    testRuntimeOnly 'com.h2database:h2'
-
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     implementation project(':common')
 }
