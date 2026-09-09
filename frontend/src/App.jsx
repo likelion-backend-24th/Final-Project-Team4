@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import MyPage from './pages/MyPage';
 import BoothManage from './pages/BoothManage';
+import ConsultationRequests from './pages/ConsultationRequests';
 import Payment from './pages/Payment';
 import CustomerExpoList from './pages/customer/CustomerExpoList';
 import ExhibitorVehicleList from './pages/customer/ExhibitorVehicleList';
@@ -57,6 +58,7 @@ function App() {
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />
       <Route path="/mypage/booths/:boothId" element={<ExhibitorLayout><BoothManage /></ExhibitorLayout>} />
+      <Route path="/consultations" element={<ExhibitorLayout><ConsultationRequests /></ExhibitorLayout>} />
       <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/customer" element={<CustomerLayout><CustomerExpoList /></CustomerLayout>} />
