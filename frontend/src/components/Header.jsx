@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
-import { clearAuth } from '../api/auth';
+import { clearAuth, isLoggedIn } from '../api/auth';
 import { getMyProfile } from '../api/identity';
 import './Header.css';
 
@@ -11,6 +11,7 @@ function Header() {
   const [companyName, setCompanyName] = useState('');
 
   useEffect(() => {
+    if (!isLoggedIn()) return; // 게스트는 /api/auth/me 호출 안 함 (401 -> /login 리다이렉트 방지)
     getMyProfile()
       .then((p) => setCompanyName(p.companyName ?? ''))
       .catch(() => setCompanyName(''));

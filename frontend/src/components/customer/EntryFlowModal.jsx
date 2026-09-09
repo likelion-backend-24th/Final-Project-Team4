@@ -299,9 +299,11 @@ function EntryFlowModal({ expo, onClose }) {
         {step === 'choose' && (
           <ChooseMethod
             hasExisting={existingTickets.length > 0}
+            loggedIn={isLoggedIn()}
             onQrExisting={showExistingQr}
             onApply={() => setStep('select-date')}
             onGuest={() => setStep('guest-info')}
+            onBrowse={goDetail}
           />
         )}
 
@@ -370,7 +372,7 @@ function EntryFlowModal({ expo, onClose }) {
   );
 }
 
-function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
+function ChooseMethod({ hasExisting, loggedIn, onQrExisting, onApply, onGuest, onBrowse }) {
   return (
     <>
       <div className="c-modal__icon">
@@ -415,7 +417,7 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
           </span>
           <span className="ef-option__chevron" />
         </button>
-        <button type="button" className="ef-option" onClick={onGuest}>
+        <button type="button" className="ef-option" onClick={loggedIn ? onBrowse : onGuest}>
           <span className="ef-option__icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
               <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
@@ -423,7 +425,7 @@ function ChooseMethod({ hasExisting, onQrExisting, onApply, onGuest }) {
             </svg>
           </span>
           <span className="ef-option__body">
-            <strong>로그인 없이 둘러보기</strong>
+            <strong>{loggedIn ? '박람회 정보 둘러보기' : '로그인 없이 둘러보기'}</strong>
             <span>입장권 신청 없이 박람회 정보만 확인</span>
           </span>
           <span className="ef-option__chevron" />
