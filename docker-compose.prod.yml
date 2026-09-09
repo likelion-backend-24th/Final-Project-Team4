@@ -78,6 +78,8 @@ services:
       SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
       PAYMENT_BASE_URL: http://payment:8083
       SPRING_JPA_SHOW_SQL: "false"
+    volumes:
+      - expo-uploads:/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -150,6 +152,7 @@ services:
 volumes:
   mysql-data:
   redis-data:
+  expo-uploads:
 
 networks:
   backend:
