@@ -5,10 +5,81 @@ import HallMap, { HallPlaza } from '../components/HallMap';
 import { getBoothHall } from '../utils/boothType';
 import './ExpoDetail.css';
 
-const TABS = ['개요', '부스 배치도', '참가 안내'];
+const TABS = ['개요', '부스 배치도'];
 
 // ISO(2026-05-12T10:00:00) → 2026.05.12
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-');
+
+// 부스 배치도에서 선택한 부스의 신청 가능 여부를 사이드 패널에 표시할 때 씀 (HallMap.jsx의 라벨과 동일하게 유지)
+const STATUS_LABEL = {
+  AVAILABLE: '신청 가능',
+  RESERVED: '결제 대기중',
+  ASSIGNED: '배정 완료',
+};
+
+// 실제 이미지 에셋이 없어 아이콘은 인라인 SVG로 직접 그림 (외부 아이콘 라이브러리 의존 없음)
+const IconCalendar = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+  </svg>
+);
+const IconPin = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
+);
+const IconPeople = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="9" cy="8" r="3" />
+    <path d="M2 20c0-3.3 3.1-6 7-6s7 2.7 7 6" strokeLinecap="round" />
+    <path d="M16 4.3a3 3 0 0 1 0 5.8M20 20c0-2.6-1.8-4.8-4.3-5.6" strokeLinecap="round" />
+  </svg>
+);
+const IconGlobe = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3c2.5 2.6 4 6 4 9s-1.5 6.4-4 9c-2.5-2.6-4-6-4-9s1.5-6.4 4-9z" />
+  </svg>
+);
+const IconDoc = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M9 12h6M9 16h6" strokeLinecap="round" />
+  </svg>
+);
+const IconDocCheck = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M9 14.5l2 2 4-4.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconCard = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="6" width="18" height="13" rx="2" />
+    <path d="M3 10h18M7 14.5h4" strokeLinecap="round" />
+  </svg>
+);
+const IconCheckCircle = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8 12.5l2.5 2.5L16 9.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconHeadset = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M4 13v-1a8 8 0 0 1 16 0v1" strokeLinecap="round" />
+    <rect x="2.5" y="13" width="4" height="6" rx="1.5" />
+    <rect x="17.5" y="13" width="4" height="6" rx="1.5" />
+    <path d="M20 19v.5A2.5 2.5 0 0 1 17.5 22H14" strokeLinecap="round" />
+  </svg>
+);
+const IconArrow = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 
 function ExpoDetail() {
   const { expoId } = useParams();
@@ -17,7 +88,7 @@ function ExpoDetail() {
   const [detail, setDetail] = useState(null); // getExpoBooths 응답 (title, 집계, booths)
   const [summary, setSummary] = useState(null); // 목록 응답에서 찾은 날짜·장소
   const [loadError, setLoadError] = useState(null);
-  const [tab, setTab] = useState('부스 배치도');
+  const [tab, setTab] = useState('개요');
   const [selectedBoothId, setSelectedBoothId] = useState(null);
   const [hallFilter, setHallFilter] = useState('전체');
 
@@ -109,9 +180,17 @@ function ExpoDetail() {
                   </div>
 
                   <div className="expo-detail__legend expo-detail__legend--vertical">
+                    <p className="expo-detail__legend-title">부스 유형</p>
                     <span><i className="dot dot--booth" /> 참가 부스</span>
                     <span><i className="dot dot--food" /> 먹거리 부스</span>
                     <span><i className="dot dot--rest" /> 휴게 공간</span>
+                  </div>
+
+                  <div className="expo-detail__legend expo-detail__legend--vertical">
+                    <p className="expo-detail__legend-title">부스 상태</p>
+                    <span><i className="dot dot--available" /> 신청 가능</span>
+                    <span><i className="dot dot--assigned" /> 마감 (배정·결제대기)</span>
+                    <span><i className="dot dot--selected" /> 선택한 부스</span>
                   </div>
                 </div>
 
@@ -134,34 +213,86 @@ function ExpoDetail() {
           )}
 
           {tab === '개요' && (
+            <>
             <section className="expo-detail__booths">
-              <h2>행사 기본 정보</h2>
-              <dl className="expo-detail__info-list">
-                <dt>행사명</dt>
-                <dd>{detail.title}</dd>
-                <dt>기간</dt>
-                <dd>
-                  {fmtDate(summary?.startsAt)} - {fmtDate(summary?.endsAt)}
-                </dd>
-                <dt>장소</dt>
-                <dd>{summary?.venue ?? '-'}</dd>
-                <dt>모집 기간</dt>
-                <dd>
-                  {fmtDate(summary?.applyStartsAt)} - {fmtDate(summary?.applyEndsAt)}
-                </dd>
-                <dt>부스 현황</dt>
-                <dd>
-                  총 {detail.totalCount}개 중 {detail.availableCount}개 신청 가능
-                </dd>
-              </dl>
+              <h2>행사 소개</h2>
+              <div className="expo-detail__intro-layout">
+                <p className="expo-detail__intro-text">
+                  {detail.title}은(는) 다양한 브랜드와 참가업체가 한자리에 모이는 박람회입니다.
+                  풍성한 부스와 프로그램을 통해 새로운 비즈니스 기회를 만들어보세요.
+                </p>
+              </div>
             </section>
-          )}
 
-          {tab === '참가 안내' && (
+            <section className="expo-detail__booths">
+              <h2>행사 정보</h2>
+              <div className="expo-detail__info-grid">
+                <div className="expo-detail__info-card">
+                  <IconCalendar />
+                  <div>
+                    <p className="expo-detail__info-card-label">행사 기간</p>
+                    <p className="expo-detail__info-card-value">
+                      {fmtDate(summary?.startsAt)} ~ {fmtDate(summary?.endsAt)}
+                    </p>
+                  </div>
+                </div>
+                <div className="expo-detail__info-card">
+                  <IconPin />
+                  <div>
+                    <p className="expo-detail__info-card-label">행사 장소</p>
+                    <p className="expo-detail__info-card-value">{summary?.venue ?? '-'}</p>
+                  </div>
+                </div>
+                <div className="expo-detail__info-card">
+                  <IconPeople />
+                  <div>
+                    <p className="expo-detail__info-card-label">주최 / 주관</p>
+                    <p className="expo-detail__info-card-value">㈜팀포 박람회 사무국</p>
+                  </div>
+                </div>
+                <div className="expo-detail__info-card">
+                  <IconGlobe />
+                  <div>
+                    <p className="expo-detail__info-card-label">홈페이지</p>
+                    <p className="expo-detail__info-card-value">추후 공개 예정</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section className="expo-detail__booths">
               <h2>참가 안내</h2>
-              <p>부스 참가 절차 및 유의사항 안내 영역입니다.</p>
+              <ol className="expo-detail__steps">
+                <li>
+                  <span className="expo-detail__step-icon"><IconDoc /></span>
+                  <span className="expo-detail__step-no">1</span>
+                  <strong>참가 신청</strong>
+                  <p>원하는 부스를 선택하여 참가 신청을 진행합니다.</p>
+                </li>
+                <li className="expo-detail__step-arrow"><IconArrow /></li>
+                <li>
+                  <span className="expo-detail__step-icon"><IconDocCheck /></span>
+                  <span className="expo-detail__step-no">2</span>
+                  <strong>승인 및 계약</strong>
+                  <p>운영사 검토 후 승인되며, 계약 안내가 진행됩니다.</p>
+                </li>
+                <li className="expo-detail__step-arrow"><IconArrow /></li>
+                <li>
+                  <span className="expo-detail__step-icon"><IconCard /></span>
+                  <span className="expo-detail__step-no">3</span>
+                  <strong>참가비 결제</strong>
+                  <p>안내된 기한 내 참가비를 결제합니다.</p>
+                </li>
+                <li className="expo-detail__step-arrow"><IconArrow /></li>
+                <li>
+                  <span className="expo-detail__step-icon"><IconCheckCircle /></span>
+                  <span className="expo-detail__step-no">4</span>
+                  <strong>참가 확정</strong>
+                  <p>결제 완료 시 부스 배정이 확정됩니다.</p>
+                </li>
+              </ol>
             </section>
+            </>
           )}
         </div>
 
@@ -170,7 +301,30 @@ function ExpoDetail() {
             selectedBooth ? (
               <>
                 <span className="expo-detail__side-badge">{getBoothHall(selectedBooth.boothNo)}홀</span>
+                <span
+                  className={`expo-detail__side-status ${
+                    selectedBooth.status === 'AVAILABLE'
+                      ? 'expo-detail__side-status--open'
+                      : 'expo-detail__side-status--closed'
+                  }`}
+                >
+                  {STATUS_LABEL[selectedBooth.status] ?? selectedBooth.status}
+                </span>
                 <h3>{selectedBooth.boothNo}</h3>
+                {selectedBooth.bannerImageUrl ? (
+                  <img
+                    src={selectedBooth.bannerImageUrl}
+                    alt={selectedBooth.companyName ?? selectedBooth.boothNo}
+                    className="expo-detail__side-photo"
+                  />
+                ) : (
+                  <div className="expo-detail__side-photo expo-detail__side-photo--empty">
+                    {selectedBooth.status === 'ASSIGNED' ? '이미지 준비중' : '배정 전'}
+                  </div>
+                )}
+                {selectedBooth.companyName && (
+                  <p className="expo-detail__side-company">{selectedBooth.companyName}</p>
+                )}
                 <div className="expo-detail__perk">
                   <p className="expo-detail__perk-label">유형</p>
                   <p className="expo-detail__perk-value">{selectedBooth.type}</p>
@@ -179,8 +333,19 @@ function ExpoDetail() {
                   <p className="expo-detail__perk-label">임차료</p>
                   <p className="expo-detail__perk-value">{selectedBooth.fee.toLocaleString()} 원</p>
                 </div>
-                <button type="button" className="expo-detail__cta" onClick={goApply}>
-                  부스 선택 및 신청하기
+                {selectedBooth.industry && (
+                  <div className="expo-detail__perk">
+                    <p className="expo-detail__perk-label">업종</p>
+                    <p className="expo-detail__perk-value">{selectedBooth.industry}</p>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="expo-detail__cta"
+                  onClick={goApply}
+                  disabled={selectedBooth.status !== 'AVAILABLE'}
+                >
+                  {selectedBooth.status === 'AVAILABLE' ? '부스 선택 및 신청하기' : '신청 마감된 부스입니다'}
                 </button>
               </>
             ) : (
@@ -202,6 +367,12 @@ function ExpoDetail() {
               <button type="button" className="expo-detail__cta" onClick={goApply}>
                 부스 선택 및 신청하기
               </button>
+              <div className="expo-detail__contact">
+                <h4><IconHeadset /> 문의 안내</h4>
+                <p>운영 사무국</p>
+                <p>02-6000-0000</p>
+                <p>expo-help@example.com</p>
+              </div>
             </>
           )}
         </aside>
