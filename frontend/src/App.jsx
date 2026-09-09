@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import AdminHeader from './components/AdminHeader';
 import CustomerHeader from './components/customer/CustomerHeader';
@@ -8,14 +8,12 @@ import BoothApplication from './pages/BoothApplication';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import MyPage from './pages/MyPage';
-import BoothManage from './pages/BoothManage';
-import ConsultationRequests from './pages/ConsultationRequests';
 import Payment from './pages/Payment';
 import CustomerExpoList from './pages/customer/CustomerExpoList';
 import ExhibitorVehicleList from './pages/customer/ExhibitorVehicleList';
 import VehicleDetail from './pages/customer/VehicleDetail';
 import CustomerMyPage from './pages/customer/CustomerMyPage';
-import AdminDashboard from './pages/admin/AdminDashboard';
+// import AdminDashboard from './pages/admin/AdminDashboard'; // 대시보드 탭 임시 비활성화
 import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
@@ -57,8 +55,6 @@ function App() {
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />
-      <Route path="/mypage/booths/:boothId" element={<ExhibitorLayout><BoothManage /></ExhibitorLayout>} />
-      <Route path="/consultations" element={<ExhibitorLayout><ConsultationRequests /></ExhibitorLayout>} />
       <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/customer" element={<CustomerLayout><CustomerExpoList /></CustomerLayout>} />
@@ -72,7 +68,8 @@ function App() {
       />
       <Route path="/customer/mypage" element={<CustomerLayout><CustomerMyPage /></CustomerLayout>} />
 
-      <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+      {/* 대시보드 임시 비활성화: /admin 접속 시 참가신청 관리로 이동 */}
+      <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
       <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />

@@ -22,7 +22,7 @@ function Login() {
       const loginRole = data.data.role;
       setAuth(data.data.accessToken, loginRole);
       if (loginRole === "ADMIN") {
-        navigate("/admin");
+        navigate("/admin/applications");
       } else if (loginRole === "USER") {
         navigate("/customer");
       } else {

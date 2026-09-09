@@ -25,9 +25,9 @@ function AdminHeader() {
         <span>MOBILITY EXPO</span>
       </Link>
       <nav className="app-header__nav">
-        <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
+        {/* <NavLink to="/admin" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
           대시보드
-        </NavLink>
+        </NavLink> */}
         <NavLink to="/admin/applications" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           참가신청 관리
         </NavLink>
