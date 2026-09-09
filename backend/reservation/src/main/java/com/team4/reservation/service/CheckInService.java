@@ -20,7 +20,7 @@ public class CheckInService {
     private final TicketRepository ticketRepository;
     private final CheckInRepository checkInRepository;
 
-    // 고객이 앱에서 본인 QR로 셀프 체크인 (관리자 스캐너 체크인은 구현하지 않기로 확정 — 이 경로만 존재).
+    // 고객이 앱에서 본인 QR로 셀프 체크인.
     // 본인 소유 티켓인지, 방문 예약일이 오늘인지까지 확인한 뒤 원자적 단일 사용 처리를 탄다.
     @Transactional
     public CheckInResponse selfCheckIn(Long customerId, Long ticketId) {
