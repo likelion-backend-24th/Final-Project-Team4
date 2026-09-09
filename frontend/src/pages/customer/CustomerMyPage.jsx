@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
+import { getCustomerExpoList } from '../../api/expo';
+import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
 import './CustomerMyPage.css';
@@ -33,11 +35,14 @@ function CustomerMyPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
 
-  // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회
+  // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
+  // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
+  // 같이 조회해 expoId로 매칭해야 함 — 안 그러면 QR이 발급된 실제 박람회와 화면에 뜨는 이름이 어긋난다.
   useEffect(() => {
-    getMyReservations()
-      .then((list) => {
-        setRawTickets(list.map(toDisplayTicket));
+    Promise.all([getMyReservations(), getCustomerExpoList({ page: 0, size: 100 })])
+      .then(([tickets, expoRes]) => {
+        const expoMap = new Map(expoRes.content.map((e) => [e.expoId, e]));
+        setRawTickets(tickets.map((t) => toDisplayTicket(t, expoMap)));
         setLoadError(null);
       })
       .catch((err) => {
@@ -161,7 +166,10 @@ function CustomerMyPage() {
                         <button type="button" onClick={() => setZoomTicket(t)}>
                           QR 크게 보기
                         </button>
-                        <button type="button" onClick={() => window.print()}>
+                        <button
+                          type="button"
+                          onClick={() => downloadTicketImage(t, `QR_${t.bookingNo}`)}
+                        >
                           이미지 저장
                         </button>
                       </div>
@@ -201,6 +209,14 @@ function CustomerMyPage() {
             </div>
             <p className="c-mypage__zoom-meta">체크인 가능일 {fmtDate(zoomTicket.visitDate)}</p>
             <p className="c-mypage__zoom-meta">예매번호 {zoomTicket.bookingNo}</p>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              style={{ marginTop: 12 }}
+              onClick={() => downloadTicketImage(zoomTicket, `QR_${zoomTicket.bookingNo}`)}
+            >
+              이미지 저장
+            </button>
           </div>
         </div>
       )}

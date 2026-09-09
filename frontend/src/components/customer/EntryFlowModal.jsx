@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
 import QrPlaceholder from './QrPlaceholder';
 import { addMyTicket, getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
+import { downloadTicketImage } from '../../utils/downloadImage';
 import { isLoggedIn } from '../../api/auth';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
@@ -28,14 +29,20 @@ function nowLabel() {
   return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-// 박람회 기간(startsAt~endsAt)의 날짜 목록 ('YYYY-MM-DD' 배열)
+// 박람회 기간(startsAt~endsAt)의 날짜 목록 ('YYYY-MM-DD' 배열).
+// new Date(expo.startsAt)로 파싱하면(시간 포함 ISO라 "로컬 시간"으로 해석됨) 그 뒤 .toISOString()이
+// UTC로 변환하면서 한국(UTC+9)에서는 하루가 앞당겨지는 버그가 있었음 — 로컬 자정을 UTC로 바꾸면
+// 전날 15:00이 되기 때문. 날짜 계산을 아예 UTC 기준으로만 하도록(Date.UTC로 생성) 고쳐서
+// 어느 타임존에서 열어도 항상 실제 달력 날짜 그대로 나오게 함.
 function expoDateRange(expo) {
   const dates = [];
-  const cur = new Date(expo.startsAt);
-  const end = new Date(expo.endsAt);
+  const [sy, sm, sd] = expo.startsAt.slice(0, 10).split('-').map(Number);
+  const [ey, em, ed] = expo.endsAt.slice(0, 10).split('-').map(Number);
+  const cur = new Date(Date.UTC(sy, sm - 1, sd));
+  const end = new Date(Date.UTC(ey, em - 1, ed));
   while (cur <= end) {
     dates.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
+    cur.setUTCDate(cur.getUTCDate() + 1);
   }
   return dates;
 }
@@ -109,6 +116,7 @@ function EntryFlowModal({ expo, onClose }) {
   const [tickets, setTickets] = useState([]);
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState(null);
+  const [applyNotice, setApplyNotice] = useState(null);
   const [existingTickets, setExistingTickets] = useState([]);
   const [checkInError, setCheckInError] = useState(null);
   const [paying, setPaying] = useState(false);
@@ -181,14 +189,25 @@ function EntryFlowModal({ expo, onClose }) {
     setStep('payment');
   };
 
-  // 무료 사전 방문예약 — 실제 Reservation 서비스(POST /api/customer/reservations) 연동
+  // 무료 사전 방문예약 — 실제 Reservation 서비스(POST /api/customer/reservations) 연동.
+  // 이 API는 같은 날짜로 재신청하면 새로 만들지 않고 기존 QR을 그대로 돌려주는 멱등 동작이라
+  // 응답만 보면 "새로 발급"과 구분이 안 됨 — 호출 전에 이 모달이 이미 들고 있는 existingTickets와
+  // 비교해서 "이미 발급된 날짜"를 미리 골라내고, 그 날짜는 새로 발급된 게 아니라는 안내를 같이 보여준다.
   const issueFreeTickets = async () => {
     setApplyError(null);
+    setApplyNotice(null);
     setApplying(true);
+    const existingDates = new Set(existingTickets.map((t) => t.visitDate));
+    const duplicateDates = selectedDates.filter((d) => existingDates.has(d));
     try {
       const res = await applyVisit({ expoId: expo.expoId, visitDates: selectedDates });
       const issued = res.tickets.map((t) => mapReservationTicket(expo, t));
       setTickets(issued);
+      if (duplicateDates.length > 0) {
+        setApplyNotice(
+          `${duplicateDates.map(fmtDate).join(', ')} 방문 예약은 이미 발급되어 있는 QR입니다. 새로 발급되지 않고 기존 QR을 그대로 보여드려요.`
+        );
+      }
       setStep('ticket-qr');
     } catch (err) {
       setApplyError(
@@ -339,6 +358,7 @@ function EntryFlowModal({ expo, onClose }) {
             expo={expo}
             ticket={tickets[0]}
             extraCount={tickets.length - 1}
+            notice={applyNotice}
             onNext={() => setStep('entry-guide')}
             nextLabel="다음"
           />
@@ -487,7 +507,7 @@ function SelectDate({
   );
 }
 
-function TicketQr({ expo, ticket, extraCount, onNext, nextLabel }) {
+function TicketQr({ expo, ticket, extraCount, notice, onNext, nextLabel }) {
   return (
     <>
       <p className="ef-ready-badge">
@@ -495,6 +515,7 @@ function TicketQr({ expo, ticket, extraCount, onNext, nextLabel }) {
         입장 준비 완료!
       </p>
       <p className="c-modal__desc">현장에서 이 QR을 제시해주세요.</p>
+      {notice && <p className="ef-error ef-error--info">{notice}</p>}
       <div className="ef-qr-box">
         {ticket.qrImageBase64 ? (
           <img
@@ -524,7 +545,11 @@ function TicketQr({ expo, ticket, extraCount, onNext, nextLabel }) {
       <button type="button" className="c-modal__primary" onClick={onNext}>
         {nextLabel}
       </button>
-      <button type="button" className="c-modal__secondary" onClick={() => window.print()}>
+      <button
+        type="button"
+        className="c-modal__secondary"
+        onClick={() => downloadTicketImage(ticket, `QR_${ticket.bookingNo}`)}
+      >
         이미지 저장하기
       </button>
     </>

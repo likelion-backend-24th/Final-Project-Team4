@@ -50,16 +50,19 @@ export const CONSULTATION_TIME_SLOTS = [
   '10:00', '10:30', '11:00', '11:30', '13:00', '13:30', '14:00', '14:30',
 ];
 
-// 박람회 id로 mock 목록에서 제목/장소/기간을 찾음 — 고객용 박람회 조회 API가 아직 없어서(Expo 서비스 소유,
-// 이번 작업 범위 밖) Reservation 응답(TicketResponse, expoId만 있음)을 화면에 보여줄 때 이걸로 보강함.
+// 박람회 id로 mock 목록에서 제목/장소/기간을 찾음. 실제 고객용 박람회 조회 API(/api/customer/expos)가
+// 생기기 전까지 쓰던 대체 수단 — 지금은 CustomerMyPage에서 실제 API로 조회한 expoMap을 우선 쓰고,
+// 거기 없을 때만(예: mock 화면 등 아직 실API 연동 안 된 곳) 폴백으로 남겨둠.
 export function findMockExpo(expoId) {
   return mockCustomerExpos.find((e) => e.expoId === expoId) ?? null;
 }
 
 // GET /api/customer/reservations 응답(TicketResponse)을 화면 표시용 형태로 변환.
-// expo 제목/장소/기간은 mock 목록에서 보강 — 없는 박람회면 "박람회 #id"로 대체.
-export function toDisplayTicket(apiTicket) {
-  const expo = findMockExpo(apiTicket.expoId);
+// expoMap: 실제 GET /api/customer/expos 결과로 만든 Map<expoId, expo> — 반드시 이걸로 먼저 조회해야
+// QR이 실제로 발급된 박람회와 화면에 뜨는 이름이 어긋나지 않는다(mock 목록은 expoId가 우연히 겹칠 뿐
+// 실제 DB의 그 박람회와 무관한 이름이라 매치가 안 맞는 버그가 있었음).
+export function toDisplayTicket(apiTicket, expoMap) {
+  const expo = expoMap?.get(apiTicket.expoId) ?? null;
   return {
     id: `ticket-${apiTicket.ticketId}`,
     ticketId: apiTicket.ticketId,

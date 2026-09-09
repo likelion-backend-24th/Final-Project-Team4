@@ -88,6 +88,9 @@ class ExhibitorApplicationQueryTest {
                 .andExpect(jsonPath("$.data.content.length()").value(1))
                 .andExpect(jsonPath("$.data.content[0].groupId").value(group.getId()))
                 .andExpect(jsonPath("$.data.content[0].expoTitle").value("서울 모빌리티 엑스포"))
+                .andExpect(jsonPath("$.data.content[0].expoVenue").value("COEX"))
+                .andExpect(jsonPath("$.data.content[0].expoStartsAt").exists())
+                .andExpect(jsonPath("$.data.content[0].expoEndsAt").exists())
                 .andExpect(jsonPath("$.data.content[0].paymentStatus").value("PAID"))
                 .andExpect(jsonPath("$.data.content[0].applications[0].boothNo").value("A-101"))
                 .andExpect(jsonPath("$.data.content[0].applications[0].status").value("SUBMITTED"));
