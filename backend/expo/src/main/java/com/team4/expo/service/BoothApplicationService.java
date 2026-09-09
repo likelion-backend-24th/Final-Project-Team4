@@ -2,6 +2,8 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.ExhibitorProfile;
+import com.team4.expo.client.IdentityClient;
 import com.team4.expo.client.PaymentClient;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
@@ -36,18 +38,21 @@ public class BoothApplicationService {
     private final BoothApplicationGroupRepository boothApplicationGroupRepository;
     private final BoothApplicationValidator validator;
     private final PaymentClient paymentClient;
+    private final IdentityClient identityClient;
 
     public BoothApplicationService(ExpoRepository expoRepository, BoothRepository boothRepository,
                                    BoothApplicationRepository boothApplicationRepository,
                                    BoothApplicationGroupRepository boothApplicationGroupRepository,
                                    BoothApplicationValidator validator,
-                                   PaymentClient paymentClient) {
+                                   PaymentClient paymentClient,
+                                   IdentityClient identityClient) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.boothApplicationGroupRepository = boothApplicationGroupRepository;
         this.validator = validator;
         this.paymentClient = paymentClient;
+        this.identityClient = identityClient;
     }
 
     // 참가업체가 부스 하나 이상을 골라 그룹으로 신청 (다중 선택). saveMode=SUBMIT이면 검증 후 SUBMITTED,
@@ -183,8 +188,20 @@ public class BoothApplicationService {
     @Transactional(readOnly = true)
     public Page<BoothApplicationGroupDetailResponse> listBoothApplications(Pageable pageable) {
         Page<BoothApplicationGroup> groups = boothApplicationGroupRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return groups.map(group -> BoothApplicationGroupDetailResponse.of(
-                group, boothApplicationRepository.findByGroup_Id(group.getId())));
+        return groups.map(group -> {
+            List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(group.getId());
+            ExhibitorProfile profile = identityClient.getExhibitorProfile(group.getExhibitorId()).orElse(null);
+
+            return BoothApplicationGroupDetailResponse.of(
+                    group,
+                    applications,
+                    null,
+                    profile != null ? profile.companyName() : null,
+                    profile != null ? profile.businessNo() : null,
+                    profile != null ? profile.representativeName() : null,
+                    profile != null ? profile.email() : null
+            );
+        });
     }
 
     // 결제 서비스 등에서 신청 그룹 단건 상세를 조회할 때 사용
