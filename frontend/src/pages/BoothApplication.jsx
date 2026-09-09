@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getExpoBooths, applyBooth } from '../api/expo';
-import BoothGrid from '../components/BoothGrid';
-import { BOOTH_VIEW_MODES, isFoodBooth } from '../utils/boothType';
+import HallMap, { HallPlaza } from '../components/HallMap';
+import { getBoothHall } from '../utils/boothType';
 import './BoothApplication.css';
 
 const STEPS = ['부스 선택', '신청 정보 입력', '신청 완료'];
@@ -15,7 +15,7 @@ function BoothApplication() {
   const [expoBooths, setExpoBooths] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [step, setStep] = useState(1);
-  const [viewMode, setViewMode] = useState('BOOTH');
+  // ExpoDetail의 부스 배치도에서 여러 부스를 선택하고 넘어오면 boothId 쿼리 파라미터가 여러 개 붙어서 옴
   const initialBoothIds = searchParams.getAll('boothId').map(Number).filter((id) => !Number.isNaN(id));
   const [selectedBoothIds, setSelectedBoothIds] = useState(initialBoothIds);
   const [form, setForm] = useState({
@@ -46,6 +46,8 @@ function BoothApplication() {
 
   const selectedBooths = expoBooths.booths.filter((b) => selectedBoothIds.includes(b.boothId));
   const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
+  // ExpoDetail의 부스 배치도와 동일하게 A홀/B홀로 나눠서 보여주기 위한 계산
+  const halls = [...new Set(expoBooths.booths.map((b) => getBoothHall(b.boothNo)))].sort();
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -140,25 +142,19 @@ function BoothApplication() {
                   <span><i className="booth-application__dot booth-application__dot--selected" />선택됨</span>
                 </div>
               </div>
-              <div className="booth-application__view-toggle">
-                {BOOTH_VIEW_MODES.map((m) => (
-                  <button
-                    key={m.key}
-                    type="button"
-                    className={viewMode === m.key ? 'is-active' : ''}
-                    onClick={() => setViewMode(m.key)}
-                  >
-                    {m.label}
-                  </button>
+              <div className="booth-application__grid-scroll booth-application__hallmap-scroll">
+                {halls.map((h, i) => (
+                  <Fragment key={h}>
+                    {i > 0 && <HallPlaza />}
+                    <HallMap
+                      hallName={h}
+                      booths={expoBooths.booths.filter((b) => getBoothHall(b.boothNo) === h)}
+                      selectedBoothIds={selectedBoothIds}
+                      onSelect={toggleBooth}
+                      reverseFood={i % 2 === 1}
+                    />
+                  </Fragment>
                 ))}
-              </div>
-
-              <div className="booth-application__grid-scroll">
-                <BoothGrid
-                  booths={expoBooths.booths.filter((b) => isFoodBooth(b.type) === (viewMode === 'FOOD'))}
-                  selectedBoothIds={selectedBoothIds}
-                  onToggle={toggleBooth}
-                />
               </div>
             </section>
 

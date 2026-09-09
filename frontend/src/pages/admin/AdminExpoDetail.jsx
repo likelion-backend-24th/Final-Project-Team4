@@ -6,7 +6,8 @@ import {
   getAdminExpoBooths,
   rejectBoothApplication,
 } from '../../api/expo';
-import BoothGrid from '../../components/BoothGrid';
+import HallMap, { HallPlaza } from '../../components/HallMap';
+import { getBoothHall } from '../../utils/boothType';
 import './AdminApplications.css';
 
 const STATUS_LABEL = {
@@ -296,6 +297,21 @@ function AdminExpoDetail() {
     [groups]
   );
 
+  const pendingBoothNos = useMemo(
+  () => new Set(allApplications.filter((a) => a.statusLabel === '심사중').map((a) => a.boothNo)),
+  [allApplications]
+);
+
+const mapBooths = useMemo(
+  () =>
+    (expoBooths?.booths ?? []).map((b) =>
+      b.status === 'AVAILABLE' && pendingBoothNos.has(b.boothNo)
+        ? { ...b, status: 'PENDING_REVIEW' }
+        : b
+    ),
+  [expoBooths, pendingBoothNos]
+);
+
   const stats = {
     total: allApplications.length,
     pending: allApplications.filter((a) => a.statusLabel === '심사중').length,
@@ -359,16 +375,30 @@ function AdminExpoDetail() {
           <h2>실시간 부스 배치 현황</h2>
           <div className="admin-applications__legend">
             <span><i className="dot dot--available" /> 선택가능</span>
+            <span><i className="dot dot--pending" /> 심사중</span>
             <span><i className="dot dot--assigned" /> 예약됨</span>
           </div>
-        </div>
-        {expoBooths ? (
-          <div className="admin-expo-detail__booth-grid">
-            <BoothGrid booths={expoBooths.booths} selectedBoothIds={[]} onToggle={() => {}} />
           </div>
-        ) : (
-          !loadError && <p className="admin-applications__cell-muted" style={{ padding: 16 }}>불러오는 중...</p>
-        )}
+          {expoBooths ? (
+            <div className="admin-expo-detail__booth-grid admin-expo-detail__hallmap-scroll">
+              {[...new Set(mapBooths.map((b) => getBoothHall(b.boothNo)))]
+                .sort()
+                .map((h, i) => (
+                  <Fragment key={h}>
+                    {i > 0 && <HallPlaza />}
+                    <HallMap
+                      hallName={h}
+                      booths={mapBooths.filter((b) => getBoothHall(b.boothNo) === h)}
+                      selectedBoothIds={[]}
+                      onSelect={() => {}}
+                      reverseFood={i % 2 === 1}
+                    />
+                  </Fragment>
+                ))}
+            </div>
+          ) : (
+        !loadError && <p className="admin-applications__cell-muted" style={{ padding: 16 }}>불러오는 중...</p>
+      )}
       </section>
 
       <div className="admin-applications__toolbar">

@@ -701,3 +701,11 @@
     flex-direction: column;
   }
 }
+
+.admin-expo-detail__hallmap-scroll {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 12px;
+  overflow-x: auto;
+}

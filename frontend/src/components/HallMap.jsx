@@ -5,21 +5,24 @@ const STATUS_LABEL = {
   AVAILABLE: '신청 가능',
   RESERVED: '결제 대기중',
   ASSIGNED: '배정 완료',
+  PENDING_REVIEW: '심사중',
 };
 
 function BoothCell({ booth, selected, onSelect }) {
   const id = booth.boothId ?? booth.id;
-  const isTaken = booth.status !== 'AVAILABLE';
+  const isPending = booth.status === 'PENDING_REVIEW';
+  const isTaken = booth.status !== 'AVAILABLE' && !isPending;
   const isFood = isFoodBooth(booth.type);
 
   return (
     <button
       type="button"
-      disabled={isTaken}
+      disabled={isTaken || isPending}
       title={`${booth.boothNo} · ${STATUS_LABEL[booth.status] ?? booth.status}`}
       className={[
         'hall-map__cell',
         isFood && 'hall-map__cell--food',
+        isPending && 'hall-map__cell--pending',
         isTaken && 'hall-map__cell--assigned',
         selected && 'hall-map__cell--selected',
       ]
@@ -29,6 +32,7 @@ function BoothCell({ booth, selected, onSelect }) {
     >
       {isFood && <span className="hall-map__cell-icon" aria-hidden="true">🍴</span>}
       <span className="hall-map__cell-no">{booth.boothNo}</span>
+      {isPending && <span className="hall-map__cell-status">심사중</span>}
     </button>
   );
 }

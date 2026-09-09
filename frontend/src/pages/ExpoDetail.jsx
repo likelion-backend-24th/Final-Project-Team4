@@ -82,7 +82,7 @@ function ExpoDetail() {
   const [summary, setSummary] = useState(null); // 목록 응답에서 찾은 날짜·장소
   const [loadError, setLoadError] = useState(null);
   const [tab, setTab] = useState('부스 배치도');
-  const [selectedBoothIds, setSelectedBoothIds] = useState([]);
+  const [selectedBoothIds, setSelectedBoothIds] = useState([]); // 부스 배치도에서 다중 선택된 부스 ID 목록
   const [hallFilter, setHallFilter] = useState('전체');
 
   useEffect(() => {
@@ -104,7 +104,7 @@ function ExpoDetail() {
   const visibleHalls = hallFilter === '전체' ? halls : halls.filter((h) => h === hallFilter);
   const selectedBooths = booths.filter((b) => selectedBoothIds.includes(b.boothId ?? b.id));
   const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
-  
+
   if (loadError) {
     return <p className="expo-detail__status">{loadError}</p>;
   }
@@ -112,11 +112,12 @@ function ExpoDetail() {
     return <p className="expo-detail__status">불러오는 중...</p>;
   }
 
+  // 부스 배치도에서 부스를 클릭할 때마다 선택 목록에 추가/제거 (다중 선택)
   const toggleBoothSelection = (id) =>
     setSelectedBoothIds((prev) =>
       prev.includes(id) ? prev.filter((existingId) => existingId !== id) : [...prev, id]
     );
-  
+
   const goApply = () => {
     const query = selectedBoothIds.map((id) => `boothId=${id}`).join('&');
     navigate(`/expos/${expoId}/apply${query ? `?${query}` : ''}`);
@@ -142,6 +143,12 @@ function ExpoDetail() {
               <i className="expo-detail__hero-icon expo-detail__hero-icon--pin" aria-hidden="true" />
               {summary?.venue ?? '-'}
             </span>
+          </div>
+        </div>
+        <div className="expo-detail__hero-visual" aria-hidden="true">
+          <div className="expo-detail__hero-visual-tagline">
+            <strong>Welcome</strong>
+            <span>다양한 브랜드와 방문객이 함께 만드는 특별한 자리</span>
           </div>
         </div>
       </section>
@@ -222,6 +229,9 @@ function ExpoDetail() {
                   {detail.title}은(는) 다양한 브랜드와 참가업체가 한자리에 모이는 박람회입니다.
                   풍성한 부스와 프로그램을 통해 새로운 비즈니스 기회를 만들어보세요.
                 </p>
+                <div className="expo-detail__intro-visual" aria-hidden="true">
+                  <span>Mobility for a Better Tomorrow</span>
+                </div>
               </div>
             </section>
 
