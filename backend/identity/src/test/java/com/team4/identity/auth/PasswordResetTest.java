@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -73,9 +74,10 @@ class PasswordResetTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mailSender).send(eq("manager@corp.com"), any(), body.capture());
+        verify(mailSender, atLeastOnce()).send(eq("manager@corp.com"), any(), body.capture());
 
-        Matcher m = Pattern.compile("token=(\\S+)").matcher(body.getValue());
+        String latest = body.getAllValues().get(body.getAllValues().size() - 1);
+        Matcher m = Pattern.compile("token=(\\S+)").matcher(latest);
         assertThat(m.find()).isTrue();
         return m.group(1);
     }
@@ -136,6 +138,15 @@ class PasswordResetTest {
 
         confirm(token, "newpassword123", 200);
         confirm(token, "anotherpass123", 400);
+    }
+
+    @Test
+    void 재설정을_다시_요청하면_이전_링크는_무효화된다() throws Exception {
+        String oldToken = requestResetAndCaptureToken();
+        String newToken = requestResetAndCaptureToken();
+
+        confirm(oldToken, "newpassword123", 400);
+        confirm(newToken, "newpassword123", 200);
     }
 
     @Test
