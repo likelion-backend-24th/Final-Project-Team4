@@ -35,6 +35,11 @@ service:
 payment:
   base-url: ${PAYMENT_BASE_URL:http://localhost:8083}
 
+# 상담 신청 접수 시점에 그 날짜 입장권(QR) 보유 여부 확인용 (Expo -> Reservation 내부 호출)
+reservation:
+  base-url: ${RESERVATION_BASE_URL:http://localhost:8084}
+  service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}
+
 identity:
   base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
   service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}

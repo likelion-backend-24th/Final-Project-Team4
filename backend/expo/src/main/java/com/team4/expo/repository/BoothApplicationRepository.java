@@ -24,4 +24,7 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
     // 같은 부스에 이미 승인 진행 중(PAYMENT_PENDING)이거나 확정(CONFIRMED)된 다른 신청이 있는지 확인
     // (관리자가 한 부스를 여러 업체에 중복 승인하는 것을 막기 위한 검증)
     boolean existsByBooth_IdAndStatusIn(Long boothId, List<ApplicationStatus> statuses);
+
+    // 참가업체가 참가 확정(CONFIRMED)받은 부스 목록 - 상담 신청 목록 조회 시 담당 부스 범위를 좁히는 데 사용
+    List<BoothApplication> findByExhibitorIdAndStatus(Long exhibitorId, ApplicationStatus status);
 }
