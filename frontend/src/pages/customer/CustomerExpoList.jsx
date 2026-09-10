@@ -6,6 +6,9 @@ import './CustomerExpoList.css';
 
 const FILTERS = ['전체', '진행중', '모집중', '모집예정', '종료'];
 
+// 한 페이지에서 보여줄 카드 개수 - 초과될 경우 하단에 페이지 넘버링
+const PAGE_SIZE = 8;
+
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
 // 신청/개최 기간과 현재 시각을 비교해서 진행 단계를 계산 (ExpoList.jsx와 동일한 규칙)
@@ -60,6 +63,19 @@ function CustomerExpoList() {
     [expos, filter, keyword]
   );
 
+  useEffect(() => {
+    setPage(1);
+  }, [filter, keyword]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
+  console.log('filtered:', filtered.length, 'totalPages:', totalPages);
+
   return (
     <div className="c-expo-list">
       <section className="c-expo-list__hero">
@@ -98,7 +114,7 @@ function CustomerExpoList() {
           <p style={{ color: '#64748b', marginBottom: '1rem' }}>표시할 박람회가 없습니다.</p>
         )}
         <div className="c-expo-list__grid">
-          {filtered.map((e, i) => (
+          {paginated.map((e, i) => (
             <div key={e.expoId} className="c-expo-card">
               <div
                 className="c-expo-card__thumb"
@@ -134,16 +150,23 @@ function CustomerExpoList() {
           ))}
         </div>
 
-        <div className="c-expo-list__pagination">
-          {[1, 2, 3].map((p) => (
-            <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
-              {p}
+        {totalPages > 1 && (
+          <div className="c-expo-list__pagination">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
+                {p}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="다음"
+              disabled={page === totalPages}
+            >
+              &gt;
             </button>
-          ))}
-          <button type="button" onClick={() => setPage((p) => Math.min(3, p + 1))} aria-label="다음">
-            &gt;
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {checkinExpo && (

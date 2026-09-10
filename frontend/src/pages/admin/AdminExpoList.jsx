@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminExpoList } from '../../api/expo';
 import './AdminApplications.css';
@@ -8,10 +8,14 @@ const EXPO_STATUS_LABEL = {
   OPEN: '모집중',
 };
 
+// 한 페이지에서 보여줄 카드 개수 - 초과될 경우 하단에 페이지 넘버링
+const PAGE_SIZE = 8;
+
 function AdminExpoList() {
   const navigate = useNavigate();
   const [expos, setExpos] = useState([]);
   const [loadError, setLoadError] = useState(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     getAdminExpoList()
@@ -21,6 +25,13 @@ function AdminExpoList() {
 
   // 심사 대기가 많은(급한) 박람회를 위로
   const sorted = [...expos].sort((a, b) => b.pendingCount - a.pendingCount);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+
+  const paginated = useMemo(
+    () => sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [sorted, page]
+  );
 
   return (
     <div className="admin-applications">
@@ -36,7 +47,7 @@ function AdminExpoList() {
         {sorted.length === 0 && !loadError && (
           <p className="admin-applications__error" style={{ color: '#64748b' }}>등록된 박람회가 없습니다.</p>
         )}
-        {sorted.map((expo) => {
+        {paginated.map((expo) => {
           const boothFillRatio = expo.totalBooths > 0
             ? Math.round(((expo.totalBooths - expo.availableBooths) / expo.totalBooths) * 100)
             : 0;
@@ -99,9 +110,27 @@ function AdminExpoList() {
                 </div>
               </div>
             </button>
-          );
+           );
         })}
       </section>
+
+      {totalPages > 1 && (
+        <div className="admin-applications__pagination">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
+              {p}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            aria-label="다음"
+            disabled={page === totalPages}
+          >
+            &gt;
+          </button>
+        </div>
+      )}
     </div>
   );
 }
