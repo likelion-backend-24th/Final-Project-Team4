@@ -76,7 +76,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
       SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
+      SVC_TOKEN_EXPO: ${SVC_TOKEN_EXPO}
       PAYMENT_BASE_URL: http://payment:8083
+      RESERVATION_BASE_URL: http://reservation:8084
       SPRING_JPA_SHOW_SQL: "false"
     volumes:
       - expo-uploads:/uploads

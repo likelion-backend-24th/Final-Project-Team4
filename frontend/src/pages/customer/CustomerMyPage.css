@@ -185,6 +185,33 @@
   color: #94a3b8;
 }
 
+.c-ticket-card__badge.is-rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.c-ticket-card__badge.is-approved {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.c-ticket-card__badge.is-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.c-ticket-card--rejected {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.c-ticket-card__reject-reason {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #dc2626;
+}
+
 .c-ticket-card__meta {
   display: flex;
   align-items: center;
