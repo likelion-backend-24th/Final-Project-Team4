@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '../../assets/logo-icon.png';
 import apiClient from '../../api/client';
-import { clearAuth, isLoggedIn } from '../../api/auth';
+import { clearAuth, useIsLoggedIn } from '../../api/auth';
 import { getMyProfile } from '../../api/identity';
 import '../Header.css';
 
@@ -11,14 +11,14 @@ import '../Header.css';
 function CustomerHeader() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
-  const loggedIn = isLoggedIn();
+  const loggedIn = useIsLoggedIn();
 
   useEffect(() => {
-    if (!isLoggedIn()) return; // 게스트는 /api/auth/me 호출 안 함 (401 -> /login 리다이렉트 방지)
+    if (!loggedIn) return; // 게스트는 /api/auth/me 호출 안 함 (401 -> /login 리다이렉트 방지)
     getMyProfile()
       .then((p) => setName(p.name ?? ''))
       .catch(() => setName(''));
-  }, []);
+  }, [loggedIn]);
 
   const handleLogout = async (e) => {
     e.preventDefault();
