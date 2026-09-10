@@ -115,6 +115,11 @@
   color: #16a34a;
 }
 
+.admin-badge--reserved {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
 .admin-badge--rejected {
   background: #fee2e2;
   color: #dc2626;
@@ -518,9 +523,46 @@
 
 .admin-applications__legend {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   font-size: 12px;
-  color: #64748b;
+  color: #475569;
+  flex-wrap: wrap;
+}
+
+.admin-applications__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-applications__legend-item--available {
+  background: #eff6ff;
+  color: #1e293b;
+}
+
+.admin-applications__legend-item--pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.admin-applications__legend-item--conflict {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #dc2626;
+}
+
+.admin-applications__legend-item--reserved {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
+.admin-applications__legend-item--assigned {
+  background: #f0fdf4;
+  color: #15803d;
 }
 
 .admin-applications__legend .dot {
@@ -528,15 +570,61 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  margin-right: 4px;
+  flex-shrink: 0;
 }
 
 .admin-applications__legend .dot--available {
-  background: #16a34a;
+  background: #1e293b;
+}
+
+.admin-applications__legend .dot--pending {
+  background: #f97316;
+}
+
+.admin-applications__legend .dot--conflict {
+  background: #f97316;
+}
+
+.admin-applications__legend .dot--reserved {
+  background: #1e3a8a;
 }
 
 .admin-applications__legend .dot--assigned {
-  background: #cbd5e1;
+  background: #22c55e;
+}
+
+/* 실시간 부스 배치 현황 지도에서만 결제대기/참가확정 색을 구분해서 보여줌
+   (참가자용 부스 배치도/참가 신청 화면은 기존 색 그대로 유지) */
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved:disabled {
+  background: #eef2ff;
+  border-color: #1e3a8a;
+}
+
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved .hall-map__cell-no,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved:disabled .hall-map__cell-no {
+  color: #1e3a8a;
+}
+
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved .hall-map__cell-status,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--reserved:disabled .hall-map__cell-status {
+  color: #1e3a8a;
+}
+
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned:disabled {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned .hall-map__cell-no,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned:disabled .hall-map__cell-no {
+  color: #14532d;
+}
+
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned .hall-map__cell-status,
+.admin-expo-detail__hallmap-scroll .hall-map__cell--assigned:disabled .hall-map__cell-status {
+  color: #15803d;
 }
 
 .admin-expo-detail__booth-grid {

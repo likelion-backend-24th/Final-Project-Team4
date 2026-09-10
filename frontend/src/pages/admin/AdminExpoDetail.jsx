@@ -13,7 +13,7 @@ import './AdminApplications.css';
 const STATUS_LABEL = {
   DRAFT: '임시저장',
   SUBMITTED: '심사중',
-  PAYMENT_PENDING: '승인',
+  PAYMENT_PENDING: '결제대기',
   CONFIRMED: '참가 확정',
   REJECTED: '반려',
   REFUND_REQUIRED: '환불 대기',
@@ -22,13 +22,13 @@ const STATUS_LABEL = {
 
 const STATUS_CLASS = {
   심사중: 'admin-badge--pending',
-  승인: 'admin-badge--approved',
+  결제대기: 'admin-badge--reserved',
   '참가 확정': 'admin-badge--approved',
   반려: 'admin-badge--rejected',
   취소됨: 'admin-badge--rejected',
 };
 
-const FILTER_TABS = ['전체', '심사중', '승인', '반려'];
+const FILTER_TABS = ['전체', '심사중', '결제대기', '반려'];
 
 // ISO(2026-01-20T10:14:00) → 2026.01.20 10:14
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
@@ -297,25 +297,28 @@ function AdminExpoDetail() {
     [groups]
   );
 
-  const pendingBoothNos = useMemo(
-  () => new Set(allApplications.filter((a) => a.statusLabel === '심사중').map((a) => a.boothNo)),
-  [allApplications]
-);
+  const pendingCountByBooth = useMemo(() => {
+    const map = new Map();
+    allApplications
+      .filter((a) => a.statusLabel === '심사중')
+      .forEach((a) => map.set(a.boothNo, (map.get(a.boothNo) ?? 0) + 1));
+    return map;
+  }, [allApplications]);
 
 const mapBooths = useMemo(
-  () =>
-    (expoBooths?.booths ?? []).map((b) =>
-      b.status === 'AVAILABLE' && pendingBoothNos.has(b.boothNo)
-        ? { ...b, status: 'PENDING_REVIEW' }
-        : b
-    ),
-  [expoBooths, pendingBoothNos]
-);
+    () =>
+      (expoBooths?.booths ?? []).map((b) => {
+        const pendingCount = pendingCountByBooth.get(b.boothNo) ?? 0;
+        if (b.status !== 'AVAILABLE' || pendingCount === 0) return b;
+        return { ...b, status: pendingCount > 1 ? 'PENDING_CONFLICT' : 'PENDING_REVIEW' };
+      }),
+    [expoBooths, pendingCountByBooth]
+  );
 
   const stats = {
     total: allApplications.length,
     pending: allApplications.filter((a) => a.statusLabel === '심사중').length,
-    approved: allApplications.filter((a) => a.statusLabel === '승인' || a.statusLabel === '참가 확정').length,
+    approved: allApplications.filter((a) => a.statusLabel === '참가 확정').length,
     rejected: allApplications.filter((a) => a.statusLabel === '반려').length,
   };
 
@@ -374,9 +377,21 @@ const mapBooths = useMemo(
         <div className="admin-expo-detail__booth-header">
           <h2>실시간 부스 배치 현황</h2>
           <div className="admin-applications__legend">
-            <span><i className="dot dot--available" /> 선택가능</span>
-            <span><i className="dot dot--pending" /> 심사중</span>
-            <span><i className="dot dot--assigned" /> 예약됨</span>
+            <span className="admin-applications__legend-item admin-applications__legend-item--available">
+              <i className="dot dot--available" /> 미배정
+            </span>
+            <span className="admin-applications__legend-item admin-applications__legend-item--pending">
+              <i className="dot dot--pending" /> 심사중
+            </span>
+            <span className="admin-applications__legend-item admin-applications__legend-item--conflict">
+              <i className="dot dot--conflict" /> 심사중(중복)
+            </span>
+            <span className="admin-applications__legend-item admin-applications__legend-item--reserved">
+              <i className="dot dot--reserved" /> 결제대기
+            </span>
+            <span className="admin-applications__legend-item admin-applications__legend-item--assigned">
+              <i className="dot dot--assigned" /> 참가확정
+            </span>
           </div>
           </div>
           {expoBooths ? (
@@ -387,12 +402,13 @@ const mapBooths = useMemo(
                   <Fragment key={h}>
                     {i > 0 && <HallPlaza />}
                     <HallMap
-                      hallName={h}
-                      booths={mapBooths.filter((b) => getBoothHall(b.boothNo) === h)}
-                      selectedBoothIds={[]}
-                      onSelect={() => {}}
-                      reverseFood={i % 2 === 1}
-                    />
+                    hallName={h}
+                    booths={mapBooths.filter((b) => getBoothHall(b.boothNo) === h)}
+                    selectedBoothIds={[]}
+                    onSelect={() => {}}
+                    reverseFood={i % 2 === 1}
+                    showStatusLabel
+                  />
                   </Fragment>
                 ))}
             </div>
