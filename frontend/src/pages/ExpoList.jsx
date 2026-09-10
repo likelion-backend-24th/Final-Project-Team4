@@ -6,6 +6,8 @@ import "./ExpoList.css";
 // 상단 필터 탭 목록
 const FILTERS = ["전체", "모집중", "모집마감", "진행중", "종료"];
 
+const PAGE_SIZE = 8;
+
 // 카드 썸네일에 순서대로 돌려가며 입힐 그라데이션 색상들
 const GRADIENTS = [
   "linear-gradient(135deg, #1e293b, #0f172a)",
@@ -47,6 +49,7 @@ function ExpoList() {
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("전체");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
 
   // 컴포넌트가 처음 렌더링될 때 한 번만 박람회 목록을 서버에서 불러옴
   useEffect(() => {
@@ -71,6 +74,18 @@ function ExpoList() {
         return matchesFilter && matchesKeyword;
       }),
     [cards, filter, keyword],
+  );
+
+    // 필터/검색 결과가 바뀌면 페이지를 1로 초기화
+  useEffect(() => {
+    setPage(1);
+  }, [filter, keyword]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  const paginated = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
   );
 
   // 카드 하나의 내부 UI(썸네일 + 뱃지 + 제목 + 날짜/장소 + 하단 링크)를 그려주는 함수
@@ -156,13 +171,31 @@ function ExpoList() {
       <div className="expo-list__grid-wrap">
         {loadError && <p className="expo-list__status">{loadError}</p>}
         <div className="expo-list__grid">
-          {filtered.map((c, i) => (
+          {paginated.map((c, i) => (
             // 모든 카드는 실제 박람회이므로 클릭하면 상세 페이지로 이동
             <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
               {renderCardBody(c, i)}
             </Link>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="expo-list__pagination">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button key={p} type="button" className={p === page ? "is-active" : ""} onClick={() => setPage(p)}>
+                {p}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="다음"
+              disabled={page === totalPages}
+            >
+              &gt;
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
