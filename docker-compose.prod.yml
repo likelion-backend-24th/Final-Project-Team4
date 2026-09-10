@@ -57,6 +57,10 @@ services:
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: None
       SPRING_JPA_SHOW_SQL: "false"
+      FRONT_ORIGIN: ${FRONT_ORIGIN}
+      MAIL_PROVIDER: ${MAIL_PROVIDER}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy

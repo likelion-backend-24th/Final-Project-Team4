@@ -8,6 +8,8 @@ import BoothApplication from './pages/BoothApplication';
 import ConsultationRequests from './pages/ConsultationRequests';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import MyPage from './pages/MyPage';
 import Payment from './pages/Payment';
 import CustomerExpoList from './pages/customer/CustomerExpoList';
@@ -51,6 +53,8 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       <Route path="/" element={<ExhibitorLayout><ExpoList /></ExhibitorLayout>} />
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />

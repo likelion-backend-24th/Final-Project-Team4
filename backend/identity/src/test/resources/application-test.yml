@@ -26,3 +26,6 @@ jwt:
 admin:
   email: admin@test.local
   password: testadmin
+
+app:
+  frontend-url: http://localhost:5173

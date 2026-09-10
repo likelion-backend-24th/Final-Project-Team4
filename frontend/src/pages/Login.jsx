@@ -90,9 +90,9 @@ function Login() {
               <input type="checkbox" />
               로그인 상태 유지
             </label>
-            <a href="#!" className="login__find-pw">
+            <Link to="/forgot-password" className="login__find-pw">
               비밀번호 찾기
-            </a>
+            </Link>
           </div>
 
           <div className="login__actions">
