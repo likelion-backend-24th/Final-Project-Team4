@@ -57,6 +57,7 @@ services:
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: None
       SPRING_JPA_SHOW_SQL: "false"
+      FRONT_ORIGIN: ${FRONT_ORIGIN}
     depends_on:
       mysql:
         condition: service_healthy

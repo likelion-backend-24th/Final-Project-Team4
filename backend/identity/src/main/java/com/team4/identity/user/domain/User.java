@@ -108,6 +108,11 @@ public class User {
         return new User(email, passwordHash, Role.ADMIN);
     }
 
+    // 비밀번호 재설정 시 해시 교체
+    public void updatePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
