@@ -5,6 +5,7 @@ import QrPlaceholder from './QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import { isLoggedIn } from '../../api/auth';
+import { getMyProfile } from '../../api/identity';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
 import './Modal.css';
@@ -71,7 +72,7 @@ function isFreeReservation(expo) {
 // 그 결과(ticketId/qrToken/qrImageBase64)를 이 결제 응답에 그대로 실어 돌려준다 — 응답을 안 쓰고
 // 화면용으로 새로 fake 티켓을 만들면(예전 buildMockPaidTicket) "나의 입장권"(실제 API 기반)에는
 // 이 fake 티켓이 안 보이는 문제가 있었음. 진짜 발급된 티켓을 그대로 써야 마이페이지와 일치한다.
-function mapAdmissionPaymentTicket(expo, payment, visitDate) {
+function mapAdmissionPaymentTicket(expo, payment, visitDate, holderName) {
   return {
     id: `ticket-${payment.ticketId ?? payment.id}`,
     ticketId: payment.ticketId,
@@ -81,7 +82,7 @@ function mapAdmissionPaymentTicket(expo, payment, visitDate) {
     endsAt: expo.endsAt,
     venue: expo.venue,
     visitDate,
-    holderName: '홍길동',
+    holderName: holderName ?? '-',
     ticketType: '당일 입장권 · 1인',
     bookingNo: `TICKET-${payment.ticketId ?? payment.id}`,
     purchasedAt: payment.approvedAt ? payment.approvedAt.replace('T', ' ').slice(0, 16) : nowLabel(),
@@ -92,7 +93,7 @@ function mapAdmissionPaymentTicket(expo, payment, visitDate) {
 
 // POST /api/customer/reservations 응답(TicketResponse)을 화면/마이페이지 표시용 형태로 변환
 // (사용가능/만료 여부는 저장하지 않고 getTicketStatus로 매번 계산함)
-function mapReservationTicket(expo, t) {
+function mapReservationTicket(expo, t, holderName) {
   return {
     id: `ticket-${t.ticketId}`,
     ticketId: t.ticketId,
@@ -102,7 +103,7 @@ function mapReservationTicket(expo, t) {
     endsAt: expo.endsAt,
     venue: expo.venue,
     visitDate: t.visitDate,
-    holderName: '홍길동',
+    holderName: holderName ?? '-',
     ticketType: '무료 방문예약 · 1인',
     bookingNo: `TICKET-${t.ticketId}`,
     purchasedAt: t.issuedAt ? t.issuedAt.replace('T', ' ').slice(0, 16) : nowLabel(),
@@ -133,6 +134,7 @@ function EntryFlowModal({ expo, onClose }) {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState(null);
   const [paidPayment, setPaidPayment] = useState(null);
+  const [holderName, setHolderName] = useState(null);
 
   const freeMode = isFreeReservation(expo);
   const admissionFee = expo.admissionFee ?? 0;
@@ -140,6 +142,25 @@ function EntryFlowModal({ expo, onClose }) {
 
   // 이 박람회에 이미 발급된 티켓이 있는지 — 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회.
   // 비로그인이면 호출 자체를 스킵 (401 -> 인터셉터가 /login으로 튕기는 것 방지)
+  // 발급될 QR/티켓에 표시할 본인 이름 — 실제 로그인한 사용자의 이름(회원가입 시 등록한 이름)을 써야 함
+  useEffect(() => {
+    if (!isLoggedIn()) {
+      setHolderName(null);
+      return;
+    }
+    let cancelled = false;
+    getMyProfile()
+      .then((profile) => {
+        if (!cancelled) setHolderName(profile?.name ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setHolderName(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!isLoggedIn()) {
       setExistingTickets([]);
@@ -150,7 +171,7 @@ function EntryFlowModal({ expo, onClose }) {
       .then((list) => {
         if (cancelled) return;
         setExistingTickets(
-          list.filter((t) => t.expoId === expo.expoId).map((t) => mapReservationTicket(expo, t))
+          list.filter((t) => t.expoId === expo.expoId).map((t) => mapReservationTicket(expo, t, holderName))
         );
       })
       .catch(() => {
@@ -159,7 +180,7 @@ function EntryFlowModal({ expo, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [expo]);
+  }, [expo, holderName]);
 
   const goDetail = () => {
     onClose();
@@ -213,7 +234,7 @@ function EntryFlowModal({ expo, onClose }) {
     const duplicateDates = selectedDates.filter((d) => existingDates.has(d));
     try {
       const res = await applyVisit({ expoId: expo.expoId, visitDates: selectedDates });
-      const issued = res.tickets.map((t) => mapReservationTicket(expo, t));
+      const issued = res.tickets.map((t) => mapReservationTicket(expo, t, holderName));
       setTickets(issued);
       if (duplicateDates.length > 0) {
         setApplyNotice(
@@ -275,7 +296,7 @@ function EntryFlowModal({ expo, onClose }) {
   // ticketId가 없으면(Reservation 발급 호출이 실패해 결제만 완료된 예외 상황) QR 없이 안내만 보여줌 —
   // "나의 입장권"은 실제 Reservation API 기준이라, 이 경우엔 거기에도 안 뜨는 게 맞는 상태.
   const issuePaidTickets = () => {
-    setTickets([mapAdmissionPaymentTicket(expo, paidPayment, todayDateString())]);
+    setTickets([mapAdmissionPaymentTicket(expo, paidPayment, todayDateString(), holderName)]);
     setStep('ticket-qr');
   };
 

@@ -61,7 +61,7 @@ export function findMockExpo(expoId) {
 // expoMap: 실제 GET /api/customer/expos 결과로 만든 Map<expoId, expo> — 반드시 이걸로 먼저 조회해야
 // QR이 실제로 발급된 박람회와 화면에 뜨는 이름이 어긋나지 않는다(mock 목록은 expoId가 우연히 겹칠 뿐
 // 실제 DB의 그 박람회와 무관한 이름이라 매치가 안 맞는 버그가 있었음).
-export function toDisplayTicket(apiTicket, expoMap) {
+export function toDisplayTicket(apiTicket, expoMap, holderName) {
   const expo = expoMap?.get(apiTicket.expoId) ?? null;
   return {
     id: `ticket-${apiTicket.ticketId}`,
@@ -72,7 +72,7 @@ export function toDisplayTicket(apiTicket, expoMap) {
     endsAt: expo?.endsAt ?? null,
     venue: expo?.venue ?? '-',
     visitDate: apiTicket.visitDate,
-    holderName: '홍길동',
+    holderName: holderName ?? '-',
     ticketType: apiTicket.ticketType === 'PAID' ? '당일 입장권 · 1인' : '무료 방문예약 · 1인',
     bookingNo: `TICKET-${apiTicket.ticketId}`,
     purchasedAt: apiTicket.issuedAt ? apiTicket.issuedAt.replace('T', ' ').slice(0, 16) : '',

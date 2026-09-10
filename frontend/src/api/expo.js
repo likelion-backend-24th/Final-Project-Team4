@@ -152,6 +152,8 @@ export const applyConsultation = (payload) =>
   apiClient.post('/api/customer/consultations', payload).then((res) => res.data.data);
 
 // GET /api/customer/consultations — 고객 마이페이지: 내 상담 신청 내역
+// 응답에 boothNo/vehicleName/expoTitle이 같이 내려와서 어느 박람회·어느 차량에 신청한
+// 상담인지 프론트에서 별도 조회 없이 바로 표시할 수 있다.
 export const getMyConsultations = () =>
   apiClient.get('/api/customer/consultations').then((res) => res.data.data);
 

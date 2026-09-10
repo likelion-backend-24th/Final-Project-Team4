@@ -37,8 +37,8 @@ function VehicleDetail() {
   const today = useMemo(() => new Date(), []);
 
   const [tab, setTab] = useState('차량 소개');
-  const [viewYear] = useState(today.getFullYear());
-  const [viewMonth] = useState(today.getMonth());
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
   const [selectedDay, setSelectedDay] = useState(today.getDate());
   const [selectedTime, setSelectedTime] = useState('14:00');
   const [wantsPurchase, setWantsPurchase] = useState(false);
@@ -50,6 +50,26 @@ function VehicleDetail() {
   const [ticketDates, setTicketDates] = useState(new Set());
 
   const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  const goToPrevMonth = () => {
+    setSelectedDay(null);
+    if (viewMonth === 0) {
+      setViewYear((y) => y - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    setSelectedDay(null);
+    if (viewMonth === 11) {
+      setViewYear((y) => y + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  };
 
   // 이 박람회에 대해 내가 이미 보유한 입장권 날짜를 조회 - 달력에 연하게 표시해 상담 신청 전에 미리 확인시켜준다.
   useEffect(() => {
@@ -271,9 +291,9 @@ function VehicleDetail() {
               )}
               <div className="c-consult__calendar">
                 <div className="c-consult__calendar-head">
-                  <span>&lt;</span>
+                  <button type="button" onClick={goToPrevMonth} aria-label="이전 달">&lt;</button>
                   <strong>{viewYear}년 {viewMonth + 1}월</strong>
-                  <span>&gt;</span>
+                  <button type="button" onClick={goToNextMonth} aria-label="다음 달">&gt;</button>
                 </div>
                 <div className="c-consult__calendar-weekdays">
                   {WEEKDAYS.map((w) => (
@@ -288,7 +308,7 @@ function VehicleDetail() {
                         key={i}
                         type="button"
                         disabled={!d}
-                        className={[d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
+                        className={[d && d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
                         onClick={() => d && setSelectedDay(d)}
                       >
                         {d ?? ''}
