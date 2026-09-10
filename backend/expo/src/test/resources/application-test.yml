@@ -13,3 +13,7 @@ spring:
 
 payment:
   base-url: http://localhost:8083
+
+reservation:
+  base-url: http://localhost:8084
+  service-token: test_expo_token

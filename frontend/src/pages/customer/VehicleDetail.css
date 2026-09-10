@@ -284,10 +284,34 @@
   background: #f1f5f9;
 }
 
+.c-consult__calendar-grid button.has-ticket {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
 .c-consult__calendar-grid button.is-selected {
   background: #2563eb;
   color: #fff;
   font-weight: 700;
+}
+
+.c-consult__calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.c-consult__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  flex-shrink: 0;
 }
 
 .c-consult__slots {
@@ -330,6 +354,12 @@
 .c-consult__submit:disabled {
   background: #93c5fd;
   cursor: not-allowed;
+}
+
+.c-consult__error {
+  margin: -4px 0 4px;
+  font-size: 13px;
+  color: #dc2626;
 }
 
 @media (max-width: 900px) {

@@ -145,3 +145,26 @@ export const deleteVehicleImage = (boothId, vehicleId, imageId) =>
   apiClient
     .delete(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}/images/${imageId}`)
     .then((res) => res.data.data);
+
+// POST /api/customer/consultations — 차량 구매/시승 상담 신청
+// payload: { boothId, vehicleId, wantsPurchase, wantsTestDrive, preferredDate, preferredTime, message }
+export const applyConsultation = (payload) =>
+  apiClient.post('/api/customer/consultations', payload).then((res) => res.data.data);
+
+// GET /api/customer/consultations — 고객 마이페이지: 내 상담 신청 내역
+export const getMyConsultations = () =>
+  apiClient.get('/api/customer/consultations').then((res) => res.data.data);
+
+// GET /api/exhibitor/consultations — 참가업체: 본인 부스로 들어온 상담 신청 목록
+export const getExhibitorConsultations = () =>
+  apiClient.get('/api/exhibitor/consultations').then((res) => res.data.data);
+
+// POST /api/exhibitor/consultations/{consultationId}/approve — 상담 신청 승인
+export const approveConsultation = (consultationId) =>
+  apiClient.post(`/api/exhibitor/consultations/${consultationId}/approve`).then((res) => res.data.data);
+
+// POST /api/exhibitor/consultations/{consultationId}/reject — 상담 신청 반려 (사유 필수)
+export const rejectConsultation = (consultationId, reason) =>
+  apiClient
+    .post(`/api/exhibitor/consultations/${consultationId}/reject`, { reason })
+    .then((res) => res.data.data);

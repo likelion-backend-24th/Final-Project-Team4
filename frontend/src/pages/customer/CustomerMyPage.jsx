@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
-import { getCustomerExpoList } from '../../api/expo';
+import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
@@ -26,14 +26,29 @@ const TICKET_FILTERS = [
 ];
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
+const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '');
+
+const CONSULTATION_STATUS_LABEL = { REQUESTED: '대기', APPROVED: '승인', REJECTED: '반려' };
+const CONSULTATION_STATUS_BADGE = { REQUESTED: 'is-pending', APPROVED: 'is-approved', REJECTED: 'is-rejected' };
+const CONSULTATION_FILTERS = [
+  { key: '전체', label: '전체' },
+  { key: '대기', label: '대기' },
+  { key: '승인', label: '승인' },
+  { key: '반려', label: '반려' },
+];
+const consultationTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
 function CustomerMyPage() {
   const [tab, setTab] = useState('tickets');
   const [ticketFilter, setTicketFilter] = useState('전체');
+  const [consultFilter, setConsultFilter] = useState('전체');
   const [zoomTicket, setZoomTicket] = useState(null);
   const [rawTickets, setRawTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [consultations, setConsultations] = useState([]);
+  const [consultLoading, setConsultLoading] = useState(true);
+  const [consultError, setConsultError] = useState(null);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
@@ -53,6 +68,18 @@ function CustomerMyPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    getMyConsultations()
+      .then((data) => {
+        setConsultations(data);
+        setConsultError(null);
+      })
+      .catch((err) =>
+        setConsultError(err.response?.data?.error?.message ?? '상담 신청 내역을 불러오지 못했습니다.')
+      )
+      .finally(() => setConsultLoading(false));
+  }, []);
+
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
   const tickets =
     ticketFilter === '전체' ? allTickets : allTickets.filter((t) => t._status === ticketFilter);
@@ -60,6 +87,15 @@ function CustomerMyPage() {
   const usedCount = allTickets.filter((t) => t._status === '사용완료').length;
   const expiredCount = allTickets.filter((t) => t._status === '만료').length;
   const filterCount = { 사용가능: availableCount, 사용완료: usedCount, 만료: expiredCount };
+
+  const consultationsWithLabel = consultations.map((c) => ({ ...c, _statusLabel: CONSULTATION_STATUS_LABEL[c.status] ?? c.status }));
+  const filteredConsultations =
+    consultFilter === '전체' ? consultationsWithLabel : consultationsWithLabel.filter((c) => c._statusLabel === consultFilter);
+  const consultFilterCount = {
+    대기: consultationsWithLabel.filter((c) => c._statusLabel === '대기').length,
+    승인: consultationsWithLabel.filter((c) => c._statusLabel === '승인').length,
+    반려: consultationsWithLabel.filter((c) => c._statusLabel === '반려').length,
+  };
 
   return (
     <div className="c-mypage">
@@ -176,6 +212,62 @@ function CustomerMyPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </>
+          ) : tab === 'consultations' ? (
+            <>
+              <div className="c-mypage__ticket-filters">
+                {CONSULTATION_FILTERS.map((f) => (
+                  <button
+                    key={f.key}
+                    type="button"
+                    className={f.key === consultFilter ? 'is-active' : ''}
+                    onClick={() => setConsultFilter(f.key)}
+                  >
+                    {f.label}
+                    {f.key !== '전체' && ` (${consultFilterCount[f.key]})`}
+                  </button>
+                ))}
+              </div>
+              {consultLoading ? (
+                <p className="c-mypage__empty">불러오는 중...</p>
+              ) : consultError ? (
+                <p className="c-mypage__empty">{consultError}</p>
+              ) : filteredConsultations.length === 0 ? (
+                <p className="c-mypage__empty">
+                  {consultFilter === '전체'
+                    ? '아직 신청한 상담이 없습니다.'
+                    : `${consultFilter} 상태인 상담이 없습니다.`}
+                </p>
+              ) : (
+              <div className="c-ticket-grid">
+                {filteredConsultations.map((c) => (
+                  <div
+                    key={c.consultationId}
+                    className={`c-ticket-card ${c.status === 'REJECTED' ? 'c-ticket-card--rejected' : ''}`}
+                  >
+                    <div className="c-ticket-card__head">
+                      <h3>{consultationTypeLabel(c)} 상담</h3>
+                      <span className={`c-ticket-card__badge ${CONSULTATION_STATUS_BADGE[c.status] ?? ''}`}>
+                        {CONSULTATION_STATUS_LABEL[c.status] ?? c.status}
+                      </span>
+                    </div>
+                    <p className="c-ticket-card__meta">
+                      <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
+                      희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}
+                    </p>
+                    <p className="c-ticket-card__meta">신청일 {fmtDateTime(c.createdAt)}</p>
+                    {c.message && (
+                      <p className="c-ticket-card__meta" style={{ whiteSpace: 'pre-line' }}>
+                        {c.message}
+                      </p>
+                    )}
+                    {c.status === 'REJECTED' && c.rejectReason && (
+                      <p className="c-ticket-card__reject-reason">반려 사유: {c.rejectReason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
               )}
             </>
           ) : (
