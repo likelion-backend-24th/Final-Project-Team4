@@ -1,10 +1,8 @@
 package com.team4.identity.auth.controller;
 
 import com.team4.common.response.ApiResponse;
-import com.team4.identity.auth.dto.SignInRequest;
-import com.team4.identity.auth.dto.SignUpExhibitorRequest;
-import com.team4.identity.auth.dto.SignUpUserRequest;
-import com.team4.identity.auth.dto.TokenResponse;
+import com.team4.identity.auth.dto.*;
+import com.team4.identity.auth.service.PasswordResetService;
 import com.team4.identity.auth.service.SignInService;
 import com.team4.identity.auth.service.SignUpService;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,6 +23,7 @@ public class AuthController {
 
     private final SignUpService signUpService;
     private final SignInService signInService;
+    private final PasswordResetService passwordResetService;
 
     // 일반 회원(USER) 회원가입
     @PostMapping("/signup")
@@ -55,6 +54,22 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
         signInService.logout(refreshToken, response);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 비번 재설정 요청
+    @PostMapping("/password-reset")
+    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request){
+        passwordResetService.request(request.getEmail());
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 새 비번으로 변경
+    @PostMapping("/password-reset/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request){
+        passwordResetService.confirm(request.getToken(), request.getNewPassword());
+
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }
