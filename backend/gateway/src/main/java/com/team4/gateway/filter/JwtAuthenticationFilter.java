@@ -68,9 +68,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 role = claims.get("role", String.class);
             }
             catch (JwtException | IllegalArgumentException exception){
-                return unauthorized(exchange);
+                userId = null;
+                role = null;
             }
-            if (userId == null || role == null) {
+            // 토큰이 있었지만 만료·위조 등으로 신원을 못 얻었으면, 화이트리스트 경로가 아닌 이상 차단.
+            // 화이트리스트 경로는 낡은 토큰이 남아있어도 비회원처럼 통과시킨다 (예: 로그인 화면 재진입).
+            if ((userId == null || role == null) && !isWhitelisted(exchange)) {
                 return unauthorized(exchange);
             }
         }

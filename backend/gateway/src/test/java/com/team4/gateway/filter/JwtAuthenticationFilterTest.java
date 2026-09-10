@@ -144,6 +144,36 @@ class JwtAuthenticationFilterTest {
         assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
+    // 로그인 화면에 예전 세션의 만료된 토큰이 남아있는 채로 재로그인을 시도하는 실제 상황 재현.
+    // 화이트리스트 경로는 낡은 토큰이 같이 와도 비회원처럼 통과시켜야 한다.
+    @Test
+    void 만료된_토큰이_있어도_화이트리스트_경로면_비회원으로_통과한다() {
+        String expired = new JwtProvider(SECRET, SECRET, -1000, -1000)
+                .createAccessToken(42L, "EXHIBITOR");
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/auth/signin")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + expired));
+
+        filter.filter(exchange, chain).block();
+
+        HttpHeaders h = forwarded().getRequest().getHeaders();
+        assertThat(h.getFirst("X-User-Id")).isNull();
+        assertThat(h.getFirst("X-User-Role")).isNull();
+    }
+
+    @Test
+    void 형식이_깨진_토큰이_있어도_화이트리스트_경로면_비회원으로_통과한다() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/auth/signin")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer not.a.jwt"));
+
+        filter.filter(exchange, chain).block();
+
+        HttpHeaders h = forwarded().getRequest().getHeaders();
+        assertThat(h.getFirst("X-User-Id")).isNull();
+        assertThat(h.getFirst("X-User-Role")).isNull();
+    }
+
     @Test
     void OPTIONS_preflight는_검증없이_통과() {
         MockServerWebExchange exchange = MockServerWebExchange.from(
