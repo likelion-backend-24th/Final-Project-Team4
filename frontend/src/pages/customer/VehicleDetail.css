@@ -246,9 +246,20 @@
   margin-bottom: 8px;
 }
 
-.c-consult__calendar-head span {
+.c-consult__calendar-head button {
   cursor: pointer;
   color: #94a3b8;
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.c-consult__calendar-head button:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .c-consult__calendar-weekdays,
