@@ -32,6 +32,9 @@ service:
     payment: ${SVC_TOKEN_PAYMENT:local_dev_payment_token}
     reservation: ${SVC_TOKEN_RESERVATION:local_dev_reservation_token}
 
+springdoc:
+  paths-to-exclude: /internal/** # 서비스 간 내부 호출 - 외부 API 문서에서 제외
+
 payment:
   base-url: ${PAYMENT_BASE_URL:http://localhost:8083}
 
