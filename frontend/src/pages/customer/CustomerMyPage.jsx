@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
-import { getCustomerExpoList } from '../../api/expo';
+import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
@@ -26,6 +26,10 @@ const TICKET_FILTERS = [
 ];
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
+const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '');
+
+const CONSULTATION_STATUS_LABEL = { REQUESTED: '대기', APPROVED: '승인', REJECTED: '반려' };
+const consultationTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
 function CustomerMyPage() {
   const [tab, setTab] = useState('tickets');
@@ -34,6 +38,9 @@ function CustomerMyPage() {
   const [rawTickets, setRawTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [consultations, setConsultations] = useState([]);
+  const [consultLoading, setConsultLoading] = useState(true);
+  const [consultError, setConsultError] = useState(null);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
@@ -51,6 +58,18 @@ function CustomerMyPage() {
         );
       })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    getMyConsultations()
+      .then((data) => {
+        setConsultations(data);
+        setConsultError(null);
+      })
+      .catch((err) =>
+        setConsultError(err.response?.data?.error?.message ?? '상담 신청 내역을 불러오지 못했습니다.')
+      )
+      .finally(() => setConsultLoading(false));
   }, []);
 
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
@@ -178,6 +197,44 @@ function CustomerMyPage() {
                 </div>
               )}
             </>
+          ) : tab === 'consultations' ? (
+            consultLoading ? (
+              <p className="c-mypage__empty">불러오는 중...</p>
+            ) : consultError ? (
+              <p className="c-mypage__empty">{consultError}</p>
+            ) : consultations.length === 0 ? (
+              <p className="c-mypage__empty">아직 신청한 상담이 없습니다.</p>
+            ) : (
+              <div className="c-ticket-grid">
+                {consultations.map((c) => (
+                  <div key={c.consultationId} className="c-ticket-card">
+                    <div className="c-ticket-card__head">
+                      <h3>{consultationTypeLabel(c)} 상담</h3>
+                      <span
+                        className={`c-ticket-card__badge ${
+                          c.status === 'REJECTED' ? 'is-expired' : c.status === 'APPROVED' ? 'is-used' : ''
+                        }`}
+                      >
+                        {CONSULTATION_STATUS_LABEL[c.status] ?? c.status}
+                      </span>
+                    </div>
+                    <p className="c-ticket-card__meta">
+                      <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
+                      희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}
+                    </p>
+                    <p className="c-ticket-card__meta">신청일 {fmtDateTime(c.createdAt)}</p>
+                    {c.message && (
+                      <p className="c-ticket-card__meta" style={{ whiteSpace: 'pre-line' }}>
+                        {c.message}
+                      </p>
+                    )}
+                    {c.status === 'REJECTED' && c.rejectReason && (
+                      <p className="c-ticket-card__meta">반려 사유: {c.rejectReason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           ) : (
             <p className="c-mypage__empty">준비 중인 화면입니다.</p>
           )}

@@ -5,6 +5,7 @@ import CustomerHeader from './components/customer/CustomerHeader';
 import ExpoList from './pages/ExpoList';
 import ExpoDetail from './pages/ExpoDetail';
 import BoothApplication from './pages/BoothApplication';
+import ConsultationRequests from './pages/ConsultationRequests';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import MyPage from './pages/MyPage';
@@ -55,6 +56,7 @@ function App() {
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />
+      <Route path="/consultations" element={<ExhibitorLayout><ConsultationRequests /></ExhibitorLayout>} />
       <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/customer" element={<CustomerLayout><CustomerExpoList /></CustomerLayout>} />

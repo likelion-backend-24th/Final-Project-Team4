@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ConsultationCompleteModal from '../../components/customer/ConsultationCompleteModal';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
-import { getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import { applyConsultation, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './VehicleDetail.css';
 
 const TABS = ['차량 소개', '주요 특징', '컬러'];
@@ -26,13 +26,18 @@ function VehicleDetail() {
   const [loadError, setLoadError] = useState(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
 
+  const today = useMemo(() => new Date(), []);
+
   const [tab, setTab] = useState('차량 소개');
-  const [viewYear] = useState(2026);
-  const [viewMonth] = useState(4); // 5월 (0-indexed)
-  const [selectedDay, setSelectedDay] = useState(14);
+  const [viewYear] = useState(today.getFullYear());
+  const [viewMonth] = useState(today.getMonth());
+  const [selectedDay, setSelectedDay] = useState(today.getDate());
   const [selectedTime, setSelectedTime] = useState('14:00');
-  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [wantsPurchase, setWantsPurchase] = useState(false);
+  const [wantsTestDrive, setWantsTestDrive] = useState(false);
+  const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [complete, setComplete] = useState(null);
 
   const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
@@ -66,23 +71,54 @@ function VehicleDetail() {
   const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
 
   const canSubmit =
-    form.name.trim() && form.phone.trim() && form.email.trim() && selectedDay && selectedTime;
+    (wantsPurchase || wantsTestDrive) &&
+    form.name.trim() &&
+    form.phone.trim() &&
+    form.email.trim() &&
+    selectedDay &&
+    selectedTime;
+
+  // 백엔드 consultations 스키마엔 이름/연락처 컬럼이 없어, 참가업체가 확인할 수 있도록 message에 함께 담아 보낸다.
+  const buildMessage = () => {
+    const lines = [`이름: ${form.name}`, `연락처: ${form.phone}`, `이메일: ${form.email}`];
+    if (form.message.trim()) lines.push(`요청사항: ${form.message.trim()}`);
+    return lines.join('\n');
+  };
+
+  const preferredDate = () => {
+    const iso = new Date(viewYear, viewMonth, selectedDay);
+    const mm = String(iso.getMonth() + 1).padStart(2, '0');
+    const dd = String(iso.getDate()).padStart(2, '0');
+    return `${iso.getFullYear()}-${mm}-${dd}`;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!canSubmit || submitting) return;
     setSubmitting(true);
-    // 상담 신청 API는 Expo 서비스 소유(consultations)이며 아직 백엔드에 없어 화면 확인용으로 목업 처리.
-    setTimeout(() => {
-      setSubmitting(false);
-      const dateLabel = `${viewYear}년 ${viewMonth + 1}월 ${selectedDay}일(${WEEKDAYS[new Date(viewYear, viewMonth, selectedDay).getDay()]})`;
-      setComplete({
-        vehicleName: vehicle.name,
-        schedule: `${dateLabel} ${selectedTime}`,
-        phone: form.phone,
-        email: form.email,
-      });
-    }, 300);
+    setSubmitError(null);
+    applyConsultation({
+      boothId: vehicle.boothId,
+      vehicleId: vehicle.vehicleId,
+      wantsPurchase,
+      wantsTestDrive,
+      preferredDate: preferredDate(),
+      preferredTime: selectedTime,
+      message: buildMessage(),
+    })
+      .then(() => {
+        const dateLabel = `${viewYear}년 ${viewMonth + 1}월 ${selectedDay}일(${WEEKDAYS[new Date(viewYear, viewMonth, selectedDay).getDay()]})`;
+        setComplete({
+          vehicleName: vehicle.name,
+          schedule: `${dateLabel} ${selectedTime}`,
+          phone: form.phone,
+          email: form.email,
+        });
+      })
+      .catch((err) =>
+        setSubmitError(err.response?.data?.error?.message ?? '상담 신청에 실패했습니다.')
+      )
+      .finally(() => setSubmitting(false));
   };
 
   return (
@@ -166,6 +202,26 @@ function VehicleDetail() {
             <h2>상담 신청</h2>
             <p className="c-consult__desc">전문 상담사가 친절하게 상담해드립니다.</p>
 
+            <div className="c-consult__field">
+              <span>상담 유형 * (최소 1개 선택)</span>
+              <div className="c-consult__slots">
+                <button
+                  type="button"
+                  className={wantsPurchase ? 'is-selected' : ''}
+                  onClick={() => setWantsPurchase((v) => !v)}
+                >
+                  구매 상담
+                </button>
+                <button
+                  type="button"
+                  className={wantsTestDrive ? 'is-selected' : ''}
+                  onClick={() => setWantsTestDrive((v) => !v)}
+                >
+                  시승 상담
+                </button>
+              </div>
+            </div>
+
             <label className="c-consult__field">
               <span>이름 *</span>
               <input
@@ -236,6 +292,17 @@ function VehicleDetail() {
                 ))}
               </div>
             </div>
+
+            <label className="c-consult__field">
+              <span>요청사항</span>
+              <input
+                placeholder="문의하고 싶은 내용을 입력하세요. (선택)"
+                value={form.message}
+                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+              />
+            </label>
+
+            {submitError && <p className="c-consult__error">{submitError}</p>}
 
             <button type="submit" className="c-consult__submit" disabled={!canSubmit || submitting}>
               {submitting ? '신청 중...' : '상담 신청하기'}

@@ -332,6 +332,12 @@
   cursor: not-allowed;
 }
 
+.c-consult__error {
+  margin: -4px 0 4px;
+  font-size: 13px;
+  color: #dc2626;
+}
+
 @media (max-width: 900px) {
   .c-vehicle-detail {
     padding: 16px 20px 48px;
