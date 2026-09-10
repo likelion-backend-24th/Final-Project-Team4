@@ -230,6 +230,12 @@
   border-color: #2563eb;
 }
 
+/* 필수 항목을 비운 채 제출을 시도했을 때 입력창을 빨갛게 강조 */
+.c-consult__field input.c-consult__input--invalid {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
 .c-consult__calendar {
   border: 1px solid #e2e8f0;
   border-radius: 8px;

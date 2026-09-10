@@ -44,12 +44,21 @@ function VehicleDetail() {
   const [wantsPurchase, setWantsPurchase] = useState(false);
   const [wantsTestDrive, setWantsTestDrive] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [complete, setComplete] = useState(null);
   const [ticketDates, setTicketDates] = useState(new Set());
 
   const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  const clearFieldError = (field) =>
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
 
   const goToPrevMonth = () => {
     setSelectedDay(null);
@@ -109,13 +118,15 @@ function VehicleDetail() {
   const images = vehicle.images;
   const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
 
-  const canSubmit =
-    (wantsPurchase || wantsTestDrive) &&
-    form.name.trim() &&
-    form.phone.trim() &&
-    form.email.trim() &&
-    selectedDay &&
-    selectedTime;
+  const validate = () => {
+    const errors = {};
+    if (!wantsPurchase && !wantsTestDrive) errors.consultType = '상담 유형을 하나 이상 선택해주세요.';
+    if (!form.name.trim()) errors.name = '이름을 입력해주세요.';
+    if (!form.phone.trim()) errors.phone = '전화번호를 입력해주세요.';
+    if (!form.email.trim()) errors.email = '이메일을 입력해주세요.';
+    if (!selectedDay) errors.date = '상담 희망 날짜를 선택해주세요.';
+    return errors;
+  };
 
   // 백엔드 consultations 스키마엔 이름/연락처 컬럼이 없어, 참가업체가 확인할 수 있도록 message에 함께 담아 보낸다.
   const buildMessage = () => {
@@ -128,7 +139,14 @@ function VehicleDetail() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!canSubmit || submitting) return;
+    if (submitting) return;
+
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
     setSubmitting(true);
     setSubmitError(null);
     applyConsultation({
@@ -242,44 +260,66 @@ function VehicleDetail() {
                 <button
                   type="button"
                   className={wantsPurchase ? 'is-selected' : ''}
-                  onClick={() => setWantsPurchase((v) => !v)}
+                  onClick={() => {
+                    setWantsPurchase((v) => !v);
+                    clearFieldError('consultType');
+                  }}
                 >
                   구매 상담
                 </button>
                 <button
                   type="button"
                   className={wantsTestDrive ? 'is-selected' : ''}
-                  onClick={() => setWantsTestDrive((v) => !v)}
+                  onClick={() => {
+                    setWantsTestDrive((v) => !v);
+                    clearFieldError('consultType');
+                  }}
                 >
                   시승 상담
                 </button>
               </div>
+              {fieldErrors.consultType && <span className="c-consult__error">{fieldErrors.consultType}</span>}
             </div>
 
             <label className="c-consult__field">
               <span>이름 *</span>
               <input
+                className={fieldErrors.name ? 'c-consult__input--invalid' : ''}
                 placeholder="이름을 입력하세요."
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, name: e.target.value }));
+                  clearFieldError('name');
+                }}
               />
+              {fieldErrors.name && <span className="c-consult__error">{fieldErrors.name}</span>}
             </label>
             <label className="c-consult__field">
               <span>전화번호 *</span>
               <input
+                className={fieldErrors.phone ? 'c-consult__input--invalid' : ''}
                 placeholder="010-1234-5678"
                 value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, phone: e.target.value }));
+                  clearFieldError('phone');
+                }}
               />
+              {fieldErrors.phone && <span className="c-consult__error">{fieldErrors.phone}</span>}
             </label>
             <label className="c-consult__field">
               <span>이메일 *</span>
               <input
                 type="email"
+                className={fieldErrors.email ? 'c-consult__input--invalid' : ''}
                 placeholder="example@domain.com"
                 value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                onChange={(e) => {
+                  setForm((f) => ({ ...f, email: e.target.value }));
+                  clearFieldError('email');
+                }}
               />
+              {fieldErrors.email && <span className="c-consult__error">{fieldErrors.email}</span>}
             </label>
 
             <div className="c-consult__field">
@@ -309,7 +349,11 @@ function VehicleDetail() {
                         type="button"
                         disabled={!d}
                         className={[d && d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
-                        onClick={() => d && setSelectedDay(d)}
+                        onClick={() => {
+                          if (!d) return;
+                          setSelectedDay(d);
+                          clearFieldError('date');
+                        }}
                       >
                         {d ?? ''}
                       </button>
@@ -317,6 +361,7 @@ function VehicleDetail() {
                   })}
                 </div>
               </div>
+              {fieldErrors.date && <span className="c-consult__error">{fieldErrors.date}</span>}
             </div>
 
             <div className="c-consult__field">
@@ -346,7 +391,7 @@ function VehicleDetail() {
 
             {submitError && <p className="c-consult__error">{submitError}</p>}
 
-            <button type="submit" className="c-consult__submit" disabled={!canSubmit || submitting}>
+            <button type="submit" className="c-consult__submit" disabled={submitting}>
               {submitting ? '신청 중...' : '상담 신청하기'}
             </button>
           </form>
