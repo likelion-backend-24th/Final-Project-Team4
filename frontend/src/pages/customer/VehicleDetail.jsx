@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import ConsultationCompleteModal from '../../components/customer/ConsultationCompleteModal';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
 import { applyConsultation, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import { getMyReservations } from '../../api/reservation';
 import './VehicleDetail.css';
 
 const TABS = ['차량 소개', '주요 특징', '컬러'];
@@ -17,6 +18,13 @@ function buildCalendar(year, month) {
   for (let d = 1; d <= daysInMonth; d += 1) cells.push(d);
   return cells;
 }
+
+// (year, month, day) → 'YYYY-MM-DD' (month은 0-indexed)
+const toIsoDate = (year, month, day) => {
+  const mm = String(month + 1).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+};
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -39,8 +47,19 @@ function VehicleDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [complete, setComplete] = useState(null);
+  const [ticketDates, setTicketDates] = useState(new Set());
 
   const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  // 이 박람회에 대해 내가 이미 보유한 입장권 날짜를 조회 - 달력에 연하게 표시해 상담 신청 전에 미리 확인시켜준다.
+  useEffect(() => {
+    getMyReservations()
+      .then((tickets) => {
+        const dates = tickets.filter((t) => String(t.expoId) === expoId).map((t) => t.visitDate);
+        setTicketDates(new Set(dates));
+      })
+      .catch(() => setTicketDates(new Set()));
+  }, [expoId]);
 
   useEffect(() => {
     getCustomerExpoVehicles(expoId)
@@ -85,12 +104,7 @@ function VehicleDetail() {
     return lines.join('\n');
   };
 
-  const preferredDate = () => {
-    const iso = new Date(viewYear, viewMonth, selectedDay);
-    const mm = String(iso.getMonth() + 1).padStart(2, '0');
-    const dd = String(iso.getDate()).padStart(2, '0');
-    return `${iso.getFullYear()}-${mm}-${dd}`;
-  };
+  const preferredDate = () => toIsoDate(viewYear, viewMonth, selectedDay);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -250,6 +264,11 @@ function VehicleDetail() {
 
             <div className="c-consult__field">
               <span>상담 희망 날짜 *</span>
+              {ticketDates.size > 0 && (
+                <p className="c-consult__calendar-legend">
+                  <span className="c-consult__legend-dot" /> 보유한 입장권 날짜입니다. 입장권이 없는 날짜는 상담 신청이 불가합니다.
+                </p>
+              )}
               <div className="c-consult__calendar">
                 <div className="c-consult__calendar-head">
                   <span>&lt;</span>
@@ -262,17 +281,20 @@ function VehicleDetail() {
                   ))}
                 </div>
                 <div className="c-consult__calendar-grid">
-                  {calendarCells.map((d, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      disabled={!d}
-                      className={d === selectedDay ? 'is-selected' : ''}
-                      onClick={() => d && setSelectedDay(d)}
-                    >
-                      {d ?? ''}
-                    </button>
-                  ))}
+                  {calendarCells.map((d, i) => {
+                    const hasTicket = d && ticketDates.has(toIsoDate(viewYear, viewMonth, d));
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={!d}
+                        className={[d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
+                        onClick={() => d && setSelectedDay(d)}
+                      >
+                        {d ?? ''}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

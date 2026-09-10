@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useState } from 'react';
-import { approveConsultation, getExhibitorConsultations, rejectConsultation } from '../api/expo';
-import './MyPage.css';
+import { useEffect, useMemo, useState } from 'react';
+import { approveConsultation, getBoothVehicles, getExhibitorConsultations, getMyBoothApplications, rejectConsultation } from '../api/expo';
+import './ConsultationRequests.css';
 
 const STATUS_LABEL = {
   REQUESTED: '대기',
@@ -9,30 +9,56 @@ const STATUS_LABEL = {
 };
 
 const STATUS_BADGE = {
-  대기: 'badge--pending',
-  승인: 'badge--approved',
-  반려: 'badge--rejected',
+  REQUESTED: 'cr-badge--pending',
+  APPROVED: 'cr-badge--approved',
+  REJECTED: 'cr-badge--rejected',
 };
 
 // ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12 10:00)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
 
 // 참가업체 - 본인 부스로 들어온 차량 구매/시승 상담 신청 조회·승인·반려 (TASK 6-3)
+// 어떤 박람회/부스/차량에서 들어온 신청인지 한눈에 알 수 있도록 박람회 단위로 묶어서 보여준다.
 function ConsultationRequests() {
   const [consultations, setConsultations] = useState([]);
+  const [boothInfoMap, setBoothInfoMap] = useState({}); // boothId -> { expoTitle, boothNo }
+  const [vehicleNameMap, setVehicleNameMap] = useState({}); // vehicleId -> name
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openId, setOpenId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [actionError, setActionError] = useState(null);
   const [submittingId, setSubmittingId] = useState(null);
+
+  const loadBoothInfo = () =>
+    getMyBoothApplications({ size: 200 }).then((res) => {
+      const map = {};
+      res.content.forEach((group) => {
+        group.applications.forEach((app) => {
+          map[app.boothId] = { expoTitle: group.expoTitle, boothNo: app.boothNo };
+        });
+      });
+      setBoothInfoMap(map);
+    });
+
+  const loadVehicleNames = (list) => {
+    const boothIds = [...new Set(list.map((c) => c.boothId))];
+    Promise.all(boothIds.map((id) => getBoothVehicles(id).catch(() => [])))
+      .then((results) => {
+        const map = {};
+        results.forEach((vehicles) => vehicles.forEach((v) => (map[v.vehicleId] = v.name)));
+        setVehicleNameMap(map);
+      })
+      .catch(() => {});
+  };
 
   const load = () => {
     getExhibitorConsultations()
       .then((data) => {
         setConsultations(data);
         setLoadError(null);
+        loadVehicleNames(data);
       })
       .catch((err) =>
         setLoadError(err.response?.data?.error?.message ?? '상담 신청 목록을 불러오지 못했습니다.')
@@ -40,14 +66,12 @@ function ConsultationRequests() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    loadBoothInfo().catch(() => {});
+  }, []);
 
-  const consultTypeLabel = (c) => {
-    const types = [];
-    if (c.wantsPurchase) types.push('구매');
-    if (c.wantsTestDrive) types.push('시승');
-    return types.join(' + ');
-  };
+  const consultTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
   const startReject = (id) => {
     setRejectingId(id);
@@ -60,10 +84,17 @@ function ConsultationRequests() {
     setRejectReason('');
   };
 
-  const handleApprove = (id) => {
-    setSubmittingId(id);
+  const handleApprove = (c) => {
+    const boothInfo = boothInfoMap[c.boothId];
+    const vehicleName = vehicleNameMap[c.vehicleId] ?? `차량 #${c.vehicleId}`;
+    const confirmed = window.confirm(
+      `${boothInfo?.expoTitle ?? ''} / ${boothInfo?.boothNo ?? `부스 #${c.boothId}`} - ${vehicleName}\n${consultTypeLabel(c)} 상담 신청을 승인할까요?`
+    );
+    if (!confirmed) return;
+
+    setSubmittingId(c.consultationId);
     setActionError(null);
-    approveConsultation(id)
+    approveConsultation(c.consultationId)
       .then(load)
       .catch((err) => setActionError(err.response?.data?.error?.message ?? '승인 처리 중 오류가 발생했습니다.'))
       .finally(() => setSubmittingId(null));
@@ -82,144 +113,134 @@ function ConsultationRequests() {
       .finally(() => setSubmittingId(null));
   };
 
+  // 박람회별로 묶어서 보여준다 - 어떤 박람회에서 들어온 신청인지 한눈에 파악할 수 있도록.
+  const groupedByExpo = useMemo(() => {
+    const groups = new Map();
+    consultations.forEach((c) => {
+      const info = boothInfoMap[c.boothId];
+      const key = info?.expoTitle ?? '박람회 정보 확인 중...';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    });
+    return Array.from(groups.entries());
+  }, [consultations, boothInfoMap]);
+
+  const pendingCount = consultations.filter((c) => c.status === 'REQUESTED').length;
+
   return (
-    <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px' }}>
+    <main className="cr-page">
       <h1>상담 신청 관리</h1>
-      <p className="mypage__cell-muted" style={{ marginBottom: 20 }}>
-        본인 부스로 들어온 차량 구매/시승 상담 신청을 확인하고 승인·반려할 수 있습니다.
+      <p className="cr-subtitle">
+        본인 부스로 들어온 차량 구매/시승 상담 신청을 박람회별로 확인하고 승인·반려할 수 있습니다.
+        {pendingCount > 0 && <span className="cr-pending-count"> 대기 중 {pendingCount}건</span>}
       </p>
 
-      {actionError && <p className="mypage__cell-muted">{actionError}</p>}
-      {loadError && <p className="mypage__cell-muted">{loadError}</p>}
+      {actionError && <p className="cr-error">{actionError}</p>}
+      {loadError && <p className="cr-error">{loadError}</p>}
+      {loading && <p className="cr-empty">불러오는 중...</p>}
+      {!loading && consultations.length === 0 && !loadError && (
+        <p className="cr-empty">상담 신청 내역이 없습니다.</p>
+      )}
 
-      <section className="mypage__card">
-        <div className="mypage__table-scroll">
-          <table className="mypage__table">
-            <thead>
-              <tr>
-                <th className="mypage__col-100">부스</th>
-                <th className="mypage__col-100">차량</th>
-                <th className="mypage__col-120">상담 유형</th>
-                <th className="mypage__col-140">희망 일시</th>
-                <th className="mypage__col-140">신청일</th>
-                <th className="mypage__col-100">상태</th>
-                <th className="mypage__col-140 mypage__col-right">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!loading && consultations.length === 0 && !loadError && (
-                <tr>
-                  <td colSpan={7} className="mypage__cell-muted">
-                    상담 신청 내역이 없습니다.
-                  </td>
-                </tr>
-              )}
-              {loading && (
-                <tr>
-                  <td colSpan={7} className="mypage__cell-muted">
-                    불러오는 중...
-                  </td>
-                </tr>
-              )}
-              {consultations.map((c) => {
-                const statusLabel = STATUS_LABEL[c.status] ?? c.status;
-                const isOpen = openId === c.consultationId;
-                const isRejecting = rejectingId === c.consultationId;
-                const isPending = c.status === 'REQUESTED';
-                return (
-                  <Fragment key={c.consultationId}>
-                    <tr>
-                      <td>#{c.boothId}</td>
-                      <td>#{c.vehicleId}</td>
-                      <td>{consultTypeLabel(c)}</td>
-                      <td>
-                        {c.preferredDate} {c.preferredTime?.slice(0, 5)}
-                      </td>
-                      <td>{fmtDateTime(c.createdAt)}</td>
-                      <td>
-                        <span className={`mypage__badge ${STATUS_BADGE[statusLabel] ?? ''}`}>{statusLabel}</span>
-                      </td>
-                      <td className="mypage__col-right">
-                        {isPending ? (
-                          isRejecting ? null : (
-                            <>
-                              <button
-                                type="button"
-                                className="mypage__link"
-                                disabled={submittingId === c.consultationId}
-                                onClick={() => handleApprove(c.consultationId)}
-                              >
-                                승인
-                              </button>{' '}
-                              <button
-                                type="button"
-                                className="mypage__link"
-                                disabled={submittingId === c.consultationId}
-                                onClick={() => startReject(c.consultationId)}
-                              >
-                                반려
-                              </button>
-                            </>
-                          )
-                        ) : (
-                          <button type="button" className="mypage__link" onClick={() => setOpenId(isOpen ? null : c.consultationId)}>
-                            {isOpen ? '접기' : '상세'}
-                          </button>
+      {groupedByExpo.map(([expoTitle, items]) => (
+        <section key={expoTitle} className="cr-expo-group">
+          <h2 className="cr-expo-group__title">{expoTitle}</h2>
+          <div className="cr-card-list">
+            {items.map((c) => {
+              const boothInfo = boothInfoMap[c.boothId];
+              const vehicleName = vehicleNameMap[c.vehicleId] ?? `차량 #${c.vehicleId}`;
+              const isExpanded = expandedId === c.consultationId;
+              const isRejecting = rejectingId === c.consultationId;
+              const isPending = c.status === 'REQUESTED';
+              const isSubmitting = submittingId === c.consultationId;
+
+              return (
+                <div key={c.consultationId} className={`cr-card ${isPending ? 'cr-card--pending' : ''}`}>
+                  <div className="cr-card__top">
+                    <div className="cr-card__main">
+                      <span className={`cr-badge ${STATUS_BADGE[c.status] ?? ''}`}>{STATUS_LABEL[c.status] ?? c.status}</span>
+                      <span className="cr-card__vehicle">{vehicleName}</span>
+                      <span className="cr-card__booth">{boothInfo?.boothNo ?? `부스 #${c.boothId}`}</span>
+                    </div>
+                    <button type="button" className="cr-link" onClick={() => setExpandedId(isExpanded ? null : c.consultationId)}>
+                      {isExpanded ? '접기 ▲' : '상세 보기 ▼'}
+                    </button>
+                  </div>
+
+                  <div className="cr-card__meta">
+                    <span>{consultTypeLabel(c)} 상담</span>
+                    <span className="cr-dot" />
+                    <span>희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}</span>
+                    <span className="cr-dot" />
+                    <span>신청일 {fmtDateTime(c.createdAt)}</span>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="cr-card__detail">
+                      <dl>
+                        <dt>요청 메시지</dt>
+                        <dd style={{ whiteSpace: 'pre-line' }}>{c.message || '-'}</dd>
+                        {c.status === 'REJECTED' && (
+                          <>
+                            <dt>반려 사유</dt>
+                            <dd>{c.rejectReason}</dd>
+                          </>
                         )}
-                      </td>
-                    </tr>
-                    {isRejecting && (
-                      <tr>
-                        <td colSpan={7}>
-                          <dl className="mypage__detail">
-                            <dt>반려 사유 *</dt>
-                            <dd>
-                              <input
-                                style={{ width: '100%', boxSizing: 'border-box', padding: 8 }}
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="반려 사유를 입력하세요"
-                                autoFocus
-                              />
-                            </dd>
-                          </dl>
+                      </dl>
+                    </div>
+                  )}
+
+                  {isPending && (
+                    <div className="cr-card__actions">
+                      {isRejecting ? (
+                        <div className="cr-reject-form">
+                          <input
+                            className="cr-reject-form__input"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="반려 사유를 입력하세요 (필수)"
+                            autoFocus
+                          />
                           <button
                             type="button"
-                            className="mypage__link"
-                            disabled={!rejectReason.trim() || submittingId === c.consultationId}
+                            className="cr-btn cr-btn--reject-confirm"
+                            disabled={!rejectReason.trim() || isSubmitting}
                             onClick={() => handleReject(c.consultationId)}
                           >
                             반려 확정
-                          </button>{' '}
-                          <button type="button" className="mypage__link" onClick={cancelReject}>
+                          </button>
+                          <button type="button" className="cr-btn cr-btn--cancel" onClick={cancelReject}>
                             취소
                           </button>
-                        </td>
-                      </tr>
-                    )}
-                    {isOpen && !isPending && (
-                      <tr>
-                        <td colSpan={7}>
-                          <dl className="mypage__detail">
-                            <dt>요청 메시지</dt>
-                            <dd style={{ whiteSpace: 'pre-line' }}>{c.message || '-'}</dd>
-                            {c.status === 'REJECTED' && (
-                              <>
-                                <dt>반려 사유</dt>
-                                <dd>{c.rejectReason}</dd>
-                              </>
-                            )}
-                          </dl>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="cr-btn cr-btn--reject"
+                            disabled={isSubmitting}
+                            onClick={() => startReject(c.consultationId)}
+                          >
+                            반려
+                          </button>
+                          <button
+                            type="button"
+                            className="cr-btn cr-btn--approve"
+                            disabled={isSubmitting}
+                            onClick={() => handleApprove(c)}
+                          >
+                            승인
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }
