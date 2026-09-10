@@ -15,10 +15,11 @@ function Login() {
     const form = new FormData(e.target);
     setSubmitting(true);
     try {
-      const { data } = await apiClient.post("/api/auth/signin", {
-        email: form.get("email"),
-        password: form.get("password"),
-      });
+      const { data } = await apiClient.post(
+        "/api/auth/signin",
+        { email: form.get("email"), password: form.get("password") },
+        { skipAuthRefresh: true }, // 로그인 실패(401)를 토큰 재발급으로 재시도하지 않음
+      );
       const loginRole = data.data.role;
       setAuth(data.data.accessToken, loginRole);
       if (loginRole === "ADMIN") {
