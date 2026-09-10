@@ -18,7 +18,7 @@ spring:
         - id: expo-customer
           uri: http://localhost:8082
           predicates:
-              - Path=/api/customer/expos/**
+              - Path=/api/customer/expos/**,/api/customer/consultations/**
         # expo의 "/api/admin/**"보다 먼저 와야 함 - 안 그러면 이 경로가 expo로 잘못 라우팅됨
         - id: reservation
           uri: http://localhost:8084
