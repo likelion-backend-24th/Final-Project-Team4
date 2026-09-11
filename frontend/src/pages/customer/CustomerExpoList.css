@@ -209,8 +209,14 @@
   cursor: pointer;
 }
 
-.c-expo-card__cta:hover {
-  background: #1d4ed8;
+.c-expo-card__cta:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.c-expo-card__cta:disabled:hover {
+  background: #cbd5e1;
 }
 
 .c-expo-list__pagination {

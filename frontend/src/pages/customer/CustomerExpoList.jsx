@@ -74,8 +74,6 @@ function CustomerExpoList() {
     [filtered, page]
   );
 
-  console.log('filtered:', filtered.length, 'totalPages:', totalPages);
-
   return (
     <div className="c-expo-list">
       <section className="c-expo-list__hero">
@@ -129,7 +127,6 @@ function CustomerExpoList() {
                   >
                     {e.phase}
                   </span>
-                  <span>참여부스 {e.boothCount}개</span>
                 </div>
                 <h3>{e.title}</h3>
                 <div className="c-expo-card__meta-list">
@@ -142,8 +139,13 @@ function CustomerExpoList() {
                     {e.venue}
                   </p>
                 </div>
-                <button type="button" className="c-expo-card__cta" onClick={() => setCheckinExpo(e)}>
-                  선택하기
+                 <button
+                  type="button"
+                  className="c-expo-card__cta"
+                  disabled={e.phase === '종료'}
+                  onClick={() => setCheckinExpo(e)}
+                >
+                  {e.phase === '종료' ? '종료' : '선택하기'}
                 </button>
               </div>
             </div>

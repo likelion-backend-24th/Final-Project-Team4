@@ -123,8 +123,10 @@ function ExpoList() {
         </div>
         <div className="expo-card__divider" />
         <div className="expo-card__footer">
-          <span className="expo-card__link">상세 보기 및 부스 신청</span>
-          <span className="expo-card__arrow" />
+          <span className="expo-card__link">
+            {c.phase === "종료" ? "신청 종료" : "상세 보기 및 부스 신청"}
+          </span>
+          {c.phase !== "종료" && <span className="expo-card__arrow" />}
         </div>
       </div>
     </>
@@ -171,12 +173,18 @@ function ExpoList() {
       <div className="expo-list__grid-wrap">
         {loadError && <p className="expo-list__status">{loadError}</p>}
         <div className="expo-list__grid">
-          {paginated.map((c, i) => (
-            // 모든 카드는 실제 박람회이므로 클릭하면 상세 페이지로 이동
-            <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
-              {renderCardBody(c, i)}
-            </Link>
-          ))}
+          {paginated.map((c, i) =>
+            // 종료된 박람회는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
+            c.phase === "종료" ? (
+              <div key={c.key} className="expo-card expo-card--disabled">
+                {renderCardBody(c, i)}
+              </div>
+            ) : (
+              <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
+                {renderCardBody(c, i)}
+              </Link>
+            )
+          )}
         </div>
 
         {totalPages > 1 && (

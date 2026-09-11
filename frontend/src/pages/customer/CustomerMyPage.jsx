@@ -13,8 +13,6 @@ const TABS = [
   { key: 'profile', label: '내정보' },
   { key: 'tickets', label: '나의 입장권' },
   { key: 'consultations', label: '예약한 상담' },
-  { key: 'wishlist', label: '관심 차량' },
-  { key: 'settings', label: '설정' },
 ];
 
 // 상태는 저장된 값이 아니라 매번 계산(getTicketStatus)
