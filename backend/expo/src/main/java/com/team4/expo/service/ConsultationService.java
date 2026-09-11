@@ -6,6 +6,7 @@ import com.team4.expo.client.ReservationClient;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
+import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Vehicle;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
@@ -52,6 +53,13 @@ public class ConsultationService {
 
         if (!vehicle.getBooth().getId().equals(booth.getId())) {
             throw new CustomException(ErrorCode.NOT_FOUND, "차량이 해당 부스 소속이 아닙니다.");
+        }
+
+        boolean alreadyApplied = consultationRepository.existsByCustomerIdAndVehicle_IdAndPreferredDateAndStatusIn(
+                customerId, vehicle.getId(), request.getPreferredDate(),
+                List.of(ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED));
+        if (alreadyApplied) {
+            throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이 차량으로 이미 상담을 신청했습니다.");
         }
 
         boolean hasTicket = reservationClient.hasTicket(customerId, booth.getExpo().getId(), request.getPreferredDate());
