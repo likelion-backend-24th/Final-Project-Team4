@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from 'react';
-import { jwtDecode } from 'jwt-decode';
 
 // 데모용 토큰 저장소. accessToken은 body로 받아 localStorage에 보관,
 // 요청 시 client.js 인터셉터가 Authorization: Bearer로 실어 보냄
@@ -37,15 +36,3 @@ const subscribe = (fn) => {
 };
 export const useIsLoggedIn = () =>
   useSyncExternalStore(subscribe, () => Boolean(localStorage.getItem(ROLE_KEY)));
-
-// accessToken(JWT) payload의 sub = 로그인한 사용자 id.
-// payment API가 body로 userId를 요구해서 임시로 프론트에서 꺼내 씀 (게이트웨이 X-User-Id 전환 전).
-export const getUserId = () => {
-  const token = getToken();
-  if (!token) return null;
-  try {
-    return Number(jwtDecode(token).sub);
-  } catch {
-    return null;
-  }
-};
