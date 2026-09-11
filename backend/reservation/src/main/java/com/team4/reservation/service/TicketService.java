@@ -49,6 +49,18 @@ public class TicketService {
                             "방문 날짜는 박람회 기간(" + periodStart + "~" + periodEnd + ") 안이어야 합니다.");
                 });
 
+        // 위 "박람회 시작 이후 신청 전체 차단"으로 현재는 도달하지 않지만, 그 차단 로직이 나중에 바뀌어도
+        // 이미 지난 날짜로는 무료 QR이 발급되지 않도록 개별 visitDate 기준 방어를 별도로 둠.
+        LocalDate today = LocalDate.now();
+        visitDates.stream()
+                .distinct()
+                .filter(visitDate -> visitDate.isBefore(today))
+                .findFirst()
+                .ifPresent(pastDate -> {
+                    throw new CustomException(ErrorCode.INVALID_STATE,
+                            "이미 지난 날짜(" + pastDate + ")로는 방문 예약을 신청할 수 없습니다.");
+                });
+
         List<TicketResponse> tickets = visitDates.stream()
                 .distinct() // 같은 날짜를 중복 제출해도 티켓 중복 생성 안 되게 방어
                 .map(visitDate -> issueOrGetTicket(customerId, expoId, visitDate))
@@ -57,16 +69,19 @@ public class TicketService {
         return new VisitApplicationResponse(expoId, tickets);
     }
 
-    // Payment -> Reservation. 당일 유료 입장권 결제 전에 호출. "오늘" 날짜로 이 박람회 무료 QR을 이미 가진
-    // 고객이면 결제 스킵, 아니면 Expo가 등록해둔 당일 입장료를 그대로 돌려준다.
-    public AdmissionContextResponse getAdmissionContext(Long customerId, Long expoId) {
+    // Payment -> Reservation. 유료 입장권 결제 전에 호출. 요청한 날짜들 중 이미 티켓(FREE/PAID 무관)이
+    // 존재하는 날짜를 blockedDates로 돌려준다 — 하나라도 있으면 Payment가 전체 결제를 막는다(이중 발급 방지).
+    public AdmissionContextResponse getAdmissionContext(Long customerId, Long expoId, List<LocalDate> visitDates) {
         ExpoInfo expo = expoClient.getExpo(expoId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        boolean hasFreeAdmission = ticketRepository.existsByCustomerIdAndExpoIdAndTicketTypeAndVisitDate(
-                customerId, expoId, TicketType.FREE, LocalDate.now());
+        List<LocalDate> blockedDates = visitDates.stream()
+                .distinct()
+                .filter(visitDate -> ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
+                        .isPresent())
+                .toList();
 
-        return new AdmissionContextResponse(expoId, customerId, hasFreeAdmission, expo.admissionFee());
+        return new AdmissionContextResponse(expoId, customerId, blockedDates, expo.admissionFee());
     }
 
     // Expo -> Reservation. 상담 신청 접수 시점에 "이 고객이 이 박람회 이 날짜 입장권을 갖고 있는지"만 확인.
@@ -102,13 +117,43 @@ public class TicketService {
                 .toList();
     }
 
-    // Payment -> Reservation. 당일 유료 입장권 결제 완료 직후 호출 — "당일"권이므로 visitDate는 오늘이어야 한다.
+    // Payment -> Reservation. 유료 입장권 결제 완료 직후 호출 — 무료 방문예약과 동일하게 날짜를 여러 개
+    // 골라 한 번에 결제하면 그만큼 티켓이 각각 발급된다. 과거 날짜·박람회 기간 밖 날짜는 거부.
     // 멱등 처리는 기존 티켓이 PAID일 때만(같은 결제 발급 호출의 재시도)
-    public TicketResponse issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
-        if (!visitDate.isEqual(LocalDate.now())) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "당일 입장권은 오늘 날짜로만 발급할 수 있습니다.");
-        }
+    public VisitApplicationResponse issueAdmissionTicket(Long customerId, Long expoId, List<LocalDate> visitDates) {
+        ExpoInfo expo = expoClient.getExpo(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
+        LocalDate today = LocalDate.now();
+        LocalDate periodStart = expo.startsAt().toLocalDate();
+        LocalDate periodEnd = expo.endsAt().toLocalDate();
+
+        List<LocalDate> distinctDates = visitDates.stream().distinct().toList();
+
+        distinctDates.stream()
+                .filter(visitDate -> visitDate.isBefore(today))
+                .findFirst()
+                .ifPresent(pastDate -> {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                            "이미 지난 날짜(" + pastDate + ")로는 입장권을 발급할 수 없습니다.");
+                });
+
+        distinctDates.stream()
+                .filter(visitDate -> visitDate.isBefore(periodStart) || visitDate.isAfter(periodEnd))
+                .findFirst()
+                .ifPresent(invalidDate -> {
+                    throw new CustomException(ErrorCode.VALIDATION_ERROR,
+                            "방문 날짜는 박람회 기간(" + periodStart + "~" + periodEnd + ") 안이어야 합니다.");
+                });
+
+        List<TicketResponse> tickets = distinctDates.stream()
+                .map(visitDate -> issueOrGetPaidTicket(customerId, expoId, visitDate))
+                .toList();
+
+        return new VisitApplicationResponse(expoId, tickets);
+    }
+
+    private TicketResponse issueOrGetPaidTicket(Long customerId, Long expoId, LocalDate visitDate) {
         return ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
                 .map(existing -> {
                     if (existing.getTicketType() != TicketType.PAID) {
