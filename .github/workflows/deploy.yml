@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency: # 배포 동시성 처리
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -25,6 +29,24 @@ jobs:
             set -e
             cd ~/app
             git pull --ff-only
+            umask 077
+            cat > .env <<'EOF'
+            DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            ACCESS_KEY=${{ secrets.ACCESS_KEY }}
+            REFRESH_KEY=${{ secrets.REFRESH_KEY }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+            SVC_TOKEN_PAYMENT=${{ secrets.SVC_TOKEN_PAYMENT }}
+            SVC_TOKEN_RESERVATION=${{ secrets.SVC_TOKEN_RESERVATION }}
+            SVC_TOKEN_EXPO=${{ secrets.SVC_TOKEN_EXPO }}
+            FRONT_ORIGIN=${{ secrets.FRONT_ORIGIN }}
+            MAIL_PROVIDER=${{ secrets.MAIL_PROVIDER }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            PORTONE_API_SECRET=${{ secrets.PORTONE_API_SECRET }}
+            EOF
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d
             docker compose -f docker-compose.prod.yml ps
