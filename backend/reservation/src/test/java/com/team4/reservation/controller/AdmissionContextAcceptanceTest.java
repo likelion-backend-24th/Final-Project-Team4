@@ -23,11 +23,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Payment -> Reservation: 당일 유료 입장권 결제 전 문의(admission-context). 실제 Expo 서버는 안 띄우고 ExpoClient를 목킹.
+// Payment -> Reservation: 유료 입장권 결제 전 문의(admission-context). 실제 Expo 서버는 안 띄우고 ExpoClient를 목킹.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@DisplayName("당일 입장권 결제 문의 (Payment -> Reservation)")
+@DisplayName("유료 입장권 결제 문의 (Payment -> Reservation)")
 class AdmissionContextAcceptanceTest {
 
     private static final String SVC_TOKEN = "Bearer local_dev_payment_token"; // application-test.yml 미지정 시 service.token.payment 기본값
@@ -44,47 +44,51 @@ class AdmissionContextAcceptanceTest {
         ticketRepository.deleteAll();
     }
 
-    private String path(long customerId, long expoId) {
-        return "/internal/reservation/customers/" + customerId + "/expos/" + expoId + "/admission-context";
+    private String path(long customerId, long expoId, String visitDatesCsv) {
+        return "/internal/reservation/customers/" + customerId + "/expos/" + expoId
+                + "/admission-context?visitDates=" + visitDatesCsv;
     }
 
     @Test
-    @DisplayName("무료 QR을 이미 가진 고객은 hasFreeAdmission=true")
-    void 무료_QR_보유시_true() throws Exception {
+    @DisplayName("요청한 날짜에 이미 티켓(무료 QR 등)이 있으면 그 날짜가 blockedDates에 포함된다")
+    void 이미_티켓_있는_날짜는_blockedDates에_포함() throws Exception {
         when(expoClient.getExpo(EXPO_ID)).thenReturn(Optional.of(
                 new ExpoInfo(EXPO_ID, "OPEN", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 15_000L)));
         ticketRepository.save(Ticket.issueFree(CUSTOMER_ID, EXPO_ID, LocalDate.now()));
 
-        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, LocalDate.now().toString()))
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.hasFreeAdmission").value(true))
+                .andExpect(jsonPath("$.data.blockedDates[0]").value(LocalDate.now().toString()))
                 .andExpect(jsonPath("$.data.admissionFee").value(15_000));
     }
 
     @Test
-    @DisplayName("무료 QR이 없는 고객은 hasFreeAdmission=false, 당일 입장료를 그대로 반환")
-    void 무료_QR_없으면_false_입장료_반환() throws Exception {
+    @DisplayName("요청한 날짜에 아무 티켓도 없으면 blockedDates가 비어있고, 당일 입장료를 그대로 반환")
+    void 티켓_없으면_blockedDates_비어있음() throws Exception {
         when(expoClient.getExpo(EXPO_ID)).thenReturn(Optional.of(
                 new ExpoInfo(EXPO_ID, "OPEN", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 15_000L)));
 
-        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, LocalDate.now().toString()))
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.hasFreeAdmission").value(false))
+                .andExpect(jsonPath("$.data.blockedDates.length()").value(0))
                 .andExpect(jsonPath("$.data.admissionFee").value(15_000))
                 .andExpect(jsonPath("$.data.customerId").value(CUSTOMER_ID))
                 .andExpect(jsonPath("$.data.expoId").value(EXPO_ID));
     }
 
     @Test
-    @DisplayName("오늘이 아닌 다른 날짜의 무료 QR만 있으면 hasFreeAdmission=false (날짜별 판정)")
-    void 다른_날짜_무료_QR은_당일_무료입장으로_안_친다() throws Exception {
+    @DisplayName("요청한 날짜가 아닌 다른 날짜의 티켓은 blockedDates에 포함되지 않는다 (날짜별 판정)")
+    void 다른_날짜_티켓은_blockedDates에_안_들어감() throws Exception {
         when(expoClient.getExpo(EXPO_ID)).thenReturn(Optional.of(
                 new ExpoInfo(EXPO_ID, "OPEN", LocalDateTime.now().minusDays(1), LocalDateTime.now().plusDays(2), 15_000L)));
         ticketRepository.save(Ticket.issueFree(CUSTOMER_ID, EXPO_ID, LocalDate.now().plusDays(1)));
 
-        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, LocalDate.now().toString()))
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.hasFreeAdmission").value(false))
+                .andExpect(jsonPath("$.data.blockedDates.length()").value(0))
                 .andExpect(jsonPath("$.data.admissionFee").value(15_000));
     }
 
@@ -93,14 +97,16 @@ class AdmissionContextAcceptanceTest {
     void 없는_박람회_404() throws Exception {
         when(expoClient.getExpo(999_999L)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get(path(CUSTOMER_ID, 999_999L)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+        mockMvc.perform(get(path(CUSTOMER_ID, 999_999L, LocalDate.now().toString()))
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     @DisplayName("SVC_TOKEN이 없거나 틀리면 401")
     void 잘못된_토큰_401() throws Exception {
-        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID)).header(HttpHeaders.AUTHORIZATION, "Bearer wrong-token"))
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, LocalDate.now().toString()))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer wrong-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHENTICATED"));
     }

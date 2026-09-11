@@ -1,12 +1,11 @@
 package com.team4.payment.client;
 
 import java.time.LocalDate;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDateTime;
 
 @Component
 @Primary
@@ -18,14 +17,16 @@ public class StubReservationClient implements ReservationClient{
     private static final Long DEFAULT_ADMISSION_FEE = 20_000L;
 
     @Override
-    public AdmissionContext getAdmissionContext(Long customerId, Long expoId) {
+    public AdmissionContext getAdmissionContext(Long customerId, Long expoId, List<LocalDate> visitDates) {
         log.info("[STUB] Reservation 연동 미구현 - 임시 응답 반환 customerId={}, expoId={}", customerId, expoId);
-        return new AdmissionContext(expoId, customerId, false, DEFAULT_ADMISSION_FEE);
+        return new AdmissionContext(expoId, customerId, List.of(), DEFAULT_ADMISSION_FEE);
     }
 
     @Override
-    public AdmissionTicket issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
+    public List<AdmissionTicket> issueAdmissionTicket(Long customerId, Long expoId, List<LocalDate> visitDates) {
         log.info("[STUB] Reservation 티켓 발급 연동 미구현 - 임시 응답 반환 customerId={}, expoId={}", customerId, expoId);
-        return new AdmissionTicket(-1L, "stub-qr-token", null);
+        return visitDates.stream()
+                .map(visitDate -> new AdmissionTicket(-1L, visitDate, "stub-qr-token", null))
+                .toList();
     }
 }

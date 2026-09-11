@@ -22,12 +22,14 @@ export const getMyPayments = () =>
     .get("/api/exhibitor/payments", { params: { userId: getUserId() } })
     .then((res) => res.data);
 
-// POST /api/customer/admission-payments - 당일 유료 입장권 결제 (무료 QR 입장권이 없는 방문객 대상)
+// POST /api/customer/admission-payments - 유료 입장권 결제 (무료 QR이 없는 날짜를 방문할 때).
+// 무료 방문예약처럼 날짜를 여러 개 골라 한 번에 결제하면 그 수만큼 티켓이 각각 발급됨.
 // 결제 대상 고객은 Gateway가 JWT에서 꺼내 X-User-Id로 주입 - body로 customerId를 보내지 않음(서버가 안 받음)
-export const payAdmission = ({ expoId, amount, payMethod, paymentId }) =>
+export const payAdmission = ({ expoId, visitDates, amount, payMethod, paymentId }) =>
   apiClient
     .post("/api/customer/admission-payments", {
       expoId,
+      visitDates,
       amount,
       payMethod,
       paymentId,

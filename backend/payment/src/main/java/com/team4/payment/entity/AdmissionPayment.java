@@ -6,6 +6,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -13,9 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "admission_payments", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_admission_payment_customer_expo", columnNames = {"customer_id", "expo_id"})
-})
+@Table(name = "admission_payments")
 public class AdmissionPayment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,7 +36,7 @@ public class AdmissionPayment {
     // 결제 수단
     private String payMethod;
 
-    // 결제 금액
+    // 결제 금액 (1일 입장료 × 선택한 날짜 수)
     @Column(nullable = false)
     private Long amount;
 
@@ -54,16 +54,10 @@ public class AdmissionPayment {
     // 츼소 또는 실패 사유
     private String cancelReason;
 
-    // 결제 완료 후 Reservation이 발급한 티켓 정보(둘 다 nullable — 결제 실패/취소 시엔 없음)
-    @Column(name = "ticket_id")
-    private Long ticketId;
-
-    @Column(name = "qr_token")
-    private String qrToken;
-
-    // QR 이미지는 저장하지 않고 결제 응답에만 실어 보냄(Reservation의 qrToken으로 언제든 다시 그릴 수 있음)
-    @Transient
-    private String qrImageBase64;
+    // 결제 완료 후 Reservation이 날짜별로 발급한 티켓들 (둘 다 nullable — 결제 실패/취소 시엔 비어있음)
+    @Builder.Default
+    @OneToMany(mappedBy = "admissionPayment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AdmissionPaymentTicket> tickets = new ArrayList<>();
 
     @CreationTimestamp
     @Column(updatable = false, name = "created_at")
@@ -84,5 +78,10 @@ public class AdmissionPayment {
     public void fail(String failReason) {
         this.status = PaymentStatus.FAILED;
         this.cancelReason = failReason;
+    }
+
+    public void addTicket(AdmissionPaymentTicket ticket) {
+        ticket.setAdmissionPayment(this);
+        this.tickets.add(ticket);
     }
 }

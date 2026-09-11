@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/customer/admission-payments")
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class AdmissionPaymentController {
         return admissionPaymentService.pay(
                 customerId,
                 request.expoId(),
+                request.visitDates(),
                 request.amount(),
                 request.payMethod(),
                 request.paymentId()
@@ -33,6 +37,7 @@ public class AdmissionPaymentController {
 
     public record AdmissionPaymentRequest(
             Long expoId,
+            List<LocalDate> visitDates,
             Long amount,
             String payMethod,
             String paymentId

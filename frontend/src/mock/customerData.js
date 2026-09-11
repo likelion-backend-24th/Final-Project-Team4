@@ -73,7 +73,7 @@ export function toDisplayTicket(apiTicket, expoMap, holderName) {
     venue: expo?.venue ?? '-',
     visitDate: apiTicket.visitDate,
     holderName: holderName ?? '-',
-    ticketType: apiTicket.ticketType === 'PAID' ? '당일 입장권 · 1인' : '무료 방문예약 · 1인',
+    ticketType: apiTicket.ticketType === 'PAID' ? '유료 입장권 · 1인' : '무료 방문예약 · 1인',
     bookingNo: `TICKET-${apiTicket.ticketId}`,
     purchasedAt: apiTicket.issuedAt ? apiTicket.issuedAt.replace('T', ' ').slice(0, 16) : '',
     usedAt: apiTicket.status === 'USED' ? apiTicket.issuedAt : null,

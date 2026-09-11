@@ -32,6 +32,7 @@ function nowLabel() {
 
 // "오늘" 날짜 문자열(YYYY-MM-DD) — new Date().toISOString().slice(0,10)은 UTC로 변환되면서
 // 한국(UTC+9)에서 하루가 밀리는 버그가 있어(expoDateRange와 같은 문제) 로컬 값으로 직접 조합함.
+// 과거 날짜 선택을 막는 기준(min)으로 SelectDate에서 사용.
 function todayDateString() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
@@ -57,7 +58,7 @@ function expoDateRange(expo) {
 }
 
 // 박람회 시작일 이전에 신청하면 무료(사전 방문예약, Reservation 서비스 연동),
-// 시작일 당일 이후면 유료(당일 입장권, Payment 서비스 실제 결제 연동)
+// 시작일 이후면 유료(Payment 서비스 실제 결제 연동)
 // — Reservation 서비스의 "시작일 이후 무료 발급 거부(409)" 업무 규칙과 동일한 기준
 function isFreeReservation(expo) {
   const today = new Date();
@@ -67,27 +68,28 @@ function isFreeReservation(expo) {
   return today < start;
 }
 
-// 당일 결제 완료(POST /api/customer/admission-payments) 응답을 화면에 보여줄 티켓 객체로 변환.
-// 결제 성공 시 Payment가 내부적으로 Reservation의 issueAdmissionTicket을 호출해 실제 QR을 발급하고,
-// 그 결과(ticketId/qrToken/qrImageBase64)를 이 결제 응답에 그대로 실어 돌려준다 — 응답을 안 쓰고
-// 화면용으로 새로 fake 티켓을 만들면(예전 buildMockPaidTicket) "나의 입장권"(실제 API 기반)에는
-// 이 fake 티켓이 안 보이는 문제가 있었음. 진짜 발급된 티켓을 그대로 써야 마이페이지와 일치한다.
-function mapAdmissionPaymentTicket(expo, payment, visitDate, holderName) {
+// 유료 결제 완료(POST /api/customer/admission-payments) 응답을 화면에 보여줄 티켓 객체로 변환.
+// 결제 성공 시 Payment가 내부적으로 Reservation의 issueAdmissionTicket을 호출해 선택한 날짜 수만큼
+// 실제 QR을 발급하고, 그 결과(payment.tickets: 날짜별 ticketId/visitDate/qrToken/qrImageBase64)를
+// 이 결제 응답에 그대로 실어 돌려준다 — 응답을 안 쓰고 화면용으로 새로 fake 티켓을 만들면(예전
+// buildMockPaidTicket) "나의 입장권"(실제 API 기반)에는 이 fake 티켓이 안 보이는 문제가 있었음.
+// 진짜 발급된 티켓을 그대로 써야 마이페이지와 일치한다.
+function mapAdmissionPaymentTicket(expo, payment, ticket, holderName) {
   return {
-    id: `ticket-${payment.ticketId ?? payment.id}`,
-    ticketId: payment.ticketId,
+    id: `ticket-${ticket.ticketId}`,
+    ticketId: ticket.ticketId,
     expoId: expo.expoId,
     expoTitle: expo.title,
     startsAt: expo.startsAt,
     endsAt: expo.endsAt,
     venue: expo.venue,
-    visitDate,
+    visitDate: ticket.visitDate,
     holderName: holderName ?? '-',
-    ticketType: '당일 입장권 · 1인',
-    bookingNo: `TICKET-${payment.ticketId ?? payment.id}`,
+    ticketType: '유료 입장권 · 1인',
+    bookingNo: `TICKET-${ticket.ticketId}`,
     purchasedAt: payment.approvedAt ? payment.approvedAt.replace('T', ' ').slice(0, 16) : nowLabel(),
     usedAt: null,
-    qrImageBase64: payment.qrImageBase64,
+    qrImageBase64: ticket.qrImageBase64,
   };
 }
 
@@ -113,12 +115,14 @@ function mapReservationTicket(expo, t, holderName) {
 }
 
 // 박람회 목록에서 "선택하기"를 눌렀을 때 뜨는 입장 방법 선택 팝업 + 이어지는 전체 플로우.
-// 업무 규칙: 날짜를 먼저 고르고, 박람회 시작일 이전 신청이면 무료 QR 즉시 발급,
-// 시작일 이후(당일)면 결제 후 QR 발급.
+// 업무 규칙: 날짜를 먼저 고르고(무료/유료 모두 다중 선택 가능, 이미 지난 날짜·이미 QR을 받은 날짜는
+// 선택 불가), 박람회 시작일 이전 신청이면 무료 QR 즉시 발급, 시작일 이후면 결제 후 QR 발급.
 // - 무료 경로: 실제 Reservation 서비스(POST/GET /api/customer/reservations, 체크인)로 연동됨.
-// - 유료(당일) 경로: 실제 PortOne 결제 + 백엔드(POST /api/customer/admission-payments)로 연동됨
-//   (payment 서비스 TASK 5-6~5-8). 결제 1건 = 박람회 1곳 입장권(고객당 박람회당 1회만 결제 가능하도록
-//   백엔드에 유니크 제약이 걸려 있음)이라서, 유료 경로는 날짜를 1개만 선택하도록 제한함.
+// - 유료 경로: 실제 PortOne 결제 + 백엔드(POST /api/customer/admission-payments)로 연동됨. 무료
+//   경로와 동일하게 날짜를 여러 개 골라 한 번에 결제하면(금액 = 1일 입장료 x 날짜 수) 그 수만큼
+//   티켓이 각각 발급된다. "고객당 박람회당 결제 1건" 제약은 없음 — 날짜가 겹치지만 않으면 같은
+//   박람회를 여러 번에 나눠 결제 가능(겹치는 날짜는 서버가 blockedDates로 막고, 프론트도 이미
+//   발급된 날짜는 애초에 선택 불가로 미리 막아둠).
 function EntryFlowModal({ expo, onClose }) {
   const navigate = useNavigate();
   const [step, setStep] = useState('choose');
@@ -138,7 +142,7 @@ function EntryFlowModal({ expo, onClose }) {
 
   const freeMode = isFreeReservation(expo);
   const admissionFee = expo.admissionFee ?? 0;
-  const totalFee = freeMode ? 0 : admissionFee;
+  const totalFee = freeMode ? 0 : admissionFee * selectedDates.length;
 
   // 이 박람회에 이미 발급된 티켓이 있는지 — 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회.
   // 비로그인이면 호출 자체를 스킵 (401 -> 인터셉터가 /login으로 튕기는 것 방지)
@@ -197,15 +201,12 @@ function EntryFlowModal({ expo, onClose }) {
     navigate('/login');
   };
 
-  // 유료 모드는 날짜 1개만 선택되게(클릭하면 그걸로 교체), 무료 모드는 여러 개 토글 가능하게
+  // 무료/유료 모두 날짜를 여러 개 토글 가능 — 유료는 날짜 수만큼 결제 금액이 합산됨(totalFee 계산부 참고).
+  // 이미 지난 날짜는 SelectDate에서 애초에 선택 불가(disabled)로 막아둠.
   const toggleDate = (date) => {
-    if (freeMode) {
-      setSelectedDates((prev) =>
-        prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
-      );
-    } else {
-      setSelectedDates([date]);
-    }
+    setSelectedDates((prev) =>
+      prev.includes(date) ? prev.filter((d) => d !== date) : [...prev, date]
+    );
   };
 
   const confirmDates = () => {
@@ -214,7 +215,7 @@ function EntryFlowModal({ expo, onClose }) {
       issueFreeTickets();
       return;
     }
-    // 당일 유료 결제는 로그인한 회원만 가능
+    // 유료 결제는 로그인한 회원만 가능
     if (!isLoggedIn()) {
       setStep('login-required');
       return;
@@ -251,7 +252,7 @@ function EntryFlowModal({ expo, onClose }) {
     }
   };
 
-  // 당일 유료 입장권 결제 — 실제 PortOne 결제 + 백엔드 결제 API 연동
+  // 유료 입장권 결제 — 실제 PortOne 결제 + 백엔드 결제 API 연동. 선택한 날짜 수만큼 결제 금액이 합산됨.
   const handlePay = async () => {
     setPayError(null);
     setPaying(true);
@@ -263,8 +264,8 @@ function EntryFlowModal({ expo, onClose }) {
         storeId: PORTONE_STORE_ID,
         channelKey: PORTONE_CHANNEL_KEY,
         paymentId,
-        orderName: `${expo.title} 당일 입장권`,
-        totalAmount: admissionFee,
+        orderName: `${expo.title} 입장권 (${selectedDates.length}일)`,
+        totalAmount: totalFee,
         currency: 'CURRENCY_KRW',
         payMethod: PAY_METHOD_CODE[payMethod],
         redirectUrl: `${window.location.origin}/customer/expos`,
@@ -278,7 +279,8 @@ function EntryFlowModal({ expo, onClose }) {
 
       const payment = await payAdmission({
         expoId: expo.expoId,
-        amount: admissionFee,
+        visitDates: selectedDates,
+        amount: totalFee,
         payMethod: PAY_METHOD_CODE[payMethod],
         paymentId,
       });
@@ -292,11 +294,14 @@ function EntryFlowModal({ expo, onClose }) {
     }
   };
 
-  // 당일 결제 완료 후 QR 발급 화면으로 — handlePay에서 받아둔 실제 결제 응답(진짜 발급된 QR 포함)을 그대로 씀.
-  // ticketId가 없으면(Reservation 발급 호출이 실패해 결제만 완료된 예외 상황) QR 없이 안내만 보여줌 —
-  // "나의 입장권"은 실제 Reservation API 기준이라, 이 경우엔 거기에도 안 뜨는 게 맞는 상태.
+  // 결제 완료 후 QR 발급 화면으로 — handlePay에서 받아둔 실제 결제 응답(payment.tickets: 날짜별
+  // 진짜 발급된 QR 목록)을 그대로 씀. tickets가 비어있으면(Reservation 발급 호출이 실패해 결제만
+  // 완료된 예외 상황) QR 없이 안내만 보여줌 — "나의 입장권"은 실제 Reservation API 기준이라,
+  // 이 경우엔 거기에도 안 뜨는 게 맞는 상태.
   const issuePaidTickets = () => {
-    setTickets([mapAdmissionPaymentTicket(expo, paidPayment, todayDateString(), holderName)]);
+    setTickets(
+      (paidPayment.tickets ?? []).map((t) => mapAdmissionPaymentTicket(expo, paidPayment, t, holderName))
+    );
     setStep('ticket-qr');
   };
 
@@ -349,6 +354,7 @@ function EntryFlowModal({ expo, onClose }) {
           <SelectDate
             expo={expo}
             freeMode={freeMode}
+            existingTickets={existingTickets}
             selectedDates={selectedDates}
             onToggleDate={toggleDate}
             totalFee={totalFee}
@@ -447,7 +453,7 @@ function ChooseMethod({ hasExisting, loggedIn, onQrExisting, onApply, onGuest, o
           </span>
           <span className="ef-option__body">
             <strong>방문 날짜 선택하고 입장권 받기</strong>
-            <span>박람회 시작 전이면 무료, 당일은 결제 후 QR 발급</span>
+            <span>박람회 시작 전이면 무료, 시작 이후는 결제 후 QR 발급</span>
           </span>
           <span className="ef-option__chevron" />
         </button>
@@ -479,7 +485,7 @@ function LoginRequired({ onLogin, onGuest }) {
         </svg>
       </div>
       <h2>로그인이 필요합니다</h2>
-      <p className="c-modal__desc">당일 입장권 결제는 로그인한 회원만 이용할 수 있습니다.</p>
+      <p className="c-modal__desc">유료 입장권 결제는 로그인한 회원만 이용할 수 있습니다.</p>
       <button type="button" className="c-modal__primary" onClick={onLogin}>
         로그인하러 가기
       </button>
@@ -493,6 +499,7 @@ function LoginRequired({ onLogin, onGuest }) {
 function SelectDate({
   expo,
   freeMode,
+  existingTickets,
   selectedDates,
   onToggleDate,
   totalFee,
@@ -501,6 +508,11 @@ function SelectDate({
   applyError,
 }) {
   const dates = expoDateRange(expo);
+  const today = todayDateString();
+  // 유료 모드는 이미 QR을 받은 날짜를 다시 결제하지 않도록 애초에 선택 자체를 막는다 — 백엔드도
+  // 같은 날짜 재구매를 blockedDates로 막지만, 결제창까지 갔다가 막히는 것보다 여기서 막는 게 낫다.
+  // 무료 모드는 재신청이 멱등(기존 QR 그대로 반환)이라 그대로 둠.
+  const alreadyIssuedDates = new Set(freeMode ? [] : existingTickets.map((t) => t.visitDate));
   return (
     <>
       <div className="c-modal__icon">
@@ -513,19 +525,29 @@ function SelectDate({
       <p className="c-modal__desc">
         {freeMode
           ? '박람회 시작 전 사전 신청은 무료로 QR이 발급됩니다.'
-          : '박람회가 이미 시작되어 당일 입장권 결제가 필요합니다. (1회 선택)'}
+          : '박람회가 이미 시작되어 선택한 날짜 수만큼 입장권 결제가 필요합니다.'}
       </p>
       <div className="ef-date-list">
-        {dates.map((d) => (
-          <label key={d} className="ef-checkbox-row ef-date-item">
-            <input
-              type="checkbox"
-              checked={selectedDates.includes(d)}
-              onChange={() => onToggleDate(d)}
-            />
-            <span>{fmtDate(d)}</span>
-          </label>
-        ))}
+        {dates.map((d) => {
+          const isPast = d < today;
+          const isAlreadyIssued = !isPast && alreadyIssuedDates.has(d);
+          const disabled = isPast || isAlreadyIssued;
+          return (
+            <label key={d} className={`ef-checkbox-row ef-date-item${disabled ? ' is-disabled' : ''}`}>
+              <input
+                type="checkbox"
+                checked={selectedDates.includes(d)}
+                disabled={disabled}
+                onChange={() => onToggleDate(d)}
+              />
+              <span>
+                {fmtDate(d)}
+                {isPast && ' (지난 날짜)'}
+                {isAlreadyIssued && ' (이미 발급됨)'}
+              </span>
+            </label>
+          );
+        })}
       </div>
       <p className="ef-date-fee">
         {freeMode ? '결제 금액 : 무료' : `결제 예정 금액 : ₩${totalFee.toLocaleString()}`}
@@ -724,7 +746,7 @@ function Payment({ amount, payMethod, setPayMethod, agree, setAgree, paying, pay
       </div>
 
       <div className="ef-card-form">
-        <p className="ef-card-form__title">당일 입장권 결제</p>
+        <p className="ef-card-form__title">유료 입장권 결제</p>
         <p className="c-modal__desc" style={{ margin: '0 0 1rem' }}>
           '결제하기' 클릭 시 실제 PortOne 결제창이 새로 열립니다. 카드/계좌 정보는 그 결제창에서 직접
           입력합니다. 테스트 채널로 연결되어 있어 실제 대금은 빠져나가지 않습니다.

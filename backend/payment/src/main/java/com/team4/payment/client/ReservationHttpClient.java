@@ -11,12 +11,17 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // 실제 Reservation 서비스(/internal/reservation/...) 호출용 클라이언트.
 @Component
@@ -42,11 +47,15 @@ public class ReservationHttpClient implements ReservationClient {
     }
 
     @Override
-    public AdmissionContext getAdmissionContext(Long customerId, Long expoId) {
+    public AdmissionContext getAdmissionContext(Long customerId, Long expoId, List<LocalDate> visitDates) {
         try {
+            String query = visitDates.stream()
+                    .map(d -> "visitDates=" + URLEncoder.encode(d.toString(), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(reservationBaseUrl + "/internal/reservation/customers/" + customerId
-                            + "/expos/" + expoId + "/admission-context"))
+                            + "/expos/" + expoId + "/admission-context?" + query))
                     .header("Authorization", "Bearer " + serviceToken)
                     .timeout(Duration.ofSeconds(5))
                     .GET()
@@ -61,10 +70,13 @@ public class ReservationHttpClient implements ReservationClient {
 
             JsonNode data = objectMapper.readTree(response.body()).path("data");
 
+            List<LocalDate> blockedDates = new ArrayList<>();
+            data.path("blockedDates").forEach(node -> blockedDates.add(LocalDate.parse(node.asText())));
+
             return new AdmissionContext(
                     data.path("expoId").asLong(),
                     data.path("customerId").asLong(),
-                    data.path("hasFreeAdmission").asBoolean(),
+                    blockedDates,
                     data.path("admissionFee").asLong()
             );
 
@@ -74,9 +86,10 @@ public class ReservationHttpClient implements ReservationClient {
     }
 
     @Override
-    public AdmissionTicket issueAdmissionTicket(Long customerId, Long expoId, LocalDate visitDate) {
+    public List<AdmissionTicket> issueAdmissionTicket(Long customerId, Long expoId, List<LocalDate> visitDates) {
         try {
-            String body = objectMapper.writeValueAsString(Map.of("visitDate", visitDate.toString()));
+            String body = objectMapper.writeValueAsString(
+                    Map.of("visitDates", visitDates.stream().map(LocalDate::toString).toList()));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(reservationBaseUrl + "/internal/reservation/customers/" + customerId
@@ -95,12 +108,14 @@ public class ReservationHttpClient implements ReservationClient {
             }
 
             JsonNode data = objectMapper.readTree(response.body()).path("data");
-
-            return new AdmissionTicket(
-                    data.path("ticketId").asLong(),
-                    data.path("qrToken").asText(),
-                    data.path("qrImageBase64").asText(null)
-            );
+            List<AdmissionTicket> tickets = new ArrayList<>();
+            data.path("tickets").forEach(t -> tickets.add(new AdmissionTicket(
+                    t.path("ticketId").asLong(),
+                    LocalDate.parse(t.path("visitDate").asText()),
+                    t.path("qrToken").asText(),
+                    t.path("qrImageBase64").asText(null)
+            )));
+            return tickets;
 
         } catch (IOException | InterruptedException e) {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
