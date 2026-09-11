@@ -1,5 +1,4 @@
 import apiClient, { apiBaseUrl } from './client';
-import { getUserId } from "./auth";
 
 // 서버가 내려주는 상대 경로(/uploads/...)를 화면에 표시 가능한 절대 URL로 변환
 export const toAssetUrl = (path) => (path ? `${apiBaseUrl}${path}` : null);

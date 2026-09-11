@@ -37,7 +37,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             parse("/api/customer/expos/{id}"),
             parse("/api/customer/expos/{id}/booths"),
             parse("/api/customer/expos/{id}/vehicles"),
-            parse("/uploads/**") // <img> 태그는 Authorization 헤더를 실을 수 없어 화이트리스트 처리
+            parse("/uploads/**"), // <img> 태그는 Authorization 헤더를 실을 수 없어 화이트리스트 처리
+            parse("/swagger-ui/**"),
+            parse("/swagger-ui.html"),
+            parse("/v3/api-docs/**"), // 게이트웨이,각 서비스 OpenAPI 문서
+            parse("/webjars/**")
     );
 
     // 화이트리스트 패턴 문자열을 Spring Cloud Gateway 라우팅과 동일한 PathPattern으로 컴파일

@@ -63,6 +63,9 @@ service:
   token:
     expo: ${SVC_TOKEN_EXPO:local_dev_expo_token}
 
+springdoc:
+  paths-to-exclude: /internal/** # 서비스 간 내부 호출 - 외부 API 문서에서 제외
+
 # 부스 상세(배정 참가업체 회사명/업종) 조회용 - Expo -> Identity
 identity:
   base-url: ${IDENTITY_BASE_URL:http://localhost:8081}

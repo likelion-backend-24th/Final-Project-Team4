@@ -18,10 +18,10 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    public Payment pay(@RequestBody PaymentRequest request) {
+    public Payment pay(@RequestBody PaymentRequest request, @RequestHeader("X-User-Id") Long userId) {
         return paymentService.pay(
                 request.bookingId(),
-                request.userId(),
+                userId,
                 request.amount(),
                 request.payMethod(),
                 request.paymentId()
@@ -39,12 +39,12 @@ public class PaymentController {
 
     // 로그인한 사용자(참가업체)의 결제 내역 전체 조회 - 마이페이지 "참가비 결제 내역" 표에서 사용
     @GetMapping
-    public List<PaymentListItemResponse> getMyPayments(@RequestParam Long userId) {
+    public List<PaymentListItemResponse> getMyPayments(@RequestHeader("X-User-Id") Long userId) {
         return paymentService.findByUserId(userId).stream()
                 .map(PaymentListItemResponse::from)
                 .toList();
     }
 
-    public record PaymentRequest(String bookingId, Long userId, Long amount, String payMethod, String paymentId) {}
+    public record PaymentRequest(String bookingId, Long amount, String payMethod, String paymentId) {}
     public record PaymentStatusResponse(String bookingId, PaymentStatus status) {}
 }

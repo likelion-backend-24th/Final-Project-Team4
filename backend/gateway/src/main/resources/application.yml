@@ -33,6 +33,31 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/uploads/**
+        # Swagger UI가 각 서비스 OpenAPI 문서를 게이트웨이 경유로 가져오게 함
+        - id: openapi-identity
+          uri: http://localhost:8081
+          predicates: # 이 경로로 온 요청을 잡아서
+            - Path=/v3/api-docs/identity
+          filters: # 경로를 이걸로 바꿔서 8081로 보냄
+            - SetPath=/v3/api-docs
+        - id: openapi-expo
+          uri: http://localhost:8082
+          predicates:
+            - Path=/v3/api-docs/expo
+          filters:
+            - SetPath=/v3/api-docs
+        - id: openapi-payment
+          uri: http://localhost:8083
+          predicates:
+            - Path=/v3/api-docs/payment
+          filters:
+            - SetPath=/v3/api-docs
+        - id: openapi-reservation
+          uri: http://localhost:8084
+          predicates:
+            - Path=/v3/api-docs/reservation
+          filters:
+            - SetPath=/v3/api-docs
       globalcors: # gateway CORS 설정
         cors-configurations:
           '[/**]':
@@ -43,6 +68,18 @@ spring:
             allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
             allowedHeaders: "*"
             allowCredentials: true
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: identity
+        url: /v3/api-docs/identity
+      - name: expo
+        url: /v3/api-docs/expo
+      - name: payment
+        url: /v3/api-docs/payment
+      - name: reservation
+        url: /v3/api-docs/reservation
 
 jwt:
   access-key: ${ACCESS_KEY}
