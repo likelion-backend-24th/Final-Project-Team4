@@ -42,25 +42,16 @@ services:
     image: ghcr.io/likelion-backend-24th/team4-identity:${IMAGE_TAG:-latest}
     container_name: car-expo-identity
     restart: unless-stopped
+    env_file: .env
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-      ACCESS_KEY: ${ACCESS_KEY}
-      REFRESH_KEY: ${REFRESH_KEY}
-      ADMIN_EMAIL: ${ADMIN_EMAIL}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: None
       SPRING_JPA_SHOW_SQL: "false"
-      FRONT_ORIGIN: ${FRONT_ORIGIN}
-      MAIL_PROVIDER: ${MAIL_PROVIDER}
-      MAIL_USERNAME: ${MAIL_USERNAME}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
@@ -73,14 +64,11 @@ services:
     image: ghcr.io/likelion-backend-24th/team4-expo:${IMAGE_TAG:-latest}
     container_name: car-expo-expo
     restart: unless-stopped
+    env_file: .env
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      DB_PASSWORD: ${DB_PASSWORD}
-      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
-      SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
-      SVC_TOKEN_EXPO: ${SVC_TOKEN_EXPO}
       PAYMENT_BASE_URL: http://payment:8083
       RESERVATION_BASE_URL: http://reservation:8084
       SPRING_JPA_SHOW_SQL: "false"
@@ -96,15 +84,12 @@ services:
     image: ghcr.io/likelion-backend-24th/team4-reservation:${IMAGE_TAG:-latest}
     container_name: car-expo-reservation
     restart: unless-stopped
+    env_file: .env
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      DB_PASSWORD: ${DB_PASSWORD}
       EXPO_BASE_URL: http://expo:8082
-      SVC_TOKEN_RESERVATION: ${SVC_TOKEN_RESERVATION}
-      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
-      SVC_TOKEN_EXPO: ${SVC_TOKEN_EXPO}
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
@@ -116,15 +101,13 @@ services:
     image: ghcr.io/likelion-backend-24th/team4-payment:${IMAGE_TAG:-latest}
     container_name: car-expo-payment
     restart: unless-stopped
+    env_file: .env
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      DB_PASSWORD: ${DB_PASSWORD}
-      PORTONE_API_SECRET: ${PORTONE_API_SECRET:-}
       EXPO_BASE_URL: http://expo:8082
       RESERVATION_BASE_URL: http://reservation:8084
-      SVC_TOKEN_PAYMENT: ${SVC_TOKEN_PAYMENT}
       SPRING_JPA_SHOW_SQL: "false"
     networks:
       - backend
@@ -136,10 +119,9 @@ services:
     image: ghcr.io/likelion-backend-24th/team4-gateway:${IMAGE_TAG:-latest}
     container_name: car-expo-gateway
     restart: unless-stopped
+    env_file: .env
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      ACCESS_KEY: ${ACCESS_KEY}
-      FRONT_ORIGIN: ${FRONT_ORIGIN}
     depends_on:
       - identity
       - expo
