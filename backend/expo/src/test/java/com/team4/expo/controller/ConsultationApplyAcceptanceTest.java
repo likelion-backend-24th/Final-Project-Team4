@@ -8,6 +8,7 @@ import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothApplicationGroup;
+import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.Vehicle;
 import com.team4.expo.repository.BoothApplicationGroupRepository;
@@ -224,6 +225,46 @@ class ConsultationApplyAcceptanceTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(applyBody(booth.getId(), otherVehicle.getId(), true, false)))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("같은 차량, 같은 날짜로 중복 신청하면 409")
+    void 같은날짜_중복신청_409() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo);
+        Vehicle vehicle = vehicleOf(booth);
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                .andExpect(status().isConflict());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("반려된 신청은 같은 날짜로 재신청할 수 있다")
+    void 반려후_같은날짜_재신청_가능() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo);
+        Vehicle vehicle = vehicleOf(booth);
+
+        Consultation rejected = new Consultation(booth, vehicle, CUSTOMER_ID, true, false,
+                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다");
+        rejected.reject("일정상 어려움");
+        consultationRepository.save(rejected);
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                .andExpect(status().isCreated());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(2);
     }
 
     @Test
