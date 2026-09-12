@@ -338,7 +338,7 @@ function CustomerMyPage() {
                   >
                     <div className="c-ticket-card__head">
                       <div>
-                        <h3>{c.vehicleName ?? '차량 정보 없음'}</h3>
+                        <h3>{c.interestedVehicle || '관심 차종 미입력'}</h3>
                         <p className="c-ticket-card__submeta">
                           {c.expoTitle}
                           {c.boothNo && ` · ${c.boothNo} 부스`}

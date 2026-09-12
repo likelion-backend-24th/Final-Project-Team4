@@ -7,7 +7,7 @@ import java.time.LocalTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// 고객의 차량 구매/시승 상담 신청 1건. customerId는 Identity 서비스 논리 참조(FK 없음).
+// 고객의 참가업체 상담 신청 1건. customerId는 Identity 서비스 논리 참조(FK 없음).
 @Entity
 @Table(name = "consultations")
 @Getter
@@ -22,14 +22,17 @@ public class Consultation {
     @JoinColumn(name = "booth_id")
     private Booth booth;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_id")
-    private Vehicle vehicle;
-
     private Long customerId;
+
+    private String customerName;
+    private String customerPhone;
+    private String customerEmail;
 
     private boolean wantsPurchase;
     private boolean wantsTestDrive;
+
+    private String interestedVehicle;
+    private boolean hasDriverLicense;
 
     private LocalDate preferredDate;
     private LocalTime preferredTime;
@@ -46,13 +49,19 @@ public class Consultation {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public Consultation(Booth booth, Vehicle vehicle, Long customerId, boolean wantsPurchase, boolean wantsTestDrive,
+    public Consultation(Booth booth, Long customerId, String customerName, String customerPhone,
+                         String customerEmail, boolean wantsPurchase, boolean wantsTestDrive,
+                         String interestedVehicle, boolean hasDriverLicense,
                          LocalDate preferredDate, LocalTime preferredTime, String message) {
         this.booth = booth;
-        this.vehicle = vehicle;
         this.customerId = customerId;
+        this.customerName = customerName;
+        this.customerPhone = customerPhone;
+        this.customerEmail = customerEmail;
         this.wantsPurchase = wantsPurchase;
         this.wantsTestDrive = wantsTestDrive;
+        this.interestedVehicle = interestedVehicle;
+        this.hasDriverLicense = hasDriverLicense;
         this.preferredDate = preferredDate;
         this.preferredTime = preferredTime;
         this.message = message;

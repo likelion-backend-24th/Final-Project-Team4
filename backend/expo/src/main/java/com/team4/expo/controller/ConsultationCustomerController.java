@@ -28,11 +28,11 @@ public class ConsultationCustomerController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<ConsultationResponse>> applyConsultation(
+    public ResponseEntity<ApiResponse<List<ConsultationResponse>>> applyConsultation(
             @AuthenticationPrincipal GatewayUser customer,
             @Valid @RequestBody ConsultationRequest request) {
 
-        ConsultationResponse response = consultationService.applyConsultation(customer.getId(), request);
+        List<ConsultationResponse> response = consultationService.applyConsultation(customer.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 

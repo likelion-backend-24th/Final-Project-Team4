@@ -145,8 +145,10 @@ export const deleteVehicleImage = (boothId, vehicleId, imageId) =>
     .delete(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}/images/${imageId}`)
     .then((res) => res.data.data);
 
-// POST /api/customer/consultations — 차량 구매/시승 상담 신청
-// payload: { boothId, vehicleId, wantsPurchase, wantsTestDrive, preferredDate, preferredTime, message }
+// POST /api/customer/consultations — 참가업체 구매/시승 상담 신청 (여러 업체 한 번에 신청 가능, 업체별로 1건씩 생성됨)
+// payload: { boothIds, customerName, customerPhone, customerEmail, wantsPurchase, wantsTestDrive,
+//            interestedVehicle, hasDriverLicense, preferredDate, preferredTime, message }
+// 응답: ConsultationResponse[] (boothIds 개수만큼)
 export const applyConsultation = (payload) =>
   apiClient.post('/api/customer/consultations', payload).then((res) => res.data.data);
 

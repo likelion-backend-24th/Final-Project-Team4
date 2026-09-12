@@ -21,8 +21,8 @@ function ConsultationCompleteModal({ summary, onClose }) {
         </p>
         <dl className="c-modal__info">
           <div className="c-modal__info-row">
-            <dt>신청 차량</dt>
-            <dd>{summary.vehicleName}</dd>
+            <dt>신청 업체</dt>
+            <dd>{summary.exhibitorNames}</dd>
           </div>
           <div className="c-modal__info-row">
             <dt>상담 일시</dt>

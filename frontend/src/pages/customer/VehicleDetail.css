@@ -26,9 +26,10 @@
 
 .c-vehicle-detail__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 32px;
   align-items: start;
+  max-width: 760px;
 }
 
 .c-vehicle-detail__gallery-main {
@@ -174,35 +175,6 @@
   margin: 0 0 10px;
 }
 
-.c-vehicle-detail__side {
-  position: sticky;
-  top: 20px;
-}
-
-.c-consult {
-  box-sizing: border-box;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 24px;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.c-consult h2 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-}
-
-.c-consult__desc {
-  font-size: 13px;
-  color: #64748b;
-  margin: -10px 0 0;
-}
 
 .c-consult__field {
   display: flex;
@@ -307,6 +279,13 @@
   font-weight: 600;
 }
 
+.c-consult__calendar-grid button.is-applied {
+  background: #e2e8f0;
+  color: #94a3b8;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
 .c-consult__calendar-grid button.is-selected {
   background: #2563eb;
   color: #fff;
@@ -315,8 +294,9 @@
 
 .c-consult__calendar-legend {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: 6px 14px;
   margin: 6px 0;
   font-size: 12px;
   color: #64748b;
@@ -329,6 +309,15 @@
   background: #dbeafe;
   border: 1px solid #93c5fd;
   flex-shrink: 0;
+}
+
+.c-consult__legend-dot--applied {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+.c-consult__required {
+  color: #dc2626;
 }
 
 .c-consult__slots {
@@ -373,22 +362,19 @@
   cursor: not-allowed;
 }
 
+
 .c-consult__error {
   margin: -4px 0 4px;
   font-size: 13px;
   color: #dc2626;
 }
 
+.c-consult__field > .c-consult__error {
+  color: #dc2626;
+}
+
 @media (max-width: 900px) {
   .c-vehicle-detail {
     padding: 16px 20px 48px;
-  }
-
-  .c-vehicle-detail__body {
-    grid-template-columns: 1fr;
-  }
-
-  .c-vehicle-detail__side {
-    position: static;
   }
 }

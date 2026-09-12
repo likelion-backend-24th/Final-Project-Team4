@@ -9,13 +9,11 @@ import com.team4.expo.domain.BoothApplicationGroup;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Expo;
-import com.team4.expo.domain.Vehicle;
 import com.team4.expo.repository.BoothApplicationGroupRepository;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
 import com.team4.expo.repository.ExpoRepository;
-import com.team4.expo.repository.VehicleRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -51,7 +49,6 @@ class ConsultationReviewAcceptanceTest {
     @Autowired ObjectMapper objectMapper;
     @Autowired ExpoRepository expoRepository;
     @Autowired BoothRepository boothRepository;
-    @Autowired VehicleRepository vehicleRepository;
     @Autowired BoothApplicationRepository boothApplicationRepository;
     @Autowired BoothApplicationGroupRepository boothApplicationGroupRepository;
     @Autowired ConsultationRepository consultationRepository;
@@ -77,7 +74,6 @@ class ConsultationReviewAcceptanceTest {
     @BeforeEach
     void clean() {
         consultationRepository.deleteAllInBatch();
-        vehicleRepository.deleteAllInBatch();
         boothApplicationRepository.deleteAllInBatch();
         boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
@@ -102,14 +98,10 @@ class ConsultationReviewAcceptanceTest {
         return boothRepository.saveAndFlush(booth);
     }
 
-    private Vehicle vehicleOf(Booth booth) {
-        return vehicleRepository.save(new Vehicle(booth, "EV6", "SUV,전기차", 50_000_000L,
-                "요약", "설명", "특징", "색상", "500km", "배터리", "파워"));
-    }
-
-    private long requestedConsultation(Booth booth, Vehicle vehicle) {
-        return consultationRepository.save(new Consultation(booth, vehicle, CUSTOMER_ID,
-                true, false, LocalDate.now().plusDays(1), LocalTime.of(14, 0), "상담 부탁드립니다")).getId();
+    private long requestedConsultation(Booth booth) {
+        return consultationRepository.save(new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
+                LocalDate.now().plusDays(1), LocalTime.of(14, 0), "상담 부탁드립니다")).getId();
     }
 
     private ConsultationStatus statusOf(long consultationId) {
@@ -125,8 +117,7 @@ class ConsultationReviewAcceptanceTest {
     void 본인_부스_신청목록_조회() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
-        Vehicle vehicle = vehicleOf(booth);
-        requestedConsultation(booth, vehicle);
+        requestedConsultation(booth);
 
         mockMvc.perform(get("/api/exhibitor/consultations").with(exhibitor(EXHIBITOR_ID)))
                 .andExpect(status().isOk())
@@ -151,8 +142,7 @@ class ConsultationReviewAcceptanceTest {
     void 승인시_APPROVED() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
-        Vehicle vehicle = vehicleOf(booth);
-        long consultationId = requestedConsultation(booth, vehicle);
+        long consultationId = requestedConsultation(booth);
 
         mockMvc.perform(post("/api/exhibitor/consultations/{id}/approve", consultationId).with(exhibitor(EXHIBITOR_ID)))
                 .andExpect(status().isOk())
@@ -166,8 +156,7 @@ class ConsultationReviewAcceptanceTest {
     void 반려_사유필수() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
-        Vehicle vehicle = vehicleOf(booth);
-        long consultationId = requestedConsultation(booth, vehicle);
+        long consultationId = requestedConsultation(booth);
 
         String noReason = objectMapper.writeValueAsString(java.util.Map.of());
         mockMvc.perform(post("/api/exhibitor/consultations/{id}/reject", consultationId).with(exhibitor(EXHIBITOR_ID))
@@ -187,8 +176,7 @@ class ConsultationReviewAcceptanceTest {
     void 이미_처리된_신청_재처리_409() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
-        Vehicle vehicle = vehicleOf(booth);
-        long consultationId = requestedConsultation(booth, vehicle);
+        long consultationId = requestedConsultation(booth);
 
         mockMvc.perform(post("/api/exhibitor/consultations/{id}/approve", consultationId).with(exhibitor(EXHIBITOR_ID)))
                 .andExpect(status().isOk());
@@ -202,8 +190,7 @@ class ConsultationReviewAcceptanceTest {
     void 타업체_신청_승인_403() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
-        Vehicle vehicle = vehicleOf(booth);
-        long consultationId = requestedConsultation(booth, vehicle);
+        long consultationId = requestedConsultation(booth);
 
         mockMvc.perform(post("/api/exhibitor/consultations/{id}/approve", consultationId).with(exhibitor(OTHER_EXHIBITOR_ID)))
                 .andExpect(status().isForbidden());

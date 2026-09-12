@@ -13,6 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import MyPage from './pages/MyPage';
 import Payment from './pages/Payment';
 import CustomerExpoList from './pages/customer/CustomerExpoList';
+import ExhibitorList from './pages/customer/ExhibitorList';
 import ExhibitorVehicleList from './pages/customer/ExhibitorVehicleList';
 import VehicleDetail from './pages/customer/VehicleDetail';
 import CustomerMyPage from './pages/customer/CustomerMyPage';
@@ -66,6 +67,10 @@ function App() {
       <Route path="/customer" element={<CustomerLayout><CustomerExpoList /></CustomerLayout>} />
       <Route
         path="/customer/expos/:expoId"
+        element={<CustomerLayout><ExhibitorList /></CustomerLayout>}
+      />
+      <Route
+        path="/customer/expos/:expoId/booths/:boothId"
         element={<CustomerLayout><ExhibitorVehicleList /></CustomerLayout>}
       />
       <Route
