@@ -11,6 +11,7 @@ public enum ErrorCode {
     PAYMENT_EXPIRED(409, "결제 기한이 지났습니다."),
     DEPENDENCY_TIMEOUT(202, "처리 중입니다. 잠시 후 다시 확인해 주세요."),
     INTERNAL_ERROR(500, "서버 내부 오류입니다."),
+    EMAIL_NOT_VERIFIED(403, "이메일 인증 후 로그인할 수 있습니다."),
 
     // 결제(payment) 전용 에러코드
     PAYMENT_ALREADY_COMPLETED(409, "이미 결제가 완료된 예약입니다."),
