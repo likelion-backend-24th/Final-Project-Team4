@@ -10,5 +10,8 @@ dist/
 HELP.md
 backend/*/uploads/
 CLAUDE.md
+overview.md
+features.md
+spec.md
 .vercel
 out/
