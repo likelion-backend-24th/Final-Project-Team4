@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
-import { getMyProfile } from '../../api/identity';
+import { getMyProfile, withdrawAccount } from '../../api/identity';
+import { clearAuth } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
@@ -38,6 +40,7 @@ const CONSULTATION_FILTERS = [
 const consultationTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
 function CustomerMyPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('profile');
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState(null);
@@ -139,6 +142,24 @@ function CustomerMyPage() {
       });
   }, [tickets]);
 
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState(null);
+
+  const handleWithdraw = async () => {
+    setWithdrawing(true);
+    setWithdrawError(null);
+    try {
+      await withdrawAccount();
+    } catch (err) {
+      setWithdrawError(err.response?.data?.error?.message ?? '탈퇴 처리 중 오류가 발생했습니다.');
+      setWithdrawing(false);
+      return;
+    }
+    clearAuth();
+    navigate('/login');
+  };
+
   const consultationsWithLabel = consultations.map((c) => ({ ...c, _statusLabel: CONSULTATION_STATUS_LABEL[c.status] ?? c.status }));
   const filteredConsultations =
     consultFilter === '전체' ? consultationsWithLabel : consultationsWithLabel.filter((c) => c._statusLabel === consultFilter);
@@ -197,6 +218,16 @@ function CustomerMyPage() {
                   </div>
                 </div>
               )}
+              <button
+                type="button"
+                className="c-mypage__withdraw"
+                onClick={() => {
+                  setWithdrawError(null);
+                  setShowWithdrawModal(true);
+                }}
+              >
+                회원 탈퇴
+              </button>
             </div>
           ) : tab === 'tickets' ? (
             <>
@@ -405,6 +436,49 @@ function CustomerMyPage() {
               onClick={() => downloadTicketImage(zoomTicket, `QR_${zoomTicket.bookingNo}`)}
             >
               이미지 저장
+            </button>
+          </div>
+        </div>
+      )}
+      {showWithdrawModal && (
+        <div
+          className="c-modal__backdrop"
+          onClick={() => !withdrawing && setShowWithdrawModal(false)}
+        >
+          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>회원 탈퇴</h2>
+            <p className="c-modal__desc">
+              탈퇴 시 모든 서비스 이용이 제한되며,
+              <br />
+              가입하신 이메일로는 다시 가입할 수 없습니다.
+              <br />
+              정말 탈퇴하시겠습니까?
+            </p>
+            {withdrawError && <p className="c-modal__error">{withdrawError}</p>}
+            <button
+              type="button"
+              className="c-modal__primary c-modal__primary--danger"
+              onClick={handleWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing ? '처리 중...' : '탈퇴하기'}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+            >
+              취소
             </button>
           </div>
         </div>

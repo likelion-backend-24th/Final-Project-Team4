@@ -72,6 +72,7 @@ public class SignInService {
     }
 
     // 회원 탈퇴 (soft delete)
+    @Transactional
     public void withdrawUser(Long userId, HttpServletResponse response){
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 

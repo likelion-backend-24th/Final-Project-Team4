@@ -216,6 +216,23 @@
   color: #475569;
 }
 
+.mypage__withdraw {
+  display: block;
+  margin: 20px 0 0 auto;
+  border: none;
+  background: none;
+  color: #94a3b8;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mypage__withdraw:hover {
+  color: #ef4444;
+}
+
 .mypage__link {
   border: none;
   background: none;

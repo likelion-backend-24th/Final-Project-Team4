@@ -2,7 +2,9 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
-import { getMyProfile } from "../api/identity";
+import { getMyProfile, withdrawAccount } from "../api/identity";
+import { clearAuth } from "../api/auth";
+import "../components/customer/Modal.css";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -195,6 +197,24 @@ function MyPage() {
       .sort((a, b) => b.sortKey - a.sortKey);
   }, [applicationGroups]);
 
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState(null);
+
+  const handleWithdraw = async () => {
+    setWithdrawing(true);
+    setWithdrawError(null);
+    try {
+      await withdrawAccount();
+    } catch (err) {
+      setWithdrawError(err.response?.data?.error?.message ?? "탈퇴 처리 중 오류가 발생했습니다.");
+      setWithdrawing(false);
+      return;
+    }
+    clearAuth();
+    navigate("/login");
+  };
+
   const facilityLabel = (app) => {
     const facilities = [];
     if (app.powerRequested) facilities.push("전기");
@@ -264,6 +284,16 @@ function MyPage() {
               </div>
             </div>
           )}
+          <button
+            type="button"
+            className="mypage__withdraw"
+            onClick={() => {
+              setWithdrawError(null);
+              setShowWithdrawModal(true);
+            }}
+          >
+            회원 탈퇴
+          </button>
         </section>
 
         <section className="mypage__card">
@@ -473,6 +503,50 @@ function MyPage() {
           수 있습니다.
         </p>
       </section>
+
+      {showWithdrawModal && (
+        <div
+          className="c-modal__backdrop"
+          onClick={() => !withdrawing && setShowWithdrawModal(false)}
+        >
+          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>회원 탈퇴</h2>
+            <p className="c-modal__desc">
+              탈퇴 시 모든 서비스 이용이 제한되며,
+              <br />
+              가입하신 이메일로는 다시 가입할 수 없습니다. 
+              <br />
+              정말 탈퇴하시겠습니까?
+            </p>
+            {withdrawError && <p className="c-modal__error">{withdrawError}</p>}
+            <button
+              type="button"
+              className="c-modal__primary c-modal__primary--danger"
+              onClick={handleWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing ? "처리 중..." : "탈퇴하기"}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

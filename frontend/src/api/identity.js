@@ -4,6 +4,9 @@ import apiClient from "./client";
 export const getMyProfile = () =>
   apiClient.get("/api/auth/me").then((res) => res.data.data);
 
+// DELETE /api/auth/me - 회원 탈퇴(soft delete)
+export const withdrawAccount = () => apiClient.delete("/api/auth/me");
+
 // POST /api/auth/password-reset - 재설정 링크 발송 요청
 export const requestPasswordReset = (email) =>
   apiClient.post("/api/auth/password-reset", { email }, { skipAuthRefresh: true });

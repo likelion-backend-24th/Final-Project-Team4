@@ -3,17 +3,13 @@ package com.team4.identity.user.controller;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
-import com.team4.identity.auth.service.RefreshTokenStore;
 import com.team4.identity.auth.service.SignInService;
-import com.team4.identity.security.jwt.CookieProvider;
 import com.team4.identity.user.domain.User;
 import com.team4.identity.user.dto.MyProfileResponse;
 import com.team4.identity.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -38,7 +34,6 @@ public class MeController {
 
     // 회원 탈퇴(soft delete)
     @DeleteMapping("/me")
-    @Transactional
     public ResponseEntity<ApiResponse<Void>> withdraw(@RequestHeader("X-User-Id") Long userId, HttpServletResponse response) {
         signInService.withdrawUser(userId, response);
 
