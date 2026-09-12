@@ -78,9 +78,21 @@
   margin: 20px 0;
 }
 
+.mypage__profile-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 16px;
+}
+
 .mypage__profile-grid {
   display: flex;
   gap: 40px;
+}
+
+.mypage__profile-grid + .mypage__divider {
+  margin: 24px 0;
 }
 
 .mypage__profile-col {

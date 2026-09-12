@@ -239,50 +239,83 @@ function MyPage() {
             <p className="mypage__cell-muted">불러오는 중...</p>
           )}
           {profile && (
-            <div className="mypage__profile-grid">
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">업체명</span>
-                  <span className="mypage__profile-value">
-                    {profile.companyName ?? "-"}
-                  </span>
+            <>
+              <h3 className="mypage__profile-subtitle">회원정보 (담당자)</h3>
+              <div className="mypage__profile-grid">
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">담당자명</span>
+                    <span className="mypage__profile-value">
+                      {profile.managerName ?? "-"}
+                    </span>
+                  </div>
                 </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">사업자등록번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.businessNo ?? "-"}
-                  </span>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">이메일 주소</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.email ?? "-"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">담당자명</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.managerName ?? "-"}
-                  </span>
-                </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">이메일 주소</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.email ?? "-"}
-                  </span>
-                </div>
-              </div>
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">휴대폰 번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.contact ?? "-"}
-                  </span>
-                </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">대표 전화번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.companyContact ?? "-"}
-                  </span>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">휴대폰 번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.contact ?? "-"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              <div className="mypage__divider" />
+
+              <h3 className="mypage__profile-subtitle">업체정보</h3>
+              <div className="mypage__profile-grid">
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업체명</span>
+                    <span className="mypage__profile-value">
+                      {profile.companyName ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">사업자등록번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.businessNo ?? "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">대표자명</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.representativeName ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업종</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.industry ?? "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">대표 전화번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.companyContact ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업체주소</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.companyAddress ?? "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
           <button
             type="button"
