@@ -15,3 +15,19 @@ export const confirmPasswordReset = (token, newPassword) =>
     { token, newPassword },
     { skipAuthRefresh: true },
   );
+
+// POST /api/auth/email-verification/code - 회원가입 전 이메일 인증 코드 발송
+export const sendVerificationCode = (email) =>
+  apiClient.post(
+    "/api/auth/email-verification/code",
+    { email },
+    { skipAuthRefresh: true },
+  );
+
+// POST /api/auth/email-verification/confirm - 인증 코드 확인
+export const confirmVerificationCode = (email, code) =>
+  apiClient.post(
+    "/api/auth/email-verification/confirm",
+    { email, code },
+    { skipAuthRefresh: true },
+  );
