@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import ConsultationCompleteModal from './ConsultationCompleteModal';
+import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
 import { applyConsultation, getMyConsultations, toAssetUrl } from '../../api/expo';
 import { getMyReservations } from '../../api/reservation';
@@ -195,6 +196,10 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
         }}
       />
     );
+  }
+
+  if (submitting) {
+    return <ConsultationLoadingOverlay />;
   }
 
   return (

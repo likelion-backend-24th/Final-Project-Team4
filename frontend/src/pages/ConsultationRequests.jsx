@@ -1,10 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
-import { approveConsultation, getExhibitorConsultations, getMyBoothApplications, rejectConsultation } from '../api/expo';
+import {
+  approveConsultation,
+  completeConsultation,
+  getExhibitorConsultations,
+  getMyBoothApplications,
+  markConsultationNoShow,
+  rejectConsultation,
+} from '../api/expo';
 import './ConsultationRequests.css';
 
-const STATUS_LABEL = { REQUESTED: '승인 대기', APPROVED: '승인', REJECTED: '반려' };
-const STATUS_BADGE = { REQUESTED: 'crm-badge--pending', APPROVED: 'crm-badge--approved', REJECTED: 'crm-badge--rejected' };
+const STATUS_LABEL = {
+  REQUESTED: '승인 대기',
+  APPROVED: '승인',
+  REJECTED: '반려',
+  CANCELED: '고객 취소',
+  COMPLETED: '상담 완료',
+  NO_SHOW: '미방문',
+};
+const STATUS_BADGE = {
+  REQUESTED: 'crm-badge--pending',
+  APPROVED: 'crm-badge--approved',
+  REJECTED: 'crm-badge--rejected',
+  CANCELED: 'crm-badge--rejected',
+  COMPLETED: 'crm-badge--approved',
+  NO_SHOW: 'crm-badge--rejected',
+};
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+// 방문 예정일 다음날부터 완료/미방문 처리 가능 (당일엔 아직 방문 여부를 알 수 없음).
+const isPastVisitDate = (dateStr) => {
+  const target = new Date(`${dateStr}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return target < today;
+};
 
 // ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12 10:00)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
@@ -168,6 +197,33 @@ function ConsultationRequests() {
       .finally(() => setSubmitting(false));
   };
 
+  const handleComplete = (row) => {
+    setSubmitting(true);
+    setActionError(null);
+    completeConsultation(row.consultationId)
+      .then(() => {
+        closeDrawer();
+        load();
+      })
+      .catch((err) => setActionError(err.response?.data?.error?.message ?? '완료 처리 중 오류가 발생했습니다.'))
+      .finally(() => setSubmitting(false));
+  };
+
+  const handleNoShow = (row) => {
+    const confirmed = window.confirm(`${row.customerName ?? '고객'}님을 미방문으로 처리할까요?`);
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    setActionError(null);
+    markConsultationNoShow(row.consultationId)
+      .then(() => {
+        closeDrawer();
+        load();
+      })
+      .catch((err) => setActionError(err.response?.data?.error?.message ?? '미방문 처리 중 오류가 발생했습니다.'))
+      .finally(() => setSubmitting(false));
+  };
+
   return (
     <div className="crm">
       <section className="crm-hero">
@@ -201,7 +257,7 @@ function ConsultationRequests() {
             {expoOptions.map((v) => <option key={v}>{v}</option>)}
           </select>
           <select value={filterStatus} onChange={setFilterAndResetPage(setFilterStatus)}>
-            {['전체 상태', '승인 대기', '승인', '반려'].map((v) => <option key={v}>{v}</option>)}
+            {['전체 상태', '승인 대기', '승인', '반려', '고객 취소', '상담 완료', '미방문'].map((v) => <option key={v}>{v}</option>)}
           </select>
           <select value={filterType} onChange={setFilterAndResetPage(setFilterType)}>
             {['전체 상담 유형', '구매', '시승', '구매 + 시승'].map((v) => <option key={v}>{v}</option>)}
@@ -308,6 +364,15 @@ function ConsultationRequests() {
             </div>
 
             <div className="crm-drawer__body">
+              {selected.aiSummary && (
+                <section className="crm-detail-section">
+                  <div className="crm-ai-summary">
+                    <span className="crm-ai-summary__badge">AI 요약</span>
+                    <p style={{ whiteSpace: 'pre-wrap' }}>{selected.aiSummary}</p>
+                  </div>
+                </section>
+              )}
+
               <section className="crm-detail-section">
                 <div className="crm-detail-title">상담 정보</div>
                 <div className="crm-detail-box">
@@ -357,7 +422,20 @@ function ConsultationRequests() {
             </div>
 
             <div className="crm-drawer__actions">
-              {selected.status !== 'REQUESTED' ? (
+              {selected.status === 'APPROVED' ? (
+                isPastVisitDate(selected.preferredDate) ? (
+                  <>
+                    <button type="button" className="crm-btn crm-btn--reject" disabled={submitting} onClick={() => handleNoShow(selected)}>
+                      미방문 처리
+                    </button>
+                    <button type="button" className="crm-btn crm-btn--approve" disabled={submitting} onClick={() => handleComplete(selected)}>
+                      상담 완료
+                    </button>
+                  </>
+                ) : (
+                  <p className="crm-drawer__done-note">방문 예정일({selected.preferredDate}) 다음날부터 완료/미방문 처리할 수 있습니다.</p>
+                )
+              ) : selected.status !== 'REQUESTED' ? (
                 <p className="crm-drawer__done-note">이미 처리된 신청입니다.</p>
               ) : isRejecting ? (
                 <div className="crm-reject-inline">

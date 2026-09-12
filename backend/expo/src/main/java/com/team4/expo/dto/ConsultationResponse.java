@@ -26,6 +26,7 @@ public class ConsultationResponse {
     private final LocalDate preferredDate;
     private final LocalTime preferredTime;
     private final String message;
+    private final String aiSummary;
     private final ConsultationStatus status;
     private final String rejectReason;
     private final LocalDateTime createdAt;
@@ -34,7 +35,7 @@ public class ConsultationResponse {
                                   Long customerId, String customerName, String customerPhone, String customerEmail,
                                   boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,
                                   boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
-                                  String message, ConsultationStatus status, String rejectReason,
+                                  String message, String aiSummary, ConsultationStatus status, String rejectReason,
                                   LocalDateTime createdAt) {
         this.consultationId = consultationId;
         this.boothId = boothId;
@@ -52,6 +53,7 @@ public class ConsultationResponse {
         this.preferredDate = preferredDate;
         this.preferredTime = preferredTime;
         this.message = message;
+        this.aiSummary = aiSummary;
         this.status = status;
         this.rejectReason = rejectReason;
         this.createdAt = createdAt;
@@ -75,6 +77,7 @@ public class ConsultationResponse {
                 consultation.getPreferredDate(),
                 consultation.getPreferredTime(),
                 consultation.getMessage(),
+                consultation.getAiSummary(),
                 consultation.getStatus(),
                 consultation.getRejectReason(),
                 consultation.getCreatedAt()
