@@ -74,15 +74,15 @@ public class User {
     @Column(length = 100)
     private String name; // 일반회원 이름
 
-    private User(String email, String passwordHash, Role role, UserStatus status) {
+    private User(String email, String passwordHash, Role role) {
         this.email = email;
         this.passwordHash = passwordHash;
         this.role = role;
-        this.status = status;
+        this.status = UserStatus.ACTIVE;
     }
 
     public static User createMember(String email, String passwordHash, String name, String phone) {
-        User user = new User(email, passwordHash, Role.USER, UserStatus.UNVERIFIED);
+        User user = new User(email, passwordHash, Role.USER);
         user.name = name;
         user.contact = phone;
         return user;
@@ -92,7 +92,7 @@ public class User {
                                        String companyName, String managerName, String contact,
                                        String companyAddress, String industry,
                                        String representativeName, String companyContact) {
-        User user = new User(email, passwordHash, Role.EXHIBITOR, UserStatus.UNVERIFIED);
+        User user = new User(email, passwordHash, Role.EXHIBITOR);
         user.businessNo = businessNo;
         user.companyName = companyName;
         user.managerName = managerName;
@@ -105,19 +105,12 @@ public class User {
     }
 
     public static User createAdmin(String email, String passwordHash) {
-        return new User(email, passwordHash, Role.ADMIN, UserStatus.ACTIVE);
+        return new User(email, passwordHash, Role.ADMIN);
     }
 
     // 비밀번호 재설정 시 해시 교체
     public void updatePassword(String passwordHash) {
         this.passwordHash = passwordHash;
-    }
-
-    // 이메일 인증 완료 - 로그인 가능 상태로 전환
-    public void verifyEmail() {
-        if (this.status == UserStatus.UNVERIFIED) {
-            this.status = UserStatus.ACTIVE;
-        }
     }
 
     @PrePersist

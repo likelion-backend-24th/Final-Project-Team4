@@ -24,6 +24,8 @@ public class SignUpService {
 
     @Transactional
     public void signUpUser(SignUpUserRequest request) {
+        emailVerificationService.requireVerified(request.getEmail());
+
         // 이메일 로그인 - 일반회원
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
@@ -37,12 +39,12 @@ public class SignUpService {
         } catch (DataIntegrityViolationException e) { // unique 제약 예외
             throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
         }
-
-        emailVerificationService.issueAndSend(user);
     }
 
     @Transactional
     public void signUpExhibitor(SignUpExhibitorRequest request) {
+        emailVerificationService.requireVerified(request.getEmail());
+
         String businessNo = normalize(request.getBusinessNo());
 
         // 사업자 인증 (Mock)
@@ -77,8 +79,6 @@ public class SignUpService {
         } catch (DataIntegrityViolationException e) { // unique 제약 예외
             throw new CustomException(ErrorCode.DUPLICATE, "이미 가입된 이메일 또는 사업자등록번호입니다.");
         }
-
-        emailVerificationService.issueAndSend(user);
     }
 
     private String normalize(String businessNo) {

@@ -6,7 +6,6 @@ import com.team4.common.jwt.JwtProvider;
 import com.team4.identity.auth.dto.TokenResponse;
 import com.team4.identity.security.jwt.CookieProvider;
 import com.team4.identity.user.domain.User;
-import com.team4.identity.user.domain.UserStatus;
 import com.team4.identity.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,10 +32,6 @@ public class SignInService {
     public TokenResponse signIn(String email, String rawPassword, HttpServletResponse response) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다."));
         verifyPassword(rawPassword, user, "이메일 또는 비밀번호가 올바르지 않습니다.");
-
-        if (user.getStatus() == UserStatus.UNVERIFIED) {
-            throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED, "이메일 인증 후 로그인할 수 있습니다.");
-        }
 
         return issue(user, response);
     }

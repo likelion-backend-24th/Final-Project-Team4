@@ -75,18 +75,18 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // 이메일 인증 확인
-    @PostMapping("/verify-email")
-    public ResponseEntity<ApiResponse<Void>> verifyEmail(@Valid @RequestBody EmailVerificationConfirmRequest request) {
-        emailVerificationService.verify(request.getToken());
+    // 회원가입 전 이메일 인증 코드 발송
+    @PostMapping("/email-verification/code")
+    public ResponseEntity<ApiResponse<Void>> sendVerificationCode(@Valid @RequestBody EmailRequest request) {
+        emailVerificationService.sendCode(request.getEmail());
 
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    // 인증 메일 재발송
-    @PostMapping("/verify-email/resend")
-    public ResponseEntity<ApiResponse<Void>> resendVerificationEmail(@Valid @RequestBody EmailRequest request) {
-        emailVerificationService.resend(request.getEmail());
+    // 이메일 인증 코드 확인
+    @PostMapping("/email-verification/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmVerificationCode(@Valid @RequestBody EmailVerificationConfirmRequest request) {
+        emailVerificationService.confirmCode(request.getEmail(), request.getCode());
 
         return ResponseEntity.ok(ApiResponse.success(null));
     }

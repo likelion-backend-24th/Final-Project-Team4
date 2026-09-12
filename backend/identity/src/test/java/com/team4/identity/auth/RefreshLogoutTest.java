@@ -54,30 +54,34 @@ class RefreshLogoutTest {
     @Autowired
     UserRepository userRepository;
 
-    // 실제 발송 대신 목으로 바꿔서 가입 인증 메일의 토큰을 캡처함
+    // 실제 발송 대신 목으로 바꿔서 인증 코드를 캡처함
     @MockBean
     MailSender mailSender;
 
     @BeforeEach
     void signUp() throws Exception {
         userRepository.deleteAllInBatch();
+        verifyEmail("manager@corp.com");
         mockMvc.perform(post("/api/auth/exhibitors/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(SIGNUP_BODY));
-
-        verifyEmail();
     }
 
-    private void verifyEmail() throws Exception {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mailSender).send(eq("manager@corp.com"), any(), body.capture());
+    private void verifyEmail(String email) throws Exception {
+        mockMvc.perform(post("/api/auth/email-verification/code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\"}"))
+                .andExpect(status().isOk());
 
-        Matcher m = Pattern.compile("token=(\\S+)").matcher(body.getValue());
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(mailSender).send(eq(email), any(), body.capture());
+        Matcher m = Pattern.compile("(\\d{6})\\s*$").matcher(body.getValue());
         assertThat(m.find()).isTrue();
 
-        mockMvc.perform(post("/api/auth/verify-email")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"token\":\"" + m.group(1) + "\"}"));
+        mockMvc.perform(post("/api/auth/email-verification/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\",\"code\":\"" + m.group(1) + "\"}"))
+                .andExpect(status().isOk());
     }
 
     private Cookie signInAndGetRefreshCookie() throws Exception {
