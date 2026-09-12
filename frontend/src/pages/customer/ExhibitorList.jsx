@@ -69,14 +69,25 @@ function ExhibitorList() {
           )}
 
           <div className="c-exhibitor-list__grid">
-            {filteredGroups.map((g) => (
-              <Link key={g.boothId} to={`/customer/expos/${expoId}/booths/${g.boothId}`} className="c-exhibitor-card">
-                <span className="c-exhibitor-card__logo">{g.title.slice(0, 1)}</span>
-                <h3>{g.title}</h3>
-                <span className="c-exhibitor-card__booth">부스 {g.boothNo}</span>
-                <span className="c-exhibitor-card__count">전시 차량 {g.vehicles.length}대</span>
-              </Link>
-            ))}
+            {filteredGroups.map((g) => {
+              const tags = [...new Set(g.vehicles.flatMap((v) => v.tags ?? []))];
+              return (
+                <Link key={g.boothId} to={`/customer/expos/${expoId}/booths/${g.boothId}`} className="c-exhibitor-card">
+                  <div className="c-exhibitor-card__logo-slot">
+                    <span>{g.title.slice(0, 1)}</span>
+                  </div>
+                  <h3>{g.title}</h3>
+                  <span className="c-exhibitor-card__booth">부스 {g.boothNo}</span>
+                  {tags.length > 0 && (
+                    <div className="c-exhibitor-card__tags">
+                      {tags.map((t) => (
+                        <span key={t} className="c-exhibitor-card__tag">{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         </div>
 

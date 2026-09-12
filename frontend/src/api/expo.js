@@ -158,6 +158,14 @@ export const applyConsultation = (payload) =>
 export const getMyConsultations = () =>
   apiClient.get('/api/customer/consultations').then((res) => res.data.data);
 
+// PUT /api/customer/consultations/{consultationId} — 대기 중(REQUESTED)인 본인 상담 신청 수정
+export const updateConsultation = (consultationId, payload) =>
+  apiClient.put(`/api/customer/consultations/${consultationId}`, payload).then((res) => res.data.data);
+
+// POST /api/customer/consultations/{consultationId}/cancel — 대기 중(REQUESTED)인 본인 상담 신청 취소
+export const cancelConsultation = (consultationId) =>
+  apiClient.post(`/api/customer/consultations/${consultationId}/cancel`).then((res) => res.data.data);
+
 // GET /api/exhibitor/consultations — 참가업체: 본인 부스로 들어온 상담 신청 목록
 export const getExhibitorConsultations = () =>
   apiClient.get('/api/exhibitor/consultations').then((res) => res.data.data);
@@ -171,3 +179,11 @@ export const rejectConsultation = (consultationId, reason) =>
   apiClient
     .post(`/api/exhibitor/consultations/${consultationId}/reject`, { reason })
     .then((res) => res.data.data);
+
+// POST /api/exhibitor/consultations/{consultationId}/complete — 방문 예정일 다음날부터: 승인된 상담 완료 처리
+export const completeConsultation = (consultationId) =>
+  apiClient.post(`/api/exhibitor/consultations/${consultationId}/complete`).then((res) => res.data.data);
+
+// POST /api/exhibitor/consultations/{consultationId}/no-show — 방문 예정일 다음날부터: 승인된 상담 미방문 처리
+export const markConsultationNoShow = (consultationId) =>
+  apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);

@@ -307,7 +307,7 @@
 
 .crm-drawer {
   position: relative;
-  width: 460px;
+  width: 640px;
   max-width: 100%;
   max-height: 85vh;
   background: #fff;
@@ -361,6 +361,32 @@
   padding: 20px;
   overflow: auto;
   flex: 1;
+}
+
+.crm-ai-summary {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.crm-ai-summary__badge {
+  display: inline-block;
+  background: #2563eb;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.crm-ai-summary p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1e3a8a;
 }
 
 .crm-detail-section {

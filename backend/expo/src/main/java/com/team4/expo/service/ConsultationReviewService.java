@@ -8,6 +8,7 @@ import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.ConsultationRepository;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -58,6 +59,36 @@ public class ConsultationReviewService {
         }
 
         consultation.reject(reason);
+        return ConsultationResponse.from(consultation);
+    }
+
+    // 승인된 상담을 실제로 완료 처리. 방문 예정일 다음날부터만 가능(당일엔 아직 방문 여부를 알 수 없어서).
+    public ConsultationResponse completeConsultation(Long exhibitorId, Long consultationId) {
+        Consultation consultation = findOwnedConsultation(exhibitorId, consultationId);
+
+        if (consultation.getStatus() != ConsultationStatus.APPROVED) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "승인된 상담만 완료 처리할 수 있습니다.");
+        }
+        if (!LocalDate.now().isAfter(consultation.getPreferredDate())) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "방문 예정일 다음날부터 처리할 수 있습니다.");
+        }
+
+        consultation.complete();
+        return ConsultationResponse.from(consultation);
+    }
+
+    // 승인된 상담을 미방문으로 처리. 조건은 완료 처리와 동일.
+    public ConsultationResponse markNoShow(Long exhibitorId, Long consultationId) {
+        Consultation consultation = findOwnedConsultation(exhibitorId, consultationId);
+
+        if (consultation.getStatus() != ConsultationStatus.APPROVED) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "승인된 상담만 미방문 처리할 수 있습니다.");
+        }
+        if (!LocalDate.now().isAfter(consultation.getPreferredDate())) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "방문 예정일 다음날부터 처리할 수 있습니다.");
+        }
+
+        consultation.markNoShow();
         return ConsultationResponse.from(consultation);
     }
 

@@ -26,8 +26,11 @@ public class CustomerBoothVehiclesResponse {
         this.vehicles = vehicles;
     }
 
-    public static CustomerBoothVehiclesResponse of(Booth booth, Post post, List<VehicleResponse> vehicles) {
-        String title = post != null ? post.getTitle() : booth.getBoothNo() + " 부스";
+    // 부스 소개 콘텐츠(post)를 등록했으면 그 제목을, 아니면 참가업체 회사명을, 그마저 없으면 부스 번호를 제목으로 쓴다.
+    public static CustomerBoothVehiclesResponse of(Booth booth, Post post, String companyName, List<VehicleResponse> vehicles) {
+        String title = post != null ? post.getTitle()
+                : companyName != null ? companyName
+                : booth.getBoothNo() + " 부스";
         return new CustomerBoothVehiclesResponse(
                 booth.getId(),
                 booth.getBoothNo(),

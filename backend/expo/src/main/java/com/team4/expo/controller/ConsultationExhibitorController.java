@@ -52,4 +52,24 @@ public class ConsultationExhibitorController {
         return ResponseEntity.ok(ApiResponse.success(
                 consultationReviewService.rejectConsultation(exhibitor.getId(), consultationId, request.getReason())));
     }
+
+    // 방문 예정일 다음날부터: 승인된 상담을 완료 처리.
+    @PostMapping("/{consultationId}/complete")
+    public ResponseEntity<ApiResponse<ConsultationResponse>> completeConsultation(
+            @AuthenticationPrincipal GatewayUser exhibitor,
+            @PathVariable Long consultationId) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationReviewService.completeConsultation(exhibitor.getId(), consultationId)));
+    }
+
+    // 방문 예정일 다음날부터: 승인된 상담을 미방문 처리.
+    @PostMapping("/{consultationId}/no-show")
+    public ResponseEntity<ApiResponse<ConsultationResponse>> markNoShow(
+            @AuthenticationPrincipal GatewayUser exhibitor,
+            @PathVariable Long consultationId) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationReviewService.markNoShow(exhibitor.getId(), consultationId)));
+    }
 }
