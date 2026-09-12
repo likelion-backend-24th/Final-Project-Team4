@@ -20,6 +20,7 @@ public class SignUpService {
     private final BusinessVerification businessVerification;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public void signUpUser(SignUpUserRequest request) {
@@ -36,6 +37,8 @@ public class SignUpService {
         } catch (DataIntegrityViolationException e) { // unique 제약 예외
             throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
         }
+
+        emailVerificationService.issueAndSend(user);
     }
 
     @Transactional
@@ -74,6 +77,8 @@ public class SignUpService {
         } catch (DataIntegrityViolationException e) { // unique 제약 예외
             throw new CustomException(ErrorCode.DUPLICATE, "이미 가입된 이메일 또는 사업자등록번호입니다.");
         }
+
+        emailVerificationService.issueAndSend(user);
     }
 
     private String normalize(String businessNo) {

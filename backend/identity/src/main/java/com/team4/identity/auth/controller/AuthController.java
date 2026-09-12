@@ -2,6 +2,7 @@ package com.team4.identity.auth.controller;
 
 import com.team4.common.response.ApiResponse;
 import com.team4.identity.auth.dto.*;
+import com.team4.identity.auth.service.EmailVerificationService;
 import com.team4.identity.auth.service.PasswordResetService;
 import com.team4.identity.auth.service.SignInService;
 import com.team4.identity.auth.service.SignUpService;
@@ -24,6 +25,7 @@ public class AuthController {
     private final SignUpService signUpService;
     private final SignInService signInService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
 
     // 일반 회원(USER) 회원가입
     @PostMapping("/signup")
@@ -59,7 +61,7 @@ public class AuthController {
 
     // 비번 재설정 요청
     @PostMapping("/password-reset")
-    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@Valid @RequestBody PasswordResetRequest request){
+    public ResponseEntity<ApiResponse<Void>> requestPasswordReset(@Valid @RequestBody EmailRequest request){
         passwordResetService.request(request.getEmail());
 
         return ResponseEntity.ok(ApiResponse.success(null));
@@ -69,6 +71,22 @@ public class AuthController {
     @PostMapping("/password-reset/confirm")
     public ResponseEntity<ApiResponse<Void>> confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request){
         passwordResetService.confirm(request.getToken(), request.getNewPassword());
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 이메일 인증 확인
+    @PostMapping("/verify-email")
+    public ResponseEntity<ApiResponse<Void>> verifyEmail(@Valid @RequestBody EmailVerificationConfirmRequest request) {
+        emailVerificationService.verify(request.getToken());
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 인증 메일 재발송
+    @PostMapping("/verify-email/resend")
+    public ResponseEntity<ApiResponse<Void>> resendVerificationEmail(@Valid @RequestBody EmailRequest request) {
+        emailVerificationService.resend(request.getEmail());
 
         return ResponseEntity.ok(ApiResponse.success(null));
     }
