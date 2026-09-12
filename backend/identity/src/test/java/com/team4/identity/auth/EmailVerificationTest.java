@@ -19,26 +19,17 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// 일반 회원가입 -> 이메일 인증 전에는 로그인 불가 -> 인증 링크로 확인하면 로그인 가능
+// 회원가입 전 이메일 인증 코드 발송/확인
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class EmailVerificationTest {
 
-    private static final String SIGNUP_BODY = """
-            {
-              "email": "member@example.com",
-              "password": "password123",
-              "name": "홍길동",
-              "phone": "010-1234-5678"
-            }
-            """;
+    private static final String EMAIL = "member@example.com";
 
     @Autowired
     MockMvc mockMvc;
@@ -46,94 +37,89 @@ class EmailVerificationTest {
     @Autowired
     UserRepository userRepository;
 
-    // 실제 발송 대신 목으로 바꿔서 링크(토큰)를 캡처함
     @MockBean
     MailSender mailSender;
 
     @BeforeEach
-    void signUp() throws Exception {
+    void clean() {
         userRepository.deleteAllInBatch();
-        mockMvc.perform(post("/api/auth/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(SIGNUP_BODY));
     }
 
-    private String captureLatestToken() {
+    private void sendCode(int expectedStatus) throws Exception {
+        mockMvc.perform(post("/api/auth/email-verification/code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + EMAIL + "\"}"))
+                .andExpect(status().is(expectedStatus));
+    }
+
+    private String captureLatestCode() {
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mailSender, atLeastOnce()).send(eq("member@example.com"), any(), body.capture());
+        verify(mailSender, org.mockito.Mockito.atLeastOnce()).send(eq(EMAIL), any(), body.capture());
 
         String latest = body.getAllValues().get(body.getAllValues().size() - 1);
-        Matcher m = Pattern.compile("token=(\\S+)").matcher(latest);
+        Matcher m = Pattern.compile("(\\d{6})\\s*$").matcher(latest);
         assertThat(m.find()).isTrue();
         return m.group(1);
     }
 
-    private void signIn(int expectedStatus) throws Exception {
-        mockMvc.perform(post("/api/auth/signin")
+    private void confirmCode(String code, int expectedStatus) throws Exception {
+        mockMvc.perform(post("/api/auth/email-verification/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"member@example.com\",\"password\":\"password123\"}"))
+                        .content("{\"email\":\"" + EMAIL + "\",\"code\":\"" + code + "\"}"))
                 .andExpect(status().is(expectedStatus));
     }
 
-    private void confirmVerification(String token, int expectedStatus) throws Exception {
-        mockMvc.perform(post("/api/auth/verify-email")
+    private void signUp(int expectedStatus) throws Exception {
+        mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"token\":\"" + token + "\"}"))
+                        .content("""
+                                {
+                                  "email": "member@example.com",
+                                  "password": "password123",
+                                  "name": "홍길동",
+                                  "phone": "010-1234-5678"
+                                }
+                                """))
                 .andExpect(status().is(expectedStatus));
     }
 
     @Test
-    void 가입_직후에는_이메일_인증_전이라_로그인이_403() throws Exception {
-        signIn(403);
+    void 인증_코드를_확인하면_가입할_수_있다() throws Exception {
+        sendCode(200);
+        confirmCode(captureLatestCode(), 200);
+
+        signUp(201);
     }
 
     @Test
-    void 인증_링크를_확인하면_로그인할_수_있다() throws Exception {
-        String token = captureLatestToken();
-
-        confirmVerification(token, 200);
-
-        signIn(200);
+    void 인증을_거치지_않으면_가입이_400() throws Exception {
+        signUp(400);
     }
 
     @Test
-    void 위조된_토큰은_400() throws Exception {
-        confirmVerification("garbage-token", 400);
+    void 틀린_코드는_400() throws Exception {
+        sendCode(200);
+        captureLatestCode();
+
+        confirmCode("000000", 400);
     }
 
     @Test
-    void 이미_사용한_토큰으로는_다시_인증할_수_없다() throws Exception {
-        String token = captureLatestToken();
+    void 인증된_이메일로_가입을_마치면_같은_인증으로_재가입할_수_없다() throws Exception {
+        sendCode(200);
+        confirmCode(captureLatestCode(), 200);
+        signUp(201);
 
-        confirmVerification(token, 200);
-        confirmVerification(token, 400);
+        // 계정이 이미 생겼으니 재가입 시도는 인증 없이도 이메일 중복으로 막혀야 함(가입 자체가 처음부터 불가)
+        signUp(400);
     }
 
     @Test
-    void 재발송하면_이전_링크는_무효화되고_새_링크만_유효하다() throws Exception {
-        String oldToken = captureLatestToken();
+    void 이미_가입된_이메일은_인증코드_발송부터_거부된다() throws Exception {
+        sendCode(200);
+        confirmCode(captureLatestCode(), 200);
+        signUp(201);
 
-        mockMvc.perform(post("/api/auth/verify-email/resend")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"member@example.com\"}"))
-                .andExpect(status().isOk());
-        String newToken = captureLatestToken();
-
-        confirmVerification(oldToken, 400);
-        confirmVerification(newToken, 200);
-    }
-
-    @Test
-    void 미가입_이메일로_재발송_요청해도_200이고_메일은_발송되지_않는다() throws Exception {
-        captureLatestToken(); // 가입 시 발송된 메일을 소비해서 아래 verifyNoInteractions와 섞이지 않게 함
-
-        org.mockito.Mockito.reset(mailSender);
-
-        mockMvc.perform(post("/api/auth/verify-email/resend")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"nobody@example.com\"}"))
-                .andExpect(status().isOk());
-
-        verifyNoInteractions(mailSender);
+        sendCode(409);
     }
 }

@@ -61,24 +61,28 @@ class PasswordResetTest {
     @BeforeEach
     void signUp() throws Exception {
         userRepository.deleteAllInBatch();
+        verifyEmail("manager@corp.com");
         mockMvc.perform(post("/api/auth/exhibitors/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(SIGNUP_BODY));
 
-        verifyEmail();
         org.mockito.Mockito.reset(mailSender);
     }
 
-    private void verifyEmail() throws Exception {
-        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
-        verify(mailSender).send(eq("manager@corp.com"), any(), body.capture());
+    private void verifyEmail(String email) throws Exception {
+        mockMvc.perform(post("/api/auth/email-verification/code")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + email + "\"}"))
+                .andExpect(status().isOk());
 
-        Matcher m = Pattern.compile("token=(\\S+)").matcher(body.getValue());
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        verify(mailSender).send(eq(email), any(), body.capture());
+        Matcher m = Pattern.compile("(\\d{6})\\s*$").matcher(body.getValue());
         assertThat(m.find()).isTrue();
 
-        mockMvc.perform(post("/api/auth/verify-email")
+        mockMvc.perform(post("/api/auth/email-verification/confirm")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"token\":\"" + m.group(1) + "\"}"))
+                        .content("{\"email\":\"" + email + "\",\"code\":\"" + m.group(1) + "\"}"))
                 .andExpect(status().isOk());
     }
 
