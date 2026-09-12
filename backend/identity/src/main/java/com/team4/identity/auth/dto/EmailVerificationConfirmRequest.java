@@ -1,19 +1,18 @@
 package com.team4.identity.auth.dto;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// Jackson이 단일 필드 dto 역직렬화 시 delegating creator로 오인. -> JsonCreator 사용
 @Getter
+@AllArgsConstructor
 public class EmailVerificationConfirmRequest {
 
     @NotBlank
-    private String token; // 인증 링크의 토큰
+    @Email(message = "이메일 형식이 올바르지 않습니다.")
+    private final String email;
 
-    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
-    public EmailVerificationConfirmRequest(@JsonProperty("token") String token) {
-        this.token = token;
-    }
+    @NotBlank
+    private final String code; // 발송된 6자리 인증 코드
 }
