@@ -10,15 +10,14 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothApplicationGroup;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.Expo;
-import com.team4.expo.domain.Vehicle;
 import com.team4.expo.repository.BoothApplicationGroupRepository;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
 import com.team4.expo.repository.ExpoRepository;
-import com.team4.expo.repository.VehicleRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -40,11 +39,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// STORY 6(#69) / TASK 6-3 Acceptance Test: 고객의 차량 구매/시승 상담 신청 제출·조회.
+// STORY 6(#69) / TASK 6-3 Acceptance Test: 고객의 참가업체 상담 신청 제출·조회.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@DisplayName("STORY 6 Acceptance - 차량 상담 신청 제출·조회")
+@DisplayName("STORY 6 Acceptance - 참가업체 상담 신청 제출·조회")
 class ConsultationApplyAcceptanceTest {
 
     private static final long EXHIBITOR_ID = 100L;
@@ -54,7 +53,6 @@ class ConsultationApplyAcceptanceTest {
     @Autowired ObjectMapper objectMapper;
     @Autowired ExpoRepository expoRepository;
     @Autowired BoothRepository boothRepository;
-    @Autowired VehicleRepository vehicleRepository;
     @Autowired BoothApplicationRepository boothApplicationRepository;
     @Autowired BoothApplicationGroupRepository boothApplicationGroupRepository;
     @Autowired ConsultationRepository consultationRepository;
@@ -77,7 +75,6 @@ class ConsultationApplyAcceptanceTest {
     void setUp() {
         when(reservationClient.hasTicket(anyLong(), anyLong(), any(LocalDate.class))).thenReturn(true);
         consultationRepository.deleteAllInBatch();
-        vehicleRepository.deleteAllInBatch();
         boothApplicationRepository.deleteAllInBatch();
         boothApplicationGroupRepository.deleteAllInBatch();
         boothRepository.deleteAllInBatch();
@@ -93,8 +90,8 @@ class ConsultationApplyAcceptanceTest {
     }
 
     // 참가 확정(ASSIGNED)된 부스 1개 생성 - 상담 신청 대상 부스로 씀
-    private Booth assignedBooth(Expo expo) {
-        Booth booth = boothRepository.save(new Booth(expo, "A-101", "조립 부스", 3_000_000));
+    private Booth assignedBooth(Expo expo, String boothNo) {
+        Booth booth = boothRepository.save(new Booth(expo, boothNo, "조립 부스", 3_000_000));
         BoothApplicationGroup group = boothApplicationGroupRepository.save(new BoothApplicationGroup(
                 expo, EXHIBITOR_ID, "전기차 충전기", "친환경 모빌리티 솔루션 전시", true, false, false, null));
         boothApplicationRepository.save(new BoothApplication(booth, group, EXHIBITOR_ID, ApplicationStatus.CONFIRMED));
@@ -102,20 +99,19 @@ class ConsultationApplyAcceptanceTest {
         return boothRepository.saveAndFlush(booth);
     }
 
-    private Vehicle vehicleOf(Booth booth) {
-        return vehicleRepository.save(new Vehicle(booth, "EV6", "SUV,전기차", 50_000_000L,
-                "요약", "설명", "특징", "색상", "500km", "배터리", "파워"));
-    }
-
-    private String applyBody(long boothId, long vehicleId, boolean wantsPurchase, boolean wantsTestDrive) {
-        return body(java.util.Map.of(
-                "boothId", boothId,
-                "vehicleId", vehicleId,
-                "wantsPurchase", wantsPurchase,
-                "wantsTestDrive", wantsTestDrive,
-                "preferredDate", LocalDate.now().plusDays(1).toString(),
-                "preferredTime", "14:00:00",
-                "message", "상담 부탁드립니다"));
+    private String applyBody(List<Long> boothIds, boolean wantsPurchase, boolean wantsTestDrive) {
+        return body(Map.ofEntries(
+                Map.entry("boothIds", boothIds),
+                Map.entry("customerName", "홍길동"),
+                Map.entry("customerPhone", "010-1234-5678"),
+                Map.entry("customerEmail", "hong@example.com"),
+                Map.entry("wantsPurchase", wantsPurchase),
+                Map.entry("wantsTestDrive", wantsTestDrive),
+                Map.entry("interestedVehicle", "EV6"),
+                Map.entry("hasDriverLicense", true),
+                Map.entry("preferredDate", LocalDate.now().plusDays(1).toString()),
+                Map.entry("preferredTime", "14:00:00"),
+                Map.entry("message", "상담 부탁드립니다")));
     }
 
     private String body(Map<String, ?> map) {
@@ -131,30 +127,45 @@ class ConsultationApplyAcceptanceTest {
     // ---------------------------------------------------------------------
 
     @Test
-    @DisplayName("참가 확정 부스의 차량에 구매 상담을 신청하면 REQUESTED로 접수된다")
+    @DisplayName("참가 확정 부스에 구매 상담을 신청하면 REQUESTED로 접수된다")
     void 정상_상담신청() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.status").value("REQUESTED"))
-                .andExpect(jsonPath("$.data.customerId").value(CUSTOMER_ID));
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].status").value("REQUESTED"))
+                .andExpect(jsonPath("$.data[0].customerId").value(CUSTOMER_ID));
+    }
+
+    @Test
+    @DisplayName("참가업체 여러 곳을 한 번에 선택하면 업체별로 1건씩 생성된다")
+    void 다중업체_한번에_신청() throws Exception {
+        Expo expo = openExpo();
+        Booth boothA = assignedBooth(expo, "A-101");
+        Booth boothB = assignedBooth(expo, "A-102");
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(boothA.getId(), boothB.getId()), true, false)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.length()").value(2));
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(2);
     }
 
     @Test
     @DisplayName("신청 내역이 마이페이지 목록에 조회된다")
     void 내_상담신청_목록조회() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), false, true)))
+                        .content(applyBody(List.of(booth.getId()), false, true)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/customer/consultations").with(customer()))
@@ -171,12 +182,11 @@ class ConsultationApplyAcceptanceTest {
     @DisplayName("구매/시승 둘 다 선택하지 않으면 400")
     void 토글_둘다_false_400() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), false, false)))
+                        .content(applyBody(List.of(booth.getId()), false, false)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -184,12 +194,13 @@ class ConsultationApplyAcceptanceTest {
     @DisplayName("필수값(preferredDate)이 없으면 400")
     void 필수값_누락_400() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
-        String missing = body(java.util.Map.of(
-                "boothId", booth.getId(),
-                "vehicleId", vehicle.getId(),
+        String missing = body(Map.of(
+                "boothIds", List.of(booth.getId()),
+                "customerName", "홍길동",
+                "customerPhone", "010-1234-5678",
+                "customerEmail", "hong@example.com",
                 "wantsPurchase", true,
                 "wantsTestDrive", false,
                 "preferredTime", "14:00:00"));
@@ -205,43 +216,41 @@ class ConsultationApplyAcceptanceTest {
     void 미확정_부스_신청_409() throws Exception {
         Expo expo = openExpo();
         Booth booth = boothRepository.save(new Booth(expo, "A-102", "조립 부스", 3_000_000)); // AVAILABLE 상태
-        Vehicle vehicle = vehicleOf(booth);
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isConflict());
     }
 
     @Test
-    @DisplayName("vehicleId가 해당 부스 소속이 아니면 404")
-    void 타부스_차량_404() throws Exception {
-        Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Booth otherBooth = boothRepository.save(new Booth(expo, "A-999", "조립 부스", 3_000_000));
-        Vehicle otherVehicle = vehicleOf(otherBooth);
+    @DisplayName("서로 다른 박람회의 부스를 함께 선택하면 400")
+    void 다른박람회_부스_혼합_400() throws Exception {
+        Expo expoA = openExpo();
+        Expo expoB = openExpo();
+        Booth boothA = assignedBooth(expoA, "A-101");
+        Booth boothB = assignedBooth(expoB, "B-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), otherVehicle.getId(), true, false)))
-                .andExpect(status().isNotFound());
+                        .content(applyBody(List.of(boothA.getId(), boothB.getId()), true, false)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("같은 차량, 같은 날짜로 중복 신청하면 409")
+    @DisplayName("같은 참가업체에 같은 날짜로 중복 신청하면 409")
     void 같은날짜_중복신청_409() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isConflict());
 
         org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(1);
@@ -251,17 +260,17 @@ class ConsultationApplyAcceptanceTest {
     @DisplayName("반려된 신청은 같은 날짜로 재신청할 수 있다")
     void 반려후_같은날짜_재신청_가능() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
-        Consultation rejected = new Consultation(booth, vehicle, CUSTOMER_ID, true, false,
+        Consultation rejected = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
                 LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다");
         rejected.reject("일정상 어려움");
         consultationRepository.save(rejected);
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isCreated());
 
         org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(2);
@@ -273,12 +282,11 @@ class ConsultationApplyAcceptanceTest {
         when(reservationClient.hasTicket(anyLong(), anyLong(), any(LocalDate.class))).thenReturn(false);
 
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isConflict());
     }
 
@@ -289,12 +297,11 @@ class ConsultationApplyAcceptanceTest {
                 .thenThrow(new CustomException(ErrorCode.DEPENDENCY_TIMEOUT));
 
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isAccepted());
 
         org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).isEmpty();
@@ -311,12 +318,11 @@ class ConsultationApplyAcceptanceTest {
     @DisplayName("EXHIBITOR 토큰으로 고객 상담 신청 API를 호출하면 403")
     void 참가업체가_고객API_호출_403() throws Exception {
         Expo expo = openExpo();
-        Booth booth = assignedBooth(expo);
-        Vehicle vehicle = vehicleOf(booth);
+        Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(headers(String.valueOf(EXHIBITOR_ID), "EXHIBITOR"))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(booth.getId(), vehicle.getId(), true, false)))
+                        .content(applyBody(List.of(booth.getId()), true, false)))
                 .andExpect(status().isForbidden());
     }
 }

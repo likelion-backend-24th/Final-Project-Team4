@@ -1,23 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { approveConsultation, getBoothVehicles, getExhibitorConsultations, getMyBoothApplications, rejectConsultation } from '../api/expo';
+import { approveConsultation, getExhibitorConsultations, getMyBoothApplications, rejectConsultation } from '../api/expo';
 import './ConsultationRequests.css';
 
 const STATUS_LABEL = { REQUESTED: '승인 대기', APPROVED: '승인', REJECTED: '반려' };
 const STATUS_BADGE = { REQUESTED: 'crm-badge--pending', APPROVED: 'crm-badge--approved', REJECTED: 'crm-badge--rejected' };
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-
-// VehicleDetail.jsx가 상담 신청 시 message에 "이름/연락처/이메일/요청사항"을 함께 담아 보낸다
-// (백엔드 consultations 스키마엔 별도 컬럼이 없어서) - 여기서 다시 파싱해 화면에 나눠 보여준다.
-function parseMessage(message) {
-  if (!message) return { name: null, phone: null, email: null, extra: null };
-  const pick = (label) => message.match(new RegExp(`${label}:\\s*(.+)`))?.[1]?.trim() ?? null;
-  return {
-    name: pick('이름'),
-    phone: pick('연락처'),
-    email: pick('이메일'),
-    extra: message.match(/요청사항:\s*([\s\S]*)/)?.[1]?.trim() ?? null,
-  };
-}
 
 // ISO(2026-05-12T10:00:00) → 화면 표시용(2026.05.12 10:00)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
@@ -41,7 +28,6 @@ const PAGE_SIZE = 10;
 function ConsultationRequests() {
   const [consultations, setConsultations] = useState([]);
   const [boothInfoMap, setBoothInfoMap] = useState({}); // boothId -> { expoTitle, boothNo }
-  const [vehicleNameMap, setVehicleNameMap] = useState({}); // vehicleId -> name
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState(null);
@@ -69,23 +55,11 @@ function ConsultationRequests() {
       setBoothInfoMap(map);
     });
 
-  const loadVehicleNames = (list) => {
-    const boothIds = [...new Set(list.map((c) => c.boothId))];
-    Promise.all(boothIds.map((id) => getBoothVehicles(id).catch(() => [])))
-      .then((results) => {
-        const map = {};
-        results.forEach((vehicles) => vehicles.forEach((v) => (map[v.vehicleId] = v.name)));
-        setVehicleNameMap(map);
-      })
-      .catch(() => {});
-  };
-
   const load = () => {
     getExhibitorConsultations()
       .then((data) => {
         setConsultations(data);
         setLoadError(null);
-        loadVehicleNames(data);
       })
       .catch((err) =>
         setLoadError(err.response?.data?.error?.message ?? '상담 신청 목록을 불러오지 못했습니다.')
@@ -98,27 +72,21 @@ function ConsultationRequests() {
     loadBoothInfo().catch(() => {});
   }, []);
 
-  // 화면에 필요한 형태로 가공: 박람회/부스/차량명 붙이고, message에서 고객 연락처를 뽑아낸다.
+  // 화면에 필요한 형태로 가공: 박람회/부스 정보를 붙인다.
   const rows = useMemo(
     () =>
       consultations.map((c) => {
         const boothInfo = boothInfoMap[c.boothId];
-        const contact = parseMessage(c.message);
         const typeLabel = [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
         return {
           ...c,
           expoTitle: boothInfo?.expoTitle ?? '박람회 정보 확인 중...',
           boothNo: boothInfo?.boothNo ?? `부스 #${c.boothId}`,
-          vehicleName: vehicleNameMap[c.vehicleId] ?? `차량 #${c.vehicleId}`,
-          customerName: contact.name,
-          customerPhone: contact.phone,
-          customerEmail: contact.email,
-          extraMessage: contact.extra,
           typeLabel,
           statusLabel: STATUS_LABEL[c.status] ?? c.status,
         };
       }),
-    [consultations, boothInfoMap, vehicleNameMap]
+    [consultations, boothInfoMap]
   );
 
   const expoOptions = useMemo(() => ['전체 박람회', ...new Set(rows.map((r) => r.expoTitle))], [rows]);
@@ -131,7 +99,7 @@ function ConsultationRequests() {
       if (filterType !== '전체 상담 유형' && r.typeLabel !== filterType) return false;
       if (filterVisitDate !== '전체 방문일' && visitDateCategory(r.preferredDate) !== filterVisitDate) return false;
       if (q) {
-        const haystack = `${r.customerName ?? ''} ${r.customerPhone ?? ''} ${r.vehicleName}`.toLowerCase();
+        const haystack = `${r.customerName ?? ''} ${r.customerPhone ?? ''} ${r.interestedVehicle ?? ''}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -173,7 +141,7 @@ function ConsultationRequests() {
   };
 
   const handleApprove = (row) => {
-    const confirmed = window.confirm(`${row.expoTitle} / ${row.boothNo} - ${row.vehicleName}\n${row.typeLabel} 상담 신청을 승인할까요?`);
+    const confirmed = window.confirm(`${row.expoTitle} / ${row.boothNo} - ${row.customerName}\n${row.typeLabel} 상담 신청을 승인할까요?`);
     if (!confirmed) return;
 
     setSubmitting(true);
@@ -263,7 +231,7 @@ function ConsultationRequests() {
                 <tr>
                   <th>고객</th>
                   <th>박람회</th>
-                  <th>차량</th>
+                  <th>관심 차종</th>
                   <th>상담 유형</th>
                   <th>희망 방문일</th>
                   <th>신청일</th>
@@ -288,7 +256,7 @@ function ConsultationRequests() {
                       <span className="crm-expo">{row.expoTitle}</span>
                       <span className="crm-sub">{row.boothNo}</span>
                     </td>
-                    <td><span className="crm-vehicle">{row.vehicleName}</span></td>
+                    <td><span className="crm-vehicle">{row.interestedVehicle || '-'}</span></td>
                     <td>
                       <div className="crm-type-badges">
                         {row.wantsPurchase && <span className="crm-badge crm-badge--purchase">구매</span>}
@@ -329,11 +297,10 @@ function ConsultationRequests() {
       </main>
 
       {selected && (
-        <>
-          <div className="crm-drawer-backdrop" onClick={closeDrawer} />
-          <aside className="crm-drawer">
+        <div className="crm-drawer-backdrop" onClick={closeDrawer}>
+          <aside className="crm-drawer" onClick={(e) => e.stopPropagation()}>
             <div className="crm-drawer__head">
-              <div>
+              <div className="crm-drawer__head-info">
                 <h2>{selected.customerName ?? `고객 #${selected.customerId}`}</h2>
                 <p>{selected.customerPhone ?? '-'} · {selected.customerEmail ?? '-'}</p>
               </div>
@@ -346,8 +313,14 @@ function ConsultationRequests() {
                 <div className="crm-detail-box">
                   <div className="crm-detail-row"><span className="crm-label">박람회</span><span className="crm-value">{selected.expoTitle}</span></div>
                   <div className="crm-detail-row"><span className="crm-label">부스</span><span className="crm-value">{selected.boothNo}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">차량</span><span className="crm-value">{selected.vehicleName}</span></div>
+                  <div className="crm-detail-row"><span className="crm-label">관심 차종</span><span className="crm-value">{selected.interestedVehicle || '-'}</span></div>
                   <div className="crm-detail-row"><span className="crm-label">상담 유형</span><span className="crm-value">{selected.typeLabel}</span></div>
+                  {selected.wantsTestDrive && (
+                    <div className="crm-detail-row">
+                      <span className="crm-label">운전면허 소지</span>
+                      <span className="crm-value">{selected.hasDriverLicense ? '소지' : '미소지'}</span>
+                    </div>
+                  )}
                   <div className="crm-detail-row">
                     <span className="crm-label">희망 방문일</span>
                     <span className="crm-value">
@@ -369,7 +342,7 @@ function ConsultationRequests() {
               <section className="crm-detail-section">
                 <div className="crm-detail-title">추가 문의사항</div>
                 <div className="crm-detail-box">
-                  <p className="crm-message">{selected.extraMessage || '-'}</p>
+                  <p className="crm-message">{selected.message || '-'}</p>
                 </div>
               </section>
 
@@ -421,7 +394,7 @@ function ConsultationRequests() {
               )}
             </div>
           </aside>
-        </>
+        </div>
       )}
     </div>
   );

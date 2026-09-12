@@ -1,94 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ConsultationCompleteModal from '../../components/customer/ConsultationCompleteModal';
-import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
-import { applyConsultation, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import { getMyReservations } from '../../api/reservation';
+import { getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './VehicleDetail.css';
 
 const TABS = ['차량 소개', '주요 특징', '컬러'];
-
-function buildCalendar(year, month) {
-  // month: 0-indexed
-  const first = new Date(year, month, 1);
-  const startWeekday = first.getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < startWeekday; i += 1) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d += 1) cells.push(d);
-  return cells;
-}
-
-// (year, month, day) → 'YYYY-MM-DD' (month은 0-indexed)
-const toIsoDate = (year, month, day) => {
-  const mm = String(month + 1).padStart(2, '0');
-  const dd = String(day).padStart(2, '0');
-  return `${year}-${mm}-${dd}`;
-};
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function VehicleDetail() {
   const { expoId, vehicleId } = useParams();
   const [found, setFound] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
-
-  const today = useMemo(() => new Date(), []);
-
   const [tab, setTab] = useState('차량 소개');
-  const [viewYear, setViewYear] = useState(today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(today.getMonth());
-  const [selectedDay, setSelectedDay] = useState(today.getDate());
-  const [selectedTime, setSelectedTime] = useState('14:00');
-  const [wantsPurchase, setWantsPurchase] = useState(false);
-  const [wantsTestDrive, setWantsTestDrive] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '', message: '' });
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [complete, setComplete] = useState(null);
-  const [ticketDates, setTicketDates] = useState(new Set());
-
-  const calendarCells = useMemo(() => buildCalendar(viewYear, viewMonth), [viewYear, viewMonth]);
-
-  const clearFieldError = (field) =>
-    setFieldErrors((prev) => {
-      if (!prev[field]) return prev;
-      const next = { ...prev };
-      delete next[field];
-      return next;
-    });
-
-  const goToPrevMonth = () => {
-    setSelectedDay(null);
-    if (viewMonth === 0) {
-      setViewYear((y) => y - 1);
-      setViewMonth(11);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  };
-
-  const goToNextMonth = () => {
-    setSelectedDay(null);
-    if (viewMonth === 11) {
-      setViewYear((y) => y + 1);
-      setViewMonth(0);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
-  };
-
-  // 이 박람회에 대해 내가 이미 보유한 입장권 날짜를 조회 - 달력에 연하게 표시해 상담 신청 전에 미리 확인시켜준다.
-  useEffect(() => {
-    getMyReservations()
-      .then((tickets) => {
-        const dates = tickets.filter((t) => String(t.expoId) === expoId).map((t) => t.visitDate);
-        setTicketDates(new Set(dates));
-      })
-      .catch(() => setTicketDates(new Set()));
-  }, [expoId]);
 
   useEffect(() => {
     getCustomerExpoVehicles(expoId)
@@ -117,61 +39,6 @@ function VehicleDetail() {
   const { vehicle, group } = found;
   const images = vehicle.images;
   const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
-
-  const validate = () => {
-    const errors = {};
-    if (!wantsPurchase && !wantsTestDrive) errors.consultType = '상담 유형을 하나 이상 선택해주세요.';
-    if (!form.name.trim()) errors.name = '이름을 입력해주세요.';
-    if (!form.phone.trim()) errors.phone = '전화번호를 입력해주세요.';
-    if (!form.email.trim()) errors.email = '이메일을 입력해주세요.';
-    if (!selectedDay) errors.date = '상담 희망 날짜를 선택해주세요.';
-    return errors;
-  };
-
-  // 백엔드 consultations 스키마엔 이름/연락처 컬럼이 없어, 참가업체가 확인할 수 있도록 message에 함께 담아 보낸다.
-  const buildMessage = () => {
-    const lines = [`이름: ${form.name}`, `연락처: ${form.phone}`, `이메일: ${form.email}`];
-    if (form.message.trim()) lines.push(`요청사항: ${form.message.trim()}`);
-    return lines.join('\n');
-  };
-
-  const preferredDate = () => toIsoDate(viewYear, viewMonth, selectedDay);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (submitting) return;
-
-    const errors = validate();
-    if (Object.keys(errors).length > 0) {
-      setFieldErrors(errors);
-      return;
-    }
-    setFieldErrors({});
-    setSubmitting(true);
-    setSubmitError(null);
-    applyConsultation({
-      boothId: vehicle.boothId,
-      vehicleId: vehicle.vehicleId,
-      wantsPurchase,
-      wantsTestDrive,
-      preferredDate: preferredDate(),
-      preferredTime: selectedTime,
-      message: buildMessage(),
-    })
-      .then(() => {
-        const dateLabel = `${viewYear}년 ${viewMonth + 1}월 ${selectedDay}일(${WEEKDAYS[new Date(viewYear, viewMonth, selectedDay).getDay()]})`;
-        setComplete({
-          vehicleName: vehicle.name,
-          schedule: `${dateLabel} ${selectedTime}`,
-          phone: form.phone,
-          email: form.email,
-        });
-      })
-      .catch((err) =>
-        setSubmitError(err.response?.data?.error?.message ?? '상담 신청에 실패했습니다.')
-      )
-      .finally(() => setSubmitting(false));
-  };
 
   return (
     <div className="c-vehicle-detail">
@@ -248,157 +115,7 @@ function VehicleDetail() {
                 : <p>등록된 컬러 정보가 없습니다.</p>)}
           </section>
         </div>
-
-        <aside className="c-vehicle-detail__side">
-          <form className="c-consult" onSubmit={handleSubmit}>
-            <h2>상담 신청</h2>
-            <p className="c-consult__desc">전문 상담사가 친절하게 상담해드립니다.</p>
-
-            <div className="c-consult__field">
-              <span>상담 유형 * (최소 1개 선택)</span>
-              <div className="c-consult__slots">
-                <button
-                  type="button"
-                  className={wantsPurchase ? 'is-selected' : ''}
-                  onClick={() => {
-                    setWantsPurchase((v) => !v);
-                    clearFieldError('consultType');
-                  }}
-                >
-                  구매 상담
-                </button>
-                <button
-                  type="button"
-                  className={wantsTestDrive ? 'is-selected' : ''}
-                  onClick={() => {
-                    setWantsTestDrive((v) => !v);
-                    clearFieldError('consultType');
-                  }}
-                >
-                  시승 상담
-                </button>
-              </div>
-              {fieldErrors.consultType && <span className="c-consult__error">{fieldErrors.consultType}</span>}
-            </div>
-
-            <label className="c-consult__field">
-              <span>이름 *</span>
-              <input
-                className={fieldErrors.name ? 'c-consult__input--invalid' : ''}
-                placeholder="이름을 입력하세요."
-                value={form.name}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, name: e.target.value }));
-                  clearFieldError('name');
-                }}
-              />
-              {fieldErrors.name && <span className="c-consult__error">{fieldErrors.name}</span>}
-            </label>
-            <label className="c-consult__field">
-              <span>전화번호 *</span>
-              <input
-                className={fieldErrors.phone ? 'c-consult__input--invalid' : ''}
-                placeholder="010-1234-5678"
-                value={form.phone}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, phone: e.target.value }));
-                  clearFieldError('phone');
-                }}
-              />
-              {fieldErrors.phone && <span className="c-consult__error">{fieldErrors.phone}</span>}
-            </label>
-            <label className="c-consult__field">
-              <span>이메일 *</span>
-              <input
-                type="email"
-                className={fieldErrors.email ? 'c-consult__input--invalid' : ''}
-                placeholder="example@domain.com"
-                value={form.email}
-                onChange={(e) => {
-                  setForm((f) => ({ ...f, email: e.target.value }));
-                  clearFieldError('email');
-                }}
-              />
-              {fieldErrors.email && <span className="c-consult__error">{fieldErrors.email}</span>}
-            </label>
-
-            <div className="c-consult__field">
-              <span>상담 희망 날짜 *</span>
-              {ticketDates.size > 0 && (
-                <p className="c-consult__calendar-legend">
-                  <span className="c-consult__legend-dot" /> 보유한 입장권 날짜입니다. 입장권이 없는 날짜는 상담 신청이 불가합니다.
-                </p>
-              )}
-              <div className="c-consult__calendar">
-                <div className="c-consult__calendar-head">
-                  <button type="button" onClick={goToPrevMonth} aria-label="이전 달">&lt;</button>
-                  <strong>{viewYear}년 {viewMonth + 1}월</strong>
-                  <button type="button" onClick={goToNextMonth} aria-label="다음 달">&gt;</button>
-                </div>
-                <div className="c-consult__calendar-weekdays">
-                  {WEEKDAYS.map((w) => (
-                    <span key={w}>{w}</span>
-                  ))}
-                </div>
-                <div className="c-consult__calendar-grid">
-                  {calendarCells.map((d, i) => {
-                    const hasTicket = d && ticketDates.has(toIsoDate(viewYear, viewMonth, d));
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        disabled={!d}
-                        className={[d && d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
-                        onClick={() => {
-                          if (!d) return;
-                          setSelectedDay(d);
-                          clearFieldError('date');
-                        }}
-                      >
-                        {d ?? ''}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {fieldErrors.date && <span className="c-consult__error">{fieldErrors.date}</span>}
-            </div>
-
-            <div className="c-consult__field">
-              <span>상담 희망 시간 *</span>
-              <div className="c-consult__slots">
-                {CONSULTATION_TIME_SLOTS.map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    className={t === selectedTime ? 'is-selected' : ''}
-                    onClick={() => setSelectedTime(t)}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="c-consult__field">
-              <span>요청사항</span>
-              <input
-                placeholder="문의하고 싶은 내용을 입력하세요. (선택)"
-                value={form.message}
-                onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-              />
-            </label>
-
-            {submitError && <p className="c-consult__error">{submitError}</p>}
-
-            <button type="submit" className="c-consult__submit" disabled={submitting}>
-              {submitting ? '신청 중...' : '상담 신청하기'}
-            </button>
-          </form>
-        </aside>
       </div>
-
-      {complete && <ConsultationCompleteModal summary={complete} onClose={() => setComplete(null)} />}
     </div>
   );
 }
