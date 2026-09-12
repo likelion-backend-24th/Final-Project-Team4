@@ -6,6 +6,7 @@ import com.team4.common.jwt.JwtProvider;
 import com.team4.identity.auth.dto.TokenResponse;
 import com.team4.identity.security.jwt.CookieProvider;
 import com.team4.identity.user.domain.User;
+import com.team4.identity.user.domain.UserStatus;
 import com.team4.identity.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +33,10 @@ public class SignInService {
     public TokenResponse signIn(String email, String rawPassword, HttpServletResponse response) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다."));
         verifyPassword(rawPassword, user, "이메일 또는 비밀번호가 올바르지 않습니다.");
+
+        if (user.getStatus() == UserStatus.WITHDRAWN) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "탈퇴한 계정입니다.");
+        }
 
         return issue(user, response);
     }
@@ -64,6 +69,15 @@ public class SignInService {
         try {
             refreshTokenStore.delete(parseUserId(refreshToken));
         } catch (CustomException ignored) {}
+    }
+
+    // 회원 탈퇴 (soft delete)
+    public void withdrawUser(Long userId, HttpServletResponse response){
+        User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
+
+        user.withdraw();
+        refreshTokenStore.delete(userId);
+        addCookie(response, cookieProvider.clearCookie("refreshToken").toString());
     }
 
     private void verifyPassword(String rawPassword, User user, String message) {

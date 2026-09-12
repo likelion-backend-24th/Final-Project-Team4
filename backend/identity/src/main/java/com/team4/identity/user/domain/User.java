@@ -113,6 +113,11 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    // 회원 탈퇴(soft delete)
+    public void withdraw() {
+        this.status = UserStatus.WITHDRAWN;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
