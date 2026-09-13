@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
 import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
-import { clearAuth } from "../api/auth";
+import { clearAuth, notifyProfileUpdated } from "../api/auth";
 import "../components/customer/Modal.css";
 import "../components/customer/EntryFlowModal.css";
 import "./MyPage.css";
@@ -230,6 +230,7 @@ function MyPage() {
     try {
       const updated = await updateExhibitorProfile(editForm);
       setProfile(updated);
+      notifyProfileUpdated();
       setShowEditModal(false);
     } catch (err) {
       setSaveError(err.response?.data?.error?.message ?? "정보 수정 중 오류가 발생했습니다.");

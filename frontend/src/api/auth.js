@@ -36,3 +36,11 @@ const subscribe = (fn) => {
 };
 export const useIsLoggedIn = () =>
   useSyncExternalStore(subscribe, () => Boolean(localStorage.getItem(ROLE_KEY)));
+
+// 마이페이지에서 내 정보(이름 등)를 수정했을 때 헤더가 다시 조회하도록 알리는 용도
+let profileVersion = 0;
+export const notifyProfileUpdated = () => {
+  profileVersion++;
+  notify();
+};
+export const useProfileVersion = () => useSyncExternalStore(subscribe, () => profileVersion);

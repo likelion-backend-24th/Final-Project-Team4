@@ -5,7 +5,7 @@ import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
-import { clearAuth } from '../../api/auth';
+import { clearAuth, notifyProfileUpdated } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
@@ -166,6 +166,7 @@ function CustomerMyPage() {
     try {
       const updated = await updateMyProfile(editForm);
       setProfile(updated);
+      notifyProfileUpdated();
       setShowEditModal(false);
     } catch (err) {
       setSaveError(err.response?.data?.error?.message ?? '정보 수정 중 오류가 발생했습니다.');
