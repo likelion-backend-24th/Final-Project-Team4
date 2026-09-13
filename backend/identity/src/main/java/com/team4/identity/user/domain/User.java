@@ -118,6 +118,38 @@ public class User {
         this.status = UserStatus.WITHDRAWN;
     }
 
+    public void changeName(String name) {
+        this.name = name;
+    }
+
+    public void changeContact(String contact) {
+        this.contact = contact;
+    }
+
+    public void changeCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public void changeManagerName(String managerName) {
+        this.managerName = managerName;
+    }
+
+    public void changeCompanyContact(String companyContact) {
+        this.companyContact = companyContact;
+    }
+
+    public void changeCompanyAddress(String companyAddress) {
+        this.companyAddress = companyAddress;
+    }
+
+    public void changeIndustry(String industry) {
+        this.industry = industry;
+    }
+
+    public void changeRepresentativeName(String representativeName) {
+        this.representativeName = representativeName;
+    }
+
     @PrePersist
     void onCreate() {
         LocalDateTime now = LocalDateTime.now();
