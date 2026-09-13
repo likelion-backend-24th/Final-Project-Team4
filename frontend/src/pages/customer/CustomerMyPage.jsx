@@ -575,6 +575,7 @@ function CustomerMyPage() {
             </button>
           </div>
         </div>
+      )}
       {selectedConsultation && (
         <ConsultationDetailModal
           consultation={selectedConsultation}
