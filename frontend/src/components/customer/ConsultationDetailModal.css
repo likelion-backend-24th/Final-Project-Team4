@@ -1,0 +1,114 @@
+.c-consult-detail {
+  box-sizing: border-box;
+  width: 460px;
+  max-width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  position: relative;
+  font-family: 'Inter', sans-serif;
+}
+
+.c-consult-detail__status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: #f1f5f9;
+  color: #475569;
+  margin-bottom: 10px;
+}
+
+.c-consult-detail__status--requested { background: #fef9c3; color: #854d0e; }
+.c-consult-detail__status--approved { background: #dcfce7; color: #166534; }
+.c-consult-detail__status--rejected,
+.c-consult-detail__status--canceled,
+.c-consult-detail__status--no_show { background: #fee2e2; color: #991b1b; }
+.c-consult-detail__status--completed { background: #dbeafe; color: #1d4ed8; }
+
+.c-consult-detail h2 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.c-consult-detail__sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 4px 0 20px;
+}
+
+.c-consult-detail .c-modal__info-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.c-consult-detail .c-modal__info-row:last-child {
+  border-bottom: none;
+}
+
+.c-consult-detail__block {
+  margin-top: 14px;
+}
+
+.c-consult-detail__block-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.c-consult-detail__block-text {
+  margin: 0;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #334155;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+.c-consult-detail__notice {
+  font-size: 13px;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.c-consult-detail__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.c-consult-detail__actions .c-bulk-consult__back,
+.c-consult-detail__actions .c-consult__submit {
+  flex: 1;
+}
+
+.c-consult-detail__cancel-btn {
+  flex: 1;
+  box-sizing: border-box;
+  padding: 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.c-consult-detail__cancel-btn:hover {
+  background: #fef2f2;
+}

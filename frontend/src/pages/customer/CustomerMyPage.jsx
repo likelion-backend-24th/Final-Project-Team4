@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
+import ConsultationDetailModal from '../../components/customer/ConsultationDetailModal';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
@@ -29,13 +30,30 @@ const TICKET_FILTERS = [
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '');
 
-const CONSULTATION_STATUS_LABEL = { REQUESTED: '대기', APPROVED: '승인', REJECTED: '반려' };
-const CONSULTATION_STATUS_BADGE = { REQUESTED: 'is-pending', APPROVED: 'is-approved', REJECTED: 'is-rejected' };
+const CONSULTATION_STATUS_LABEL = {
+  REQUESTED: '대기',
+  APPROVED: '승인',
+  REJECTED: '반려',
+  CANCELED: '취소함',
+  COMPLETED: '상담 완료',
+  NO_SHOW: '미방문',
+};
+const CONSULTATION_STATUS_BADGE = {
+  REQUESTED: 'is-pending',
+  APPROVED: 'is-approved',
+  REJECTED: 'is-rejected',
+  CANCELED: 'is-rejected',
+  COMPLETED: 'is-approved',
+  NO_SHOW: 'is-rejected',
+};
 const CONSULTATION_FILTERS = [
   { key: '전체', label: '전체' },
   { key: '대기', label: '대기' },
   { key: '승인', label: '승인' },
   { key: '반려', label: '반려' },
+  { key: '취소함', label: '취소함' },
+  { key: '상담 완료', label: '상담 완료' },
+  { key: '미방문', label: '미방문' },
 ];
 const consultationTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
@@ -54,6 +72,7 @@ function CustomerMyPage() {
   const [consultations, setConsultations] = useState([]);
   const [consultLoading, setConsultLoading] = useState(true);
   const [consultError, setConsultError] = useState(null);
+  const [selectedConsultation, setSelectedConsultation] = useState(null);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
@@ -91,7 +110,7 @@ function CustomerMyPage() {
       );
   }, []);
 
-  useEffect(() => {
+  const loadConsultations = () =>
     getMyConsultations()
       .then((data) => {
         setConsultations(data);
@@ -101,6 +120,9 @@ function CustomerMyPage() {
         setConsultError(err.response?.data?.error?.message ?? '상담 신청 내역을 불러오지 못했습니다.')
       )
       .finally(() => setConsultLoading(false));
+
+  useEffect(() => {
+    loadConsultations();
   }, []);
 
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
@@ -196,6 +218,9 @@ function CustomerMyPage() {
     대기: consultationsWithLabel.filter((c) => c._statusLabel === '대기').length,
     승인: consultationsWithLabel.filter((c) => c._statusLabel === '승인').length,
     반려: consultationsWithLabel.filter((c) => c._statusLabel === '반려').length,
+    취소함: consultationsWithLabel.filter((c) => c._statusLabel === '취소함').length,
+    '상담 완료': consultationsWithLabel.filter((c) => c._statusLabel === '상담 완료').length,
+    미방문: consultationsWithLabel.filter((c) => c._statusLabel === '미방문').length,
   };
 
   return (
@@ -397,13 +422,15 @@ function CustomerMyPage() {
               ) : (
               <div className="c-ticket-grid">
                 {filteredConsultations.map((c) => (
-                  <div
+                  <button
+                    type="button"
                     key={c.consultationId}
-                    className={`c-ticket-card ${c.status === 'REJECTED' ? 'c-ticket-card--rejected' : ''}`}
+                    className={`c-ticket-card c-consult-card ${c.status === 'REJECTED' ? 'c-ticket-card--rejected' : ''}`}
+                    onClick={() => setSelectedConsultation(c)}
                   >
                     <div className="c-ticket-card__head">
                       <div>
-                        <h3>{c.interestedVehicle || '관심 차종 미입력'}</h3>
+                        <h3>{c.interestedVehicle || '차량 정보 없음'}</h3>
                         <p className="c-ticket-card__submeta">
                           {c.expoTitle}
                           {c.boothNo && ` · ${c.boothNo} 부스`}
@@ -419,15 +446,10 @@ function CustomerMyPage() {
                       희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}
                     </p>
                     <p className="c-ticket-card__meta">신청일 {fmtDateTime(c.createdAt)}</p>
-                    {c.message && (
-                      <p className="c-ticket-card__meta" style={{ whiteSpace: 'pre-line' }}>
-                        {c.message}
-                      </p>
-                    )}
-                    {c.status === 'REJECTED' && c.rejectReason && (
-                      <p className="c-ticket-card__reject-reason">반려 사유: {c.rejectReason}</p>
-                    )}
-                  </div>
+                    <p className="c-ticket-card__meta">이름: {c.customerName ?? '-'}</p>
+                    <p className="c-ticket-card__meta">연락처: {c.customerPhone ?? '-'}</p>
+                    <p className="c-ticket-card__meta">이메일: {c.customerEmail ?? '-'}</p>
+                  </button>
                 ))}
               </div>
               )}
@@ -553,6 +575,12 @@ function CustomerMyPage() {
             </button>
           </div>
         </div>
+      {selectedConsultation && (
+        <ConsultationDetailModal
+          consultation={selectedConsultation}
+          onClose={() => setSelectedConsultation(null)}
+          onChanged={loadConsultations}
+        />
       )}
     </div>
   );

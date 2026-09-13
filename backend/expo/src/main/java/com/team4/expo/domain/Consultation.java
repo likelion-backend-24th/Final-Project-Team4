@@ -40,6 +40,9 @@ public class Consultation {
     @Column(length = 1000)
     private String message;
 
+    @Column(length = 1000)
+    private String aiSummary;
+
     @Enumerated(EnumType.STRING)
     private ConsultationStatus status;
 
@@ -70,6 +73,11 @@ public class Consultation {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // ConsultationService.applyConsultation()에서 Gemini 요약 응답을 받은 뒤 붙인다. 실패 시 null로 남는다(부가 기능).
+    public void attachAiSummary(String aiSummary) {
+        this.aiSummary = aiSummary;
+    }
+
     // ConsultationReviewService.approveConsultation()에서 호출. REQUESTED -> APPROVED(서비스 레이어에서 상태 검증).
     public void approve() {
         this.status = ConsultationStatus.APPROVED;
@@ -80,6 +88,40 @@ public class Consultation {
     public void reject(String reason) {
         this.status = ConsultationStatus.REJECTED;
         this.rejectReason = reason;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ConsultationService.cancelConsultation()에서 호출. REQUESTED -> CANCELED(서비스 레이어에서 상태 검증).
+    public void cancel() {
+        this.status = ConsultationStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ConsultationReviewService.completeConsultation()에서 호출. APPROVED -> COMPLETED(서비스 레이어에서 상태·날짜 검증).
+    public void complete() {
+        this.status = ConsultationStatus.COMPLETED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ConsultationReviewService.markNoShow()에서 호출. APPROVED -> NO_SHOW(서비스 레이어에서 상태·날짜 검증).
+    public void markNoShow() {
+        this.status = ConsultationStatus.NO_SHOW;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // ConsultationService.updateConsultation()에서 호출. REQUESTED 상태에서만 내용 수정 가능(서비스 레이어에서 검증).
+    // 수정 후에는 기존 AI 요약이 더 이상 내용과 맞지 않으므로 서비스가 다시 붙여준다.
+    public void updateDetails(boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,
+                               boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
+                               String message) {
+        this.wantsPurchase = wantsPurchase;
+        this.wantsTestDrive = wantsTestDrive;
+        this.interestedVehicle = interestedVehicle;
+        this.hasDriverLicense = hasDriverLicense;
+        this.preferredDate = preferredDate;
+        this.preferredTime = preferredTime;
+        this.message = message;
+        this.aiSummary = null;
         this.updatedAt = LocalDateTime.now();
     }
 }

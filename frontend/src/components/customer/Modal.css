@@ -186,6 +186,7 @@
 
 .c-modal__info-row dt {
   color: #64748b;
+  flex-shrink: 0;
 }
 
 .c-modal__info-row dd {
@@ -193,4 +194,7 @@
   color: #0f172a;
   font-weight: 600;
   text-align: right;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
 }

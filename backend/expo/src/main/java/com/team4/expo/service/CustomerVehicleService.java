@@ -2,7 +2,11 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.ExhibitorProfile;
+import com.team4.expo.client.IdentityClient;
+import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
+import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
@@ -10,12 +14,14 @@ import com.team4.expo.domain.Post;
 import com.team4.expo.domain.Vehicle;
 import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.VehicleResponse;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import com.team4.expo.repository.PostRepository;
 import com.team4.expo.repository.VehicleImageRepository;
 import com.team4.expo.repository.VehicleRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,15 +36,21 @@ public class CustomerVehicleService {
     private final PostRepository postRepository;
     private final VehicleRepository vehicleRepository;
     private final VehicleImageRepository vehicleImageRepository;
+    private final BoothApplicationRepository boothApplicationRepository;
+    private final IdentityClient identityClient;
 
     public CustomerVehicleService(ExpoRepository expoRepository, BoothRepository boothRepository,
                                    PostRepository postRepository, VehicleRepository vehicleRepository,
-                                   VehicleImageRepository vehicleImageRepository) {
+                                   VehicleImageRepository vehicleImageRepository,
+                                   BoothApplicationRepository boothApplicationRepository,
+                                   IdentityClient identityClient) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.postRepository = postRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehicleImageRepository = vehicleImageRepository;
+        this.boothApplicationRepository = boothApplicationRepository;
+        this.identityClient = identityClient;
     }
 
     public List<CustomerBoothVehiclesResponse> getExpoVehicles(Long expoId) {
@@ -60,7 +72,16 @@ public class CustomerVehicleService {
                 .map(this::toVehicleResponse)
                 .collect(Collectors.toList());
 
-        return CustomerBoothVehiclesResponse.of(booth, post, vehicles);
+        return CustomerBoothVehiclesResponse.of(booth, post, companyNameOf(booth), vehicles);
+    }
+
+    // post(부스 소개 콘텐츠)를 아직 등록하지 않은 업체를 위한 제목 대체용. 실패해도 null로 넘어가 boothNo 폴백을 쓴다.
+    private String companyNameOf(Booth booth) {
+        return boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED)
+                .map(BoothApplication::getExhibitorId)
+                .flatMap(identityClient::getExhibitorProfile)
+                .map(ExhibitorProfile::companyName)
+                .orElse(null);
     }
 
     private VehicleResponse toVehicleResponse(Vehicle vehicle) {

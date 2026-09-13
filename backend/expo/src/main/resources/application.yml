@@ -46,3 +46,8 @@ reservation:
 identity:
   base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
   service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}
+
+# 상담 신청 접수 시 참가업체가 보기 쉽게 요청 내용을 요약(Gemini). 키가 없으면 요약 없이(null) 정상 동작 - 필수 기능 아님.
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
