@@ -4,6 +4,17 @@ import apiClient from "./client";
 export const getMyProfile = () =>
   apiClient.get("/api/auth/me").then((res) => res.data.data);
 
+// DELETE /api/auth/me - 회원 탈퇴(soft delete)
+export const withdrawAccount = () => apiClient.delete("/api/auth/me");
+
+// PATCH /api/auth/me - 일반회원 정보 수정 (이름/휴대폰 번호)
+export const updateMyProfile = (data) =>
+  apiClient.patch("/api/auth/me", data).then((res) => res.data.data);
+
+// PATCH /api/auth/exhibitors/me - 참가업체 정보 수정
+export const updateExhibitorProfile = (data) =>
+  apiClient.patch("/api/auth/exhibitors/me", data).then((res) => res.data.data);
+
 // POST /api/auth/password-reset - 재설정 링크 발송 요청
 export const requestPasswordReset = (email) =>
   apiClient.post("/api/auth/password-reset", { email }, { skipAuthRefresh: true });

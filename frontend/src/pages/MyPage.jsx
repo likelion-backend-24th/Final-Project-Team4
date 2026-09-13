@@ -2,7 +2,10 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
-import { getMyProfile } from "../api/identity";
+import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
+import { clearAuth, notifyProfileUpdated } from "../api/auth";
+import "../components/customer/Modal.css";
+import "../components/customer/EntryFlowModal.css";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -195,6 +198,61 @@ function MyPage() {
       .sort((a, b) => b.sortKey - a.sortKey);
   }, [applicationGroups]);
 
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState(null);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  const openEditModal = () => {
+    setEditForm({
+      managerName: profile.managerName ?? "",
+      contact: profile.contact ?? "",
+      companyName: profile.companyName ?? "",
+      representativeName: profile.representativeName ?? "",
+      industry: profile.industry ?? "",
+      companyContact: profile.companyContact ?? "",
+      companyAddress: profile.companyAddress ?? "",
+    });
+    setSaveError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditField = (field) => (e) =>
+    setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateExhibitorProfile(editForm);
+      setProfile(updated);
+      notifyProfileUpdated();
+      setShowEditModal(false);
+    } catch (err) {
+      setSaveError(err.response?.data?.error?.message ?? "정보 수정 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    setWithdrawing(true);
+    setWithdrawError(null);
+    try {
+      await withdrawAccount();
+    } catch (err) {
+      setWithdrawError(err.response?.data?.error?.message ?? "탈퇴 처리 중 오류가 발생했습니다.");
+      setWithdrawing(false);
+      return;
+    }
+    clearAuth();
+    navigate("/login");
+  };
+
   const facilityLabel = (app) => {
     const facilities = [];
     if (app.powerRequested) facilities.push("전기");
@@ -209,7 +267,7 @@ function MyPage() {
         <section className="mypage__card">
           <div className="mypage__card-header">
             <h2>업체 및 담당자 정보</h2>
-            <button type="button" className="mypage__edit-btn">
+            <button type="button" className="mypage__edit-btn" onClick={openEditModal} disabled={!profile}>
               정보 수정
             </button>
           </div>
@@ -219,51 +277,94 @@ function MyPage() {
             <p className="mypage__cell-muted">불러오는 중...</p>
           )}
           {profile && (
-            <div className="mypage__profile-grid">
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">업체명</span>
-                  <span className="mypage__profile-value">
-                    {profile.companyName ?? "-"}
-                  </span>
+            <>
+              <h3 className="mypage__profile-subtitle">회원정보 (담당자)</h3>
+              <div className="mypage__profile-grid">
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">담당자명</span>
+                    <span className="mypage__profile-value">
+                      {profile.managerName ?? "-"}
+                    </span>
+                  </div>
                 </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">사업자등록번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.businessNo ?? "-"}
-                  </span>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">이메일 주소</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.email ?? "-"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">담당자명</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.managerName ?? "-"}
-                  </span>
-                </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">이메일 주소</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.email ?? "-"}
-                  </span>
-                </div>
-              </div>
-              <div className="mypage__profile-col">
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">휴대폰 번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.contact ?? "-"}
-                  </span>
-                </div>
-                <div className="mypage__profile-row">
-                  <span className="mypage__profile-label">대표 전화번호</span>
-                  <span className="mypage__profile-value mypage__profile-value--regular">
-                    {profile.companyContact ?? "-"}
-                  </span>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">휴대폰 번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.contact ?? "-"}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              <div className="mypage__divider" />
+
+              <h3 className="mypage__profile-subtitle">업체정보</h3>
+              <div className="mypage__profile-grid">
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업체명</span>
+                    <span className="mypage__profile-value">
+                      {profile.companyName ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">사업자등록번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.businessNo ?? "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">대표자명</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.representativeName ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업종</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.industry ?? "-"}
+                    </span>
+                  </div>
+                </div>
+                <div className="mypage__profile-col">
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">대표 전화번호</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.companyContact ?? "-"}
+                    </span>
+                  </div>
+                  <div className="mypage__profile-row">
+                    <span className="mypage__profile-label">업체주소</span>
+                    <span className="mypage__profile-value mypage__profile-value--regular">
+                      {profile.companyAddress ?? "-"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
+          <button
+            type="button"
+            className="mypage__withdraw"
+            onClick={() => {
+              setWithdrawError(null);
+              setShowWithdrawModal(true);
+            }}
+          >
+            회원 탈퇴
+          </button>
         </section>
 
         <section className="mypage__card">
@@ -473,6 +574,113 @@ function MyPage() {
           수 있습니다.
         </p>
       </section>
+
+      {showEditModal && (
+        <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>
+          <div className="c-modal" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>정보 수정</h2>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>담당자명</span>
+                <input value={editForm.managerName} onChange={handleEditField("managerName")} />
+              </label>
+              <label className="ef-field">
+                <span>휴대폰 번호</span>
+                <input value={editForm.contact} onChange={handleEditField("contact")} />
+              </label>
+            </div>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>업체명</span>
+                <input value={editForm.companyName} onChange={handleEditField("companyName")} />
+              </label>
+              <label className="ef-field">
+                <span>대표자명</span>
+                <input value={editForm.representativeName} onChange={handleEditField("representativeName")} />
+              </label>
+            </div>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>업종</span>
+                <input value={editForm.industry} onChange={handleEditField("industry")} />
+              </label>
+              <label className="ef-field">
+                <span>대표 전화번호</span>
+                <input value={editForm.companyContact} onChange={handleEditField("companyContact")} />
+              </label>
+            </div>
+            <label className="ef-field">
+              <span>업체주소</span>
+              <input value={editForm.companyAddress} onChange={handleEditField("companyAddress")} />
+            </label>
+            {saveError && <p className="c-modal__error">{saveError}</p>}
+            <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? "저장 중..." : "저장"}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showWithdrawModal && (
+        <div
+          className="c-modal__backdrop"
+          onClick={() => !withdrawing && setShowWithdrawModal(false)}
+        >
+          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>회원 탈퇴</h2>
+            <p className="c-modal__desc">
+              탈퇴 시 모든 서비스 이용이 제한되며,
+              <br />
+              가입하신 이메일로는 다시 가입할 수 없습니다. 
+              <br />
+              정말 탈퇴하시겠습니까?
+            </p>
+            {withdrawError && <p className="c-modal__error">{withdrawError}</p>}
+            <button
+              type="button"
+              className="c-modal__primary c-modal__primary--danger"
+              onClick={handleWithdraw}
+              disabled={withdrawing}
+            >
+              {withdrawing ? "처리 중..." : "탈퇴하기"}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowWithdrawModal(false)}
+              disabled={withdrawing}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

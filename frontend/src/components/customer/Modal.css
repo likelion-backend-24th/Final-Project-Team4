@@ -98,6 +98,18 @@
   cursor: not-allowed;
 }
 
+.c-modal__primary--danger {
+  background: #ef4444;
+}
+
+.c-modal__primary--danger:hover {
+  background: #dc2626;
+}
+
+.c-modal__primary--danger:disabled {
+  background: #fca5a5;
+}
+
 .c-modal__secondary {
   background: #fff;
   border: 1px solid #e2e8f0;
