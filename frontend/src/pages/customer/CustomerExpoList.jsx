@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
-import { getCustomerExpoList } from '../../api/expo';
+import { getCustomerExpoList, searchVehicles } from '../../api/expo';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import './CustomerExpoList.css';
 
@@ -45,6 +46,31 @@ function CustomerExpoList() {
   const [page, setPage] = useState(1);
   const [checkinExpo, setCheckinExpo] = useState(null);
 
+  // AI 자연어 차량 검색 - 위 keyword(박람회명 필터)와 별개. 현재 노출 중인 박람회 전체의 차량이 대상.
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [aiResult, setAiResult] = useState(null); // { results, interpretedSummary } | null(검색 전)
+
+  const handleAiSearch = (e) => {
+    e.preventDefault();
+    if (!aiQuery.trim() || aiSearching) return;
+    setAiSearching(true);
+    setAiError(null);
+    searchVehicles(aiQuery.trim())
+      .then((res) => setAiResult(res))
+      .catch((err) =>
+        setAiError(err.response?.data?.error?.message ?? '검색 중 오류가 발생했습니다.'),
+      )
+      .finally(() => setAiSearching(false));
+  };
+
+  const clearAiSearch = () => {
+    setAiQuery('');
+    setAiResult(null);
+    setAiError(null);
+  };
+
   useEffect(() => {
     getCustomerExpoList({ page: 0, size: 50 })
       .then((res) => setExpos(res.content.map(toCard)))
@@ -80,96 +106,147 @@ function CustomerExpoList() {
         <p className="c-expo-list__eyebrow">EXHIBITION MANAGEMENT PORTAL</p>
         <h1>박람회 목록</h1>
         <p>다양한 모빌리티 박람회를 확인하고, 관심 있는 박람회를 선택해 보세요.</p>
+
+        <form className="c-ai-search" onSubmit={handleAiSearch}>
+          <span className="c-ai-search__icon" aria-hidden="true" />
+          <input
+            className="c-ai-search__input"
+            placeholder='어떤 차량을 찾으세요? 예: "3000만원대 가솔린 SUV", "가족끼리 타기 좋은 차"'
+            value={aiQuery}
+            onChange={(e) => setAiQuery(e.target.value)}
+          />
+          <button type="submit" className="c-ai-search__submit" disabled={aiSearching}>
+            {aiSearching ? '검색 중...' : 'AI 검색'}
+          </button>
+          {aiResult && (
+            <button type="button" className="c-ai-search__clear" onClick={clearAiSearch}>
+              검색 지우기
+            </button>
+          )}
+        </form>
       </section>
 
-      <div className="c-expo-list__toolbar">
-        <div className="c-expo-list__filters">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              className={f === filter ? 'is-active' : ''}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-        <div className="c-expo-list__search-wrap">
-          <span className="c-expo-list__search-icon" />
-          <input
-            className="c-expo-list__search"
-            placeholder="박람회명 또는 지역을 검색하세요."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="c-expo-list__grid-wrap">
-        {loadError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{loadError}</p>}
-        {!loadError && filtered.length === 0 && (
-          <p style={{ color: '#64748b', marginBottom: '1rem' }}>표시할 박람회가 없습니다.</p>
-        )}
-        <div className="c-expo-list__grid">
-          {paginated.map((e, i) => (
-            <div key={e.expoId} className="c-expo-card">
-              <div
-                className="c-expo-card__thumb"
-                style={{ background: CUSTOMER_EXPO_GRADIENTS[i % CUSTOMER_EXPO_GRADIENTS.length] }}
-              />
-              <div className="c-expo-card__body">
-                <div className="c-expo-card__meta">
-                  <span
-                    className={`c-expo-card__badge ${
-                      e.phase === '진행중' ? 'c-expo-card__badge--live' : ''
-                    }`}
-                  >
-                    {e.phase}
-                  </span>
-                </div>
-                <h3>{e.title}</h3>
-                <div className="c-expo-card__meta-list">
-                  <p>
-                    <span className="c-expo-card__icon c-expo-card__icon--calendar" />
-                    {fmtDate(e.startsAt)} - {fmtDate(e.endsAt)}
-                  </p>
-                  <p>
-                    <span className="c-expo-card__icon c-expo-card__icon--pin" />
-                    {e.venue}
-                  </p>
-                </div>
-                 <button
-                  type="button"
-                  className="c-expo-card__cta"
-                  disabled={e.phase === '종료'}
-                  onClick={() => setCheckinExpo(e)}
+      {aiResult ? (
+        <div className="c-expo-list__grid-wrap">
+          {aiError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{aiError}</p>}
+          {aiResult.interpretedSummary && (
+            <p className="c-ai-search__summary">👾 {aiResult.interpretedSummary}</p>
+          )}
+          {aiResult.results.length === 0 ? (
+            <p style={{ color: '#64748b' }}>조건에 맞는 차량을 찾지 못했어요. 다른 표현으로 검색해보세요.</p>
+          ) : (
+            <div className="c-ai-search__grid">
+              {aiResult.results.map(({ expoId, expoTitle, boothId, boothNo, companyName, vehicle }) => (
+                <Link
+                  key={vehicle.vehicleId}
+                  to={`/customer/expos/${expoId}/vehicles/${vehicle.vehicleId}`}
+                  className="c-ai-result-card"
                 >
-                  {e.phase === '종료' ? '종료' : '선택하기'}
+                  <h3>{vehicle.name}</h3>
+                  <p className="c-ai-result-card__meta">
+                    {expoTitle} · {companyName ?? `${boothNo} 부스`}
+                  </p>
+                  {vehicle.startPrice != null && (
+                    <p className="c-ai-result-card__price">{vehicle.startPrice.toLocaleString()}원~</p>
+                  )}
+                  {vehicle.summary && <p className="c-ai-result-card__summary">{vehicle.summary}</p>}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="c-expo-list__toolbar">
+            <div className="c-expo-list__filters">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={f === filter ? 'is-active' : ''}
+                  onClick={() => setFilter(f)}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <div className="c-expo-list__search-wrap">
+              <span className="c-expo-list__search-icon" />
+              <input
+                className="c-expo-list__search"
+                placeholder="박람회명 또는 지역을 검색하세요."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="c-expo-list__grid-wrap">
+            {loadError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{loadError}</p>}
+            {!loadError && filtered.length === 0 && (
+              <p style={{ color: '#64748b', marginBottom: '1rem' }}>표시할 박람회가 없습니다.</p>
+            )}
+            <div className="c-expo-list__grid">
+              {paginated.map((e, i) => (
+                <div key={e.expoId} className="c-expo-card">
+                  <div
+                    className="c-expo-card__thumb"
+                    style={{ background: CUSTOMER_EXPO_GRADIENTS[i % CUSTOMER_EXPO_GRADIENTS.length] }}
+                  />
+                  <div className="c-expo-card__body">
+                    <div className="c-expo-card__meta">
+                      <span
+                        className={`c-expo-card__badge ${
+                          e.phase === '진행중' ? 'c-expo-card__badge--live' : ''
+                        }`}
+                      >
+                        {e.phase}
+                      </span>
+                    </div>
+                    <h3>{e.title}</h3>
+                    <div className="c-expo-card__meta-list">
+                      <p>
+                        <span className="c-expo-card__icon c-expo-card__icon--calendar" />
+                        {fmtDate(e.startsAt)} - {fmtDate(e.endsAt)}
+                      </p>
+                      <p>
+                        <span className="c-expo-card__icon c-expo-card__icon--pin" />
+                        {e.venue}
+                      </p>
+                    </div>
+                     <button
+                      type="button"
+                      className="c-expo-card__cta"
+                      disabled={e.phase === '종료'}
+                      onClick={() => setCheckinExpo(e)}
+                    >
+                      {e.phase === '종료' ? '종료' : '선택하기'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="c-expo-list__pagination">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
+                    {p}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  aria-label="다음"
+                  disabled={page === totalPages}
+                >
+                  &gt;
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {totalPages > 1 && (
-          <div className="c-expo-list__pagination">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              aria-label="다음"
-              disabled={page === totalPages}
-            >
-              &gt;
-            </button>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {checkinExpo && (
         <EntryFlowModal expo={checkinExpo} onClose={() => setCheckinExpo(null)} />

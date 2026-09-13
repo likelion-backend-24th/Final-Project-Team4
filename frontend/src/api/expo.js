@@ -90,6 +90,11 @@ export const getCustomerExpo = (expoId) =>
 export const getCustomerExpoVehicles = (expoId) =>
   apiClient.get(`/api/customer/expos/${expoId}/vehicles`).then((res) => res.data.data);
 
+// GET /api/customer/vehicles/search - 자연어 차량 검색 (현재 OPEN인 박람회 전체 대상, 비회원 조회 가능)
+// 응답: { results: [{ expoId, expoTitle, boothId, boothNo, companyName, vehicle }], interpretedSummary }
+export const searchVehicles = (query) =>
+  apiClient.get('/api/customer/vehicles/search', { params: { query } }).then((res) => res.data.data);
+
 // GET /api/exhibitor/booths/{boothId} — 참가 확정 부스 관리 정보(부스 정보 + 콘텐츠 + 배너) 조회
 export const getBoothManageDetail = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}`).then((res) => res.data.data);
