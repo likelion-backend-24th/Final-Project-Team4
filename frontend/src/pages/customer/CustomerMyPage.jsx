@@ -4,7 +4,7 @@ import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
-import { getMyProfile, withdrawAccount } from '../../api/identity';
+import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
 import { clearAuth } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import '../../components/customer/Modal.css';
@@ -146,6 +146,34 @@ function CustomerMyPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState(null);
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  const openEditModal = () => {
+    setEditForm({ name: profile.name ?? '', contact: profile.contact ?? '' });
+    setSaveError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditField = (field) => (e) =>
+    setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateMyProfile(editForm);
+      setProfile(updated);
+      setShowEditModal(false);
+    } catch (err) {
+      setSaveError(err.response?.data?.error?.message ?? '정보 수정 중 오류가 발생했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     setWithdrawing(true);
     setWithdrawError(null);
@@ -217,6 +245,11 @@ function CustomerMyPage() {
                     <span className="c-mypage__profile-value">{profile.contact ?? '-'}</span>
                   </div>
                 </div>
+              )}
+              {profile && (
+                <button type="button" className="c-mypage__edit-btn" onClick={openEditModal}>
+                  정보 수정
+                </button>
               )}
               <button
                 type="button"
@@ -440,6 +473,43 @@ function CustomerMyPage() {
           </div>
         </div>
       )}
+      {showEditModal && (
+        <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>
+          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>정보 수정</h2>
+            <label className="ef-field">
+              <span>이름</span>
+              <input value={editForm.name} onChange={handleEditField('name')} />
+            </label>
+            <label className="ef-field">
+              <span>휴대폰 번호</span>
+              <input value={editForm.contact} onChange={handleEditField('contact')} />
+            </label>
+            {saveError && <p className="c-modal__error">{saveError}</p>}
+            <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? '저장 중...' : '저장'}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
       {showWithdrawModal && (
         <div
           className="c-modal__backdrop"

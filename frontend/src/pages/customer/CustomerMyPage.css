@@ -142,6 +142,20 @@
   color: #0f172a;
 }
 
+.c-mypage__edit-btn {
+  box-sizing: border-box;
+  display: block;
+  margin: 20px 0 0 auto;
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+}
+
 .c-mypage__withdraw {
   display: block;
   margin: 20px 0 0 auto;

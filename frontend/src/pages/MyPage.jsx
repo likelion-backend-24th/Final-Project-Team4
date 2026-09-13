@@ -2,9 +2,10 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
-import { getMyProfile, withdrawAccount } from "../api/identity";
+import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
 import { clearAuth } from "../api/auth";
 import "../components/customer/Modal.css";
+import "../components/customer/EntryFlowModal.css";
 import "./MyPage.css";
 
 const STATUS_BADGE = {
@@ -201,6 +202,42 @@ function MyPage() {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState(null);
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  const openEditModal = () => {
+    setEditForm({
+      managerName: profile.managerName ?? "",
+      contact: profile.contact ?? "",
+      companyName: profile.companyName ?? "",
+      representativeName: profile.representativeName ?? "",
+      industry: profile.industry ?? "",
+      companyContact: profile.companyContact ?? "",
+      companyAddress: profile.companyAddress ?? "",
+    });
+    setSaveError(null);
+    setShowEditModal(true);
+  };
+
+  const handleEditField = (field) => (e) =>
+    setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const updated = await updateExhibitorProfile(editForm);
+      setProfile(updated);
+      setShowEditModal(false);
+    } catch (err) {
+      setSaveError(err.response?.data?.error?.message ?? "정보 수정 중 오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleWithdraw = async () => {
     setWithdrawing(true);
     setWithdrawError(null);
@@ -229,7 +266,7 @@ function MyPage() {
         <section className="mypage__card">
           <div className="mypage__card-header">
             <h2>업체 및 담당자 정보</h2>
-            <button type="button" className="mypage__edit-btn">
+            <button type="button" className="mypage__edit-btn" onClick={openEditModal} disabled={!profile}>
               정보 수정
             </button>
           </div>
@@ -536,6 +573,69 @@ function MyPage() {
           수 있습니다.
         </p>
       </section>
+
+      {showEditModal && (
+        <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>
+          <div className="c-modal" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>정보 수정</h2>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>담당자명</span>
+                <input value={editForm.managerName} onChange={handleEditField("managerName")} />
+              </label>
+              <label className="ef-field">
+                <span>휴대폰 번호</span>
+                <input value={editForm.contact} onChange={handleEditField("contact")} />
+              </label>
+            </div>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>업체명</span>
+                <input value={editForm.companyName} onChange={handleEditField("companyName")} />
+              </label>
+              <label className="ef-field">
+                <span>대표자명</span>
+                <input value={editForm.representativeName} onChange={handleEditField("representativeName")} />
+              </label>
+            </div>
+            <div className="ef-field-row">
+              <label className="ef-field">
+                <span>업종</span>
+                <input value={editForm.industry} onChange={handleEditField("industry")} />
+              </label>
+              <label className="ef-field">
+                <span>대표 전화번호</span>
+                <input value={editForm.companyContact} onChange={handleEditField("companyContact")} />
+              </label>
+            </div>
+            <label className="ef-field">
+              <span>업체주소</span>
+              <input value={editForm.companyAddress} onChange={handleEditField("companyAddress")} />
+            </label>
+            {saveError && <p className="c-modal__error">{saveError}</p>}
+            <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? "저장 중..." : "저장"}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
 
       {showWithdrawModal && (
         <div
