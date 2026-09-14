@@ -389,6 +389,10 @@
   color: #1e3a8a;
 }
 
+.crm-ai-summary--loading p {
+  color: #64748b;
+}
+
 .crm-detail-section {
   margin-bottom: 22px;
 }
@@ -398,6 +402,28 @@
   font-weight: 800;
   color: #8a95a5;
   margin-bottom: 10px;
+}
+
+.crm-detail-title--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.crm-ai-summary-retry {
+  font-size: 10px;
+  font-weight: 700;
+  color: #6c5ce7;
+  background: #f1eefe;
+  border: none;
+  border-radius: 5px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.crm-ai-summary-retry:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .crm-detail-box {

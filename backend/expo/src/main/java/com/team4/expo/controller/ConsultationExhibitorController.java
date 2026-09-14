@@ -72,4 +72,14 @@ public class ConsultationExhibitorController {
         return ResponseEntity.ok(ApiResponse.success(
                 consultationReviewService.markNoShow(exhibitor.getId(), consultationId)));
     }
+
+    // 요약이 비어 있을 때 참가업체가 수동으로 재생성.
+    @PostMapping("/{consultationId}/ai-summary/regenerate")
+    public ResponseEntity<ApiResponse<ConsultationResponse>> regenerateAiSummary(
+            @AuthenticationPrincipal GatewayUser exhibitor,
+            @PathVariable Long consultationId) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationReviewService.regenerateAiSummary(exhibitor.getId(), consultationId)));
+    }
 }

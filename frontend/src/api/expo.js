@@ -192,3 +192,9 @@ export const completeConsultation = (consultationId) =>
 // POST /api/exhibitor/consultations/{consultationId}/no-show — 방문 예정일 다음날부터: 승인된 상담 미방문 처리
 export const markConsultationNoShow = (consultationId) =>
   apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);
+
+// POST /api/exhibitor/consultations/{consultationId}/ai-summary/regenerate — AI 요약이 없을 때 수동 재생성(횟수 제한)
+export const regenerateConsultationAiSummary = (consultationId) =>
+  apiClient
+    .post(`/api/exhibitor/consultations/${consultationId}/ai-summary/regenerate`)
+    .then((res) => res.data.data);

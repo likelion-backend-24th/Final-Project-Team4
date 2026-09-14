@@ -2,6 +2,7 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.AiSummaryClient;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
@@ -21,11 +22,14 @@ public class ConsultationReviewService {
 
     private final ConsultationRepository consultationRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final AiSummaryClient aiSummaryClient;
 
     public ConsultationReviewService(ConsultationRepository consultationRepository,
-                                      BoothApplicationRepository boothApplicationRepository) {
+                                      BoothApplicationRepository boothApplicationRepository,
+                                      AiSummaryClient aiSummaryClient) {
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.aiSummaryClient = aiSummaryClient;
     }
 
     @Transactional(readOnly = true)
@@ -89,6 +93,22 @@ public class ConsultationReviewService {
         }
 
         consultation.markNoShow();
+        return ConsultationResponse.from(consultation);
+    }
+
+    // 요약이 null인 신청에 대해 참가업체가 수동으로 재생성. 상담 1건당 MAX_AI_SUMMARY_RETRY회로 제한(남용 방지).
+    public ConsultationResponse regenerateAiSummary(Long exhibitorId, Long consultationId) {
+        Consultation consultation = findOwnedConsultation(exhibitorId, consultationId);
+
+        if (!consultation.canRetryAiSummary()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "AI 요약 재시도 횟수를 초과했습니다.");
+        }
+
+        consultation.incrementAiSummaryRetryCount();
+        aiSummaryClient.summarizeConsultation(consultation.isWantsPurchase(), consultation.isWantsTestDrive(),
+                        consultation.getInterestedVehicle(), consultation.isHasDriverLicense(), consultation.getMessage())
+                .ifPresent(consultation::attachAiSummary);
+
         return ConsultationResponse.from(consultation);
     }
 
