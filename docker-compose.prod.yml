@@ -6,6 +6,7 @@ services:
     container_name: car-expo-mysql
     restart: unless-stopped
     environment:
+      TZ: Asia/Seoul
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_USER: app
       MYSQL_PASSWORD: ${DB_PASSWORD}
@@ -44,6 +45,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      TZ: Asia/Seoul
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
@@ -66,6 +68,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      TZ: Asia/Seoul
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
@@ -86,6 +89,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      TZ: Asia/Seoul
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
@@ -103,6 +107,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      TZ: Asia/Seoul
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
@@ -121,6 +126,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      TZ: Asia/Seoul
       SPRING_PROFILES_ACTIVE: prod
     depends_on:
       - identity
