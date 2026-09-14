@@ -5,6 +5,7 @@ services:
     image: mysql:8.0
     container_name: car-expo-mysql
     environment:
+      TZ: Asia/Seoul
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
       MYSQL_USER: app
       MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
