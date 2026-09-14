@@ -1,0 +1,79 @@
+.tam-root {
+  position: relative;
+  display: inline-flex;
+}
+
+.tam-trigger {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tam-trigger:hover {
+  background: #f8fafc;
+}
+
+.tam-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 148px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tam-menu__item {
+  text-align: left;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.tam-menu__item:hover {
+  background: #f1f5f9;
+}
+
+.tam-menu__item--danger {
+  color: #dc2626;
+}
+
+/* "환불" 상태 배지 — is-expired/is-rejected와 톤은 맞추되 구분되도록 별도 클래스로 둠 */
+.c-ticket-card__badge.is-refunded {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* 환불 신청 모달의 사유 선택 드롭다운 — ef-field의 input 스타일과 맞춤 */
+.ef-field select {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  color: #0f172a;
+}
+
+.ef-field select:focus {
+  outline: none;
+  border-color: #2563eb;
+}

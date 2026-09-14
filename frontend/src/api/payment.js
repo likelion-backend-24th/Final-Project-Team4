@@ -34,3 +34,17 @@ export const payAdmission = ({ expoId, visitDates, amount, payMethod, paymentId 
       paymentId,
     })
     .then((res) => res.data);
+
+// GET /api/customer/admission-payments/tickets/{ticketId} - 특정 입장권(날짜 1건) 결제 상세 조회
+// 마이페이지 "나의 입장권" > "..." 메뉴 > 결제 내역 보기 모달에서 사용
+export const getAdmissionTicketPaymentDetail = (ticketId) =>
+  apiClient
+    .get(`/api/customer/admission-payments/tickets/${ticketId}`)
+    .then((res) => res.data);
+
+// POST /api/customer/admission-payments/tickets/{ticketId}/refund - 입장권 환불 신청
+// 이미 체크인된 티켓, 방문일이 지난 티켓, 이미 환불된 티켓은 백엔드에서 409로 막힘
+export const refundAdmissionTicket = ({ ticketId, reason }) =>
+  apiClient
+    .post(`/api/customer/admission-payments/tickets/${ticketId}/refund`, { reason })
+    .then((res) => res.data);

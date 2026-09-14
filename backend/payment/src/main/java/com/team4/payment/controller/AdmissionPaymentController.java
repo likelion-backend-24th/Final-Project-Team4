@@ -1,13 +1,11 @@
 package com.team4.payment.controller;
 
+import com.team4.payment.dto.AdmissionPaymentTicketDetailResponse;
+import com.team4.payment.dto.AdmissionRefundResponse;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.service.AdmissionPaymentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,6 +33,21 @@ public class AdmissionPaymentController {
         );
     }
 
+    // 마이페이지 "나의 입장권" > "..." 메뉴 > 결제 내역 보기
+    @GetMapping("/tickets/{ticketId}")
+    public AdmissionPaymentTicketDetailResponse getTicketDetail(@RequestHeader("X-User-Id") Long customerId,
+                                                                @PathVariable Long ticketId){
+        return admissionPaymentService.getTicketDetail(customerId, ticketId);
+    }
+
+    // 마이페이지 "나의 입장권" > "..." 메뉴 > 환불 신청
+    @PostMapping("/tickets/{ticketId}/refund")
+    public AdmissionRefundResponse refundTicket(@RequestHeader("X-User-Id") Long customerId,
+                                                @PathVariable Long ticketId,
+                                                @RequestBody RefundRequest request) {
+        return admissionPaymentService.refundTicket(customerId, ticketId, request.reason());
+    }
+
     public record AdmissionPaymentRequest(
             Long expoId,
             List<LocalDate> visitDates,
@@ -42,4 +55,6 @@ public class AdmissionPaymentController {
             String payMethod,
             String paymentId
     ) {}
+
+    public record RefundRequest(String reason){}
 }

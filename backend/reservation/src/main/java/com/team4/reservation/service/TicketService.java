@@ -5,6 +5,7 @@ import com.team4.common.error.ErrorCode;
 import com.team4.reservation.client.ExpoClient;
 import com.team4.reservation.client.ExpoInfo;
 import com.team4.reservation.domain.Ticket;
+import com.team4.reservation.domain.TicketStatus;
 import com.team4.reservation.domain.TicketType;
 import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
@@ -174,5 +175,20 @@ public class TicketService {
                     .map(TicketResponse::from)
                     .orElseThrow(() -> new CustomException(ErrorCode.INTERNAL_ERROR, "입장권 발급 처리 중 오류가 발생했습니다."));
         }
+    }
+
+    // Payment -> Reservation. 환불 처리 중 호출 — 해당 티켓(QR)을 강제 무효화한다.
+    // true = 무효화 성공(이미 CANCELLED였던 경우도 성공으로 취급 - 재시도에 대해 멱등해야
+    //        Payment 쪽에서 "결제 취소는 실패했는데 티켓은 이미 취소됨" 상태로 재시도할 때 안전하다).
+    // false = 이미 체크인(USED)된 티켓이라 취소할 수 없음 — Payment가 환불 자체를 막는다.
+    public boolean cancelTicket(Long ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId).orElse(null);
+        if (ticket == null) {
+            return false;
+        }
+        if (ticket.getStatus() == TicketStatus.CANCELLED) {
+            return true;
+        }
+        return ticketRepository.markCancelledIfIssued(ticketId) > 0;
     }
 }

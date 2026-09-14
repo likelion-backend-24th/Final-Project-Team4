@@ -27,7 +27,6 @@ export const mockCustomerExpos = [
     phase: '모집예정',
     boothCount: 0,
   },
-  // 오늘(2026-09-08) 기준으로 이미 진행 중인 박람회 예시 — "QR 사전 입장(당일 체크인)" 테스트용
   {
     expoId: 4,
     title: '2026 인천 스마트 모빌리티 위크',
@@ -39,7 +38,6 @@ export const mockCustomerExpos = [
   },
 ];
 
-// 카드 썸네일용 그라데이션 (실제 이미지 없이 기존 exhibitor 화면과 동일한 방식)
 export const CUSTOMER_EXPO_GRADIENTS = [
   'linear-gradient(135deg, #1e293b, #0f172a)',
   'linear-gradient(135deg, #7f1d1d, #1f2937)',
@@ -51,17 +49,19 @@ export const CONSULTATION_TIME_SLOTS = [
   '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00',
 ];
 
-// 박람회 id로 mock 목록에서 제목/장소/기간을 찾음. 실제 고객용 박람회 조회 API(/api/customer/expos)가
-// 생기기 전까지 쓰던 대체 수단 — 지금은 CustomerMyPage에서 실제 API로 조회한 expoMap을 우선 쓰고,
-// 거기 없을 때만(예: mock 화면 등 아직 실API 연동 안 된 곳) 폴백으로 남겨둠.
+// 환불 신청 모달의 환불 사유 드롭다운 옵션. 값은 그대로 백엔드에 문자열로 저장됨(별도 enum 없음) —
+// ConsultationReject 등 기존 "사유" 필드들과 동일하게 자유 문자열로 취급.
+export const REFUND_REASONS = [
+  { value: '단순 변심', label: '단순 변심' },
+  { value: '일정 변경', label: '일정 변경' },
+  { value: '중복 결제', label: '중복 결제' },
+  { value: '기타', label: '기타' },
+];
+
 export function findMockExpo(expoId) {
   return mockCustomerExpos.find((e) => e.expoId === expoId) ?? null;
 }
 
-// GET /api/customer/reservations 응답(TicketResponse)을 화면 표시용 형태로 변환.
-// expoMap: 실제 GET /api/customer/expos 결과로 만든 Map<expoId, expo> — 반드시 이걸로 먼저 조회해야
-// QR이 실제로 발급된 박람회와 화면에 뜨는 이름이 어긋나지 않는다(mock 목록은 expoId가 우연히 겹칠 뿐
-// 실제 DB의 그 박람회와 무관한 이름이라 매치가 안 맞는 버그가 있었음).
 export function toDisplayTicket(apiTicket, expoMap, holderName) {
   const expo = expoMap?.get(apiTicket.expoId) ?? null;
   return {
@@ -75,21 +75,18 @@ export function toDisplayTicket(apiTicket, expoMap, holderName) {
     visitDate: apiTicket.visitDate,
     holderName: holderName ?? '-',
     ticketType: apiTicket.ticketType === 'PAID' ? '유료 입장권 · 1인' : '무료 방문예약 · 1인',
+    isPaid: apiTicket.ticketType === 'PAID',
     bookingNo: `TICKET-${apiTicket.ticketId}`,
     purchasedAt: apiTicket.issuedAt ? apiTicket.issuedAt.replace('T', ' ').slice(0, 16) : '',
     usedAt: apiTicket.status === 'USED' ? apiTicket.issuedAt : null,
+    status: apiTicket.status,
     qrImageBase64: apiTicket.qrImageBase64,
   };
 }
 
-// "나의 입장권" mock 저장소 — 실제 목록 조회(GET /api/customer/reservations)는 이제 연동됐지만,
-// "당일 입장권 구매" 결제~발급 구간은 아직 결제 금액을 알 방법이 없어(고객용 박람회 조회 API 미구현)
-// 실제 연동을 못 해서 이 mock 저장소만 그 플로우 전용으로 남겨둠 — 마이페이지 목록에는 더 이상 안 씀.
 const MY_TICKETS_KEY = 'customer_my_tickets_mock';
 
-// 상태는 저장된 문자열을 그대로 믿지 않고 매번 계산함 — getTicketStatus 참고.
 const DEFAULT_MOCK_TICKETS = [
-  // 오늘(2026-09-08) 방문 예약 — "QR 사전 입장" 당일 체크인 테스트용 (아직 미사용 → 사용가능)
   {
     id: 'default-ex20260908-inc4',
     expoId: 4,
@@ -104,7 +101,6 @@ const DEFAULT_MOCK_TICKETS = [
     purchasedAt: '2026.09.01 10:00',
     usedAt: null,
   },
-  // 이미 종료된 박람회(현재 목록에는 없는 과거 행사) — "만료" 탭 테스트용
   {
     id: 'default-ex20260512-k7h9',
     expoId: 99,
@@ -132,7 +128,6 @@ export function getMyTickets() {
   }
 }
 
-// 특정 박람회에 대해 이미 발급받은 입장권이 있는지 확인 (있으면 "QR 사전 입장" 탭 노출용)
 export function getTicketsForExpo(expoId) {
   return getMyTickets().filter((t) => t.expoId === expoId);
 }
@@ -148,9 +143,9 @@ export function addMyTicket(ticket) {
   }
 }
 
-// 저장된 문자열이 아니라 매번 계산해서 판정 — 시간이 지나면 자동으로 만료로 넘어감.
-// 이미 입장 체크(체크인)를 마친 QR은 "사용완료", 체크인 없이 박람회 기간만 끝난 QR은 "만료"로 구분.
+// CANCELLED(환불 완료)를 usedAt/만료보다 먼저 확인
 export function getTicketStatus(ticket) {
+  if (ticket.status === 'CANCELLED') return '환불';
   if (ticket.usedAt) return '사용완료';
   if (ticket.endsAt) {
     const end = new Date(ticket.endsAt);
@@ -160,7 +155,18 @@ export function getTicketStatus(ticket) {
   return '사용가능';
 }
 
-// 방문 예약일(visitDate)이 바로 오늘일 때만 "QR 사전 입장" 체크인 가능
+// "..." 메뉴에 환불 신청을 보여줄지 판단하는 화면단 체크(실제 권한/최종 판정은 항상 백엔드가 함).
+export function isTicketRefundable(ticket) {
+  if (!ticket.isPaid) return false;
+  if (ticket.status !== 'ISSUED') return false;
+  if (!ticket.visitDate) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const visit = new Date(ticket.visitDate);
+  visit.setHours(0, 0, 0, 0);
+  return visit.getTime() >= today.getTime();
+}
+
 export function isTicketCheckableToday(ticket) {
   if (!ticket.visitDate) return false;
   const today = new Date();
@@ -170,8 +176,6 @@ export function isTicketCheckableToday(ticket) {
   return visit.getTime() === today.getTime();
 }
 
-// 체크인 처리 — 실제 체크인 API(ADMIN 전용, 현장 스캐너)와 별개로
-// 고객 화면에서 "이미 입장 체크를 완료했다"는 상태만 표시하기 위한 mock 처리
 export function markTicketUsed(ticketId) {
   const tickets = getMyTickets().map((t) =>
     t.id === ticketId ? { ...t, usedAt: new Date().toISOString() } : t
@@ -179,4 +183,3 @@ export function markTicketUsed(ticketId) {
   localStorage.setItem(MY_TICKETS_KEY, JSON.stringify(tickets));
   return tickets;
 }
-

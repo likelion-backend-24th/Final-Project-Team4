@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import ConsultationDetailModal from '../../components/customer/ConsultationDetailModal';
-import { getTicketStatus, isTicketCheckableToday, toDisplayTicket } from '../../mock/customerData';
+import TicketActionsMenu from '../../components/customer/TicketActionsMenu';
+import PaymentDetailModal from '../../components/customer/PaymentDetailModal';
+import RefundRequestModal from '../../components/customer/RefundRequestModal';
+import { getTicketStatus, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
@@ -19,11 +22,12 @@ const TABS = [
 ];
 
 // 상태는 저장된 값이 아니라 매번 계산(getTicketStatus)
-// 사용완료 = 입장 체크(체크인)를 마침, 만료 = 체크인 없이 박람회 기간만 끝남
+// 사용완료 = 입장 체크(체크인)를 마침, 환불 = 결제 취소로 QR이 무효화됨, 만료 = 체크인 없이 박람회 기간만 끝남
 const TICKET_FILTERS = [
   { key: '전체', label: '전체' },
   { key: '사용가능', label: '사용가능' },
   { key: '사용완료', label: '사용완료' },
+  { key: '환불', label: '환불' },
   { key: '만료', label: '만료' },
 ];
 
@@ -65,6 +69,8 @@ function CustomerMyPage() {
   const [ticketFilter, setTicketFilter] = useState('전체');
   const [consultFilter, setConsultFilter] = useState('전체');
   const [zoomTicket, setZoomTicket] = useState(null);
+  const [paymentDetailTicket, setPaymentDetailTicket] = useState(null);
+  const [refundTicket, setRefundTicket] = useState(null);
   const [apiTickets, setApiTickets] = useState([]);
   const [expoMap, setExpoMap] = useState(new Map());
   const [loading, setLoading] = useState(true);
@@ -77,7 +83,8 @@ function CustomerMyPage() {
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
   // 같이 조회해 expoId로 매칭해야 함 — 안 그러면 QR이 발급된 실제 박람회와 화면에 뜨는 이름이 어긋난다.
-  useEffect(() => {
+  // 환불 처리 후에도 이 함수를 다시 불러 목록을 새로고침한다(RefundRequestModal의 onRefunded).
+  const loadTickets = () =>
     Promise.all([getMyReservations(), getCustomerExpoList({ page: 0, size: 100 })])
       .then(([tickets, expoRes]) => {
         setApiTickets(tickets);
@@ -90,6 +97,9 @@ function CustomerMyPage() {
         );
       })
       .finally(() => setLoading(false));
+
+  useEffect(() => {
+    loadTickets();
   }, []);
 
   // 티켓 표시용 홀더명은 로그인한 본인 이름(profile.name)을 써야 함 — QR/티켓 카드에
@@ -130,8 +140,9 @@ function CustomerMyPage() {
     ticketFilter === '전체' ? allTickets : allTickets.filter((t) => t._status === ticketFilter);
   const availableCount = allTickets.filter((t) => t._status === '사용가능').length;
   const usedCount = allTickets.filter((t) => t._status === '사용완료').length;
+  const refundedCount = allTickets.filter((t) => t._status === '환불').length;
   const expiredCount = allTickets.filter((t) => t._status === '만료').length;
-  const filterCount = { 사용가능: availableCount, 사용완료: usedCount, 만료: expiredCount };
+  const filterCount = { 사용가능: availableCount, 사용완료: usedCount, 환불: refundedCount, 만료: expiredCount };
 
   // 같은 박람회에 여러 날짜로 신청하면 박람회명/기간/장소가 카드마다 반복되던 걸 방지하기 위해
   // expoId 기준으로 묶는다. "오늘 체크인 가능한 QR"이 있는 박람회를 맨 위로 올려서
@@ -358,7 +369,13 @@ function CustomerMyPage() {
                                   <span className="c-ticket-date-row__date">{fmtDate(t.visitDate)}</span>
                                   <span
                                     className={`c-ticket-card__badge ${
-                                      t._status === '사용완료' ? 'is-used' : t._status === '만료' ? 'is-expired' : ''
+                                      t._status === '사용완료'
+                                        ? 'is-used'
+                                        : t._status === '환불'
+                                        ? 'is-refunded'
+                                        : t._status === '만료'
+                                        ? 'is-expired'
+                                        : ''
                                     }`}
                                   >
                                     {t._status}
@@ -384,6 +401,13 @@ function CustomerMyPage() {
                                 >
                                   이미지 저장
                                 </button>
+                                {t.isPaid && (
+                                  <TicketActionsMenu
+                                    refundable={isTicketRefundable(t)}
+                                    onViewPayment={() => setPaymentDetailTicket(t)}
+                                    onRequestRefund={() => setRefundTicket(t)}
+                                  />
+                                )}
                               </div>
                             </div>
                           );
@@ -495,6 +519,16 @@ function CustomerMyPage() {
             </button>
           </div>
         </div>
+      )}
+      {paymentDetailTicket && (
+        <PaymentDetailModal ticket={paymentDetailTicket} onClose={() => setPaymentDetailTicket(null)} />
+      )}
+      {refundTicket && (
+        <RefundRequestModal
+          ticket={refundTicket}
+          onClose={() => setRefundTicket(null)}
+          onRefunded={loadTickets}
+        />
       )}
       {showEditModal && (
         <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>

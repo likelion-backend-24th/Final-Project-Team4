@@ -26,4 +26,11 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.USED, t.usedAt = :usedAt "
             + "WHERE t.id = :id AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED")
     int markUsedIfIssued(@Param("id") Long id, @Param("usedAt") LocalDateTime usedAt); // 반환값 0 = 이미 사용됨/취소됨(호출부에서 409 처리)
+
+    // 환불 처리(Payment -> Reservation)용 조건부 UPDATE. ISSUED 상태일 때만 CANCELLED로 바꾼다 —
+    // 이미 USED인 티켓은 그대로 두고 0을 반환해 호출부(TicketService.cancelTicket)가 환불 불가로 처리하게 한다.
+    @Modifying
+    @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.CANCELLED "
+            + "WHERE t.id = :id AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED")
+    int markCancelledIfIssued(@Param("id") Long id);
 }
