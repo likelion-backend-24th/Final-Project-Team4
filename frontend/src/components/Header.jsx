@@ -43,6 +43,9 @@ function Header() {
         <NavLink to="/consultations" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           상담 신청 관리
         </NavLink>
+        <NavLink to="/leads" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          QR 리드 확보
+        </NavLink>
         <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           마이페이지
         </NavLink>
