@@ -27,6 +27,7 @@ public class ConsultationResponse {
     private final LocalTime preferredTime;
     private final String message;
     private final String aiSummary;
+    private final boolean aiSummaryRetryable;
     private final ConsultationStatus status;
     private final String rejectReason;
     private final LocalDateTime createdAt;
@@ -35,7 +36,8 @@ public class ConsultationResponse {
                                   Long customerId, String customerName, String customerPhone, String customerEmail,
                                   boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,
                                   boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
-                                  String message, String aiSummary, ConsultationStatus status, String rejectReason,
+                                  String message, String aiSummary, boolean aiSummaryRetryable,
+                                  ConsultationStatus status, String rejectReason,
                                   LocalDateTime createdAt) {
         this.consultationId = consultationId;
         this.boothId = boothId;
@@ -54,6 +56,7 @@ public class ConsultationResponse {
         this.preferredTime = preferredTime;
         this.message = message;
         this.aiSummary = aiSummary;
+        this.aiSummaryRetryable = aiSummaryRetryable;
         this.status = status;
         this.rejectReason = rejectReason;
         this.createdAt = createdAt;
@@ -78,6 +81,7 @@ public class ConsultationResponse {
                 consultation.getPreferredTime(),
                 consultation.getMessage(),
                 consultation.getAiSummary(),
+                consultation.getAiSummary() == null && consultation.canRetryAiSummary(),
                 consultation.getStatus(),
                 consultation.getRejectReason(),
                 consultation.getCreatedAt()

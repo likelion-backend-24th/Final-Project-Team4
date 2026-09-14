@@ -43,6 +43,8 @@ public class Consultation {
     @Column(length = 1000)
     private String aiSummary;
 
+    private int aiSummaryRetryCount;
+
     @Enumerated(EnumType.STRING)
     private ConsultationStatus status;
 
@@ -76,6 +78,17 @@ public class Consultation {
     // ConsultationService.applyConsultation()에서 Gemini 요약 응답을 받은 뒤 붙인다. 실패 시 null로 남는다(부가 기능).
     public void attachAiSummary(String aiSummary) {
         this.aiSummary = aiSummary;
+    }
+
+    public static final int MAX_AI_SUMMARY_RETRY = 3;
+
+    public boolean canRetryAiSummary() {
+        return aiSummaryRetryCount < MAX_AI_SUMMARY_RETRY;
+    }
+
+    // ConsultationReviewService.regenerateAiSummary()에서 참가업체가 수동으로 재시도할 때 호출. 실패해도 횟수는 차감(남용 방지).
+    public void incrementAiSummaryRetryCount() {
+        this.aiSummaryRetryCount++;
     }
 
     // ConsultationReviewService.approveConsultation()에서 호출. REQUESTED -> APPROVED(서비스 레이어에서 상태 검증).

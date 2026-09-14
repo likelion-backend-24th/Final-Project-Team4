@@ -5,6 +5,7 @@ import {
   getExhibitorConsultations,
   getMyBoothApplications,
   markConsultationNoShow,
+  regenerateConsultationAiSummary,
   rejectConsultation,
 } from '../api/expo';
 import './ConsultationRequests.css';
@@ -209,6 +210,17 @@ function ConsultationRequests() {
       .finally(() => setSubmitting(false));
   };
 
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const handleRegenerateSummary = (row) => {
+    setSummaryLoading(true);
+    setActionError(null);
+    regenerateConsultationAiSummary(row.consultationId)
+      .then(load)
+      .catch((err) => setActionError(err.response?.data?.error?.message ?? 'AI 요약 생성 중 오류가 발생했습니다.'))
+      .finally(() => setSummaryLoading(false));
+  };
+
   const handleNoShow = (row) => {
     const confirmed = window.confirm(`${row.customerName ?? '고객'}님을 미방문으로 처리할까요?`);
     if (!confirmed) return;
@@ -373,8 +385,29 @@ function ConsultationRequests() {
                 </section>
               )}
 
+              {!selected.aiSummary && summaryLoading && (
+                <section className="crm-detail-section">
+                  <div className="crm-ai-summary crm-ai-summary--loading">
+                    <span className="crm-ai-summary__badge">AI 요약</span>
+                    <p>요약 생성 중...</p>
+                  </div>
+                </section>
+              )}
+
               <section className="crm-detail-section">
-                <div className="crm-detail-title">상담 정보</div>
+                <div className="crm-detail-title crm-detail-title--row">
+                  상담 정보
+                  {!selected.aiSummary && selected.aiSummaryRetryable && (
+                    <button
+                      type="button"
+                      className="crm-ai-summary-retry"
+                      disabled={summaryLoading}
+                      onClick={() => handleRegenerateSummary(selected)}
+                    >
+                      {summaryLoading ? '생성 중...' : 'AI 요약'}
+                    </button>
+                  )}
+                </div>
                 <div className="crm-detail-box">
                   <div className="crm-detail-row"><span className="crm-label">박람회</span><span className="crm-value">{selected.expoTitle}</span></div>
                   <div className="crm-detail-row"><span className="crm-label">부스</span><span className="crm-value">{selected.boothNo}</span></div>
