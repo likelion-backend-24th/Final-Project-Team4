@@ -1,5 +1,6 @@
 server:
   port: 8080
+  forward-headers-strategy: framework # nginx가 보낸 X-Forwarded-Proto(https)를 신뢰해서 identity로 넘길 때도 https로 전달함
 
 spring:
   application:
