@@ -9,6 +9,7 @@ import com.team4.reservation.domain.TicketStatus;
 import com.team4.reservation.domain.TicketType;
 import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
+import com.team4.reservation.dto.TicketResolveResponse;
 import com.team4.reservation.dto.TicketResponse;
 import com.team4.reservation.dto.VisitApplicationResponse;
 import com.team4.reservation.repository.TicketRepository;
@@ -92,6 +93,19 @@ public class TicketService {
         boolean hasTicket = ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
                 .isPresent();
         return new TicketExistsResponse(hasTicket);
+    }
+
+    // Expo -> Reservation. 참가업체가 부스에서 고객 QR을 스캔해 리드를 만들 때 고객을 식별하는 용도.
+    // 체크인(selfCheckIn)과 완전히 분리된 읽기 전용 조회 — 상태를 바꾸지 않는다.
+    public TicketResolveResponse resolveByQrToken(String qrToken) {
+        Ticket ticket = ticketRepository.findByQrToken(qrToken)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "유효하지 않은 QR입니다."));
+
+        if (ticket.getStatus() == TicketStatus.CANCELLED) {
+            throw new CustomException(ErrorCode.NOT_FOUND, "만료된 QR입니다.");
+        }
+
+        return TicketResolveResponse.from(ticket);
     }
 
     private TicketResponse issueOrGetTicket(Long customerId, Long expoId, LocalDate visitDate) {

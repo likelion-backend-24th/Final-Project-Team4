@@ -7,6 +7,7 @@ import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.IssueAdmissionTicketRequest;
 import com.team4.reservation.dto.TicketCancelResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
+import com.team4.reservation.dto.TicketResolveResponse;
 import com.team4.reservation.dto.VisitApplicationResponse;
 import com.team4.reservation.service.TicketService;
 import jakarta.validation.Valid;
@@ -94,6 +95,17 @@ public class ReservationInternalController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 ticketService.hasTicketForDate(customerId, expoId, visitDate)));
+    }
+
+    // Expo -> Reservation. 참가업체가 부스에서 고객 QR을 스캔해 리드를 만들 때 고객 식별용(읽기 전용, 체크인과 무관).
+    @GetMapping("/tickets/resolve")
+    public ResponseEntity<ApiResponse<TicketResolveResponse>> resolveTicketByQrToken(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam String qrToken) {
+
+        requireExpoService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(ticketService.resolveByQrToken(qrToken)));
     }
 
     private void requirePaymentService(String authorization) {
