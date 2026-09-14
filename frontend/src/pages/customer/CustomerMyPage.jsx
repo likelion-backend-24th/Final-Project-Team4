@@ -25,6 +25,7 @@ const TABS = [
 // 사용완료 = 입장 체크(체크인)를 마침, 환불 = 결제 취소로 QR이 무효화됨, 만료 = 체크인 없이 박람회 기간만 끝남
 const TICKET_FILTERS = [
   { key: '전체', label: '전체' },
+  { key: '사용예정', label: '사용예정' },
   { key: '사용가능', label: '사용가능' },
   { key: '사용완료', label: '사용완료' },
   { key: '환불', label: '환불' },
@@ -138,11 +139,18 @@ function CustomerMyPage() {
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
   const tickets =
     ticketFilter === '전체' ? allTickets : allTickets.filter((t) => t._status === ticketFilter);
+   const upcomingCount = allTickets.filter((t) => t._status === '사용예정').length;
   const availableCount = allTickets.filter((t) => t._status === '사용가능').length;
   const usedCount = allTickets.filter((t) => t._status === '사용완료').length;
   const refundedCount = allTickets.filter((t) => t._status === '환불').length;
   const expiredCount = allTickets.filter((t) => t._status === '만료').length;
-  const filterCount = { 사용가능: availableCount, 사용완료: usedCount, 환불: refundedCount, 만료: expiredCount };
+  const filterCount = {
+    사용예정: upcomingCount,
+    사용가능: availableCount,
+    사용완료: usedCount,
+    환불: refundedCount,
+    만료: expiredCount,
+  };
 
   // 같은 박람회에 여러 날짜로 신청하면 박람회명/기간/장소가 카드마다 반복되던 걸 방지하기 위해
   // expoId 기준으로 묶는다. "오늘 체크인 가능한 QR"이 있는 박람회를 맨 위로 올려서
@@ -345,14 +353,19 @@ function CustomerMyPage() {
                         )}
                       </div>
                       <div className="c-ticket-group__dates">
-                        {g.items.map((t) => {
+                                                {g.items.map((t) => {
                           const todayCheckable = t._status === '사용가능' && isTicketCheckableToday(t);
+                          const disabledActions = t._status === '만료' || t._status === '환불';
                           return (
                             <div
                               key={t.id}
                               className={`c-ticket-date-row ${todayCheckable ? 'is-today' : ''}`}
                             >
-                              <div className="c-ticket-date-row__qr" onClick={() => setZoomTicket(t)}>
+                              <div
+                                className="c-ticket-date-row__qr"
+                                onClick={() => !disabledActions && setZoomTicket(t)}
+                                style={disabledActions ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                              >
                                 {t.qrImageBase64 ? (
                                   <img
                                     src={`data:image/png;base64,${t.qrImageBase64}`}
@@ -375,6 +388,8 @@ function CustomerMyPage() {
                                         ? 'is-refunded'
                                         : t._status === '만료'
                                         ? 'is-expired'
+                                        : t._status === '사용예정'
+                                        ? 'is-upcoming'
                                         : ''
                                     }`}
                                   >
@@ -392,12 +407,13 @@ function CustomerMyPage() {
                                 </p>
                               </div>
                               <div className="c-ticket-date-row__actions">
-                                <button type="button" onClick={() => setZoomTicket(t)}>
+                                <button type="button" onClick={() => setZoomTicket(t)} disabled={disabledActions}>
                                   QR 크게 보기
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => downloadTicketImage(t, `QR_${t.bookingNo}`)}
+                                  disabled={disabledActions}
                                 >
                                   이미지 저장
                                 </button>

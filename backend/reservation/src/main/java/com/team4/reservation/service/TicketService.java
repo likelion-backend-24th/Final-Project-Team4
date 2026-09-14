@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -181,6 +182,7 @@ public class TicketService {
     // true = 무효화 성공(이미 CANCELLED였던 경우도 성공으로 취급 - 재시도에 대해 멱등해야
     //        Payment 쪽에서 "결제 취소는 실패했는데 티켓은 이미 취소됨" 상태로 재시도할 때 안전하다).
     // false = 이미 체크인(USED)된 티켓이라 취소할 수 없음 — Payment가 환불 자체를 막는다.
+    @Transactional
     public boolean cancelTicket(Long ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId).orElse(null);
         if (ticket == null) {
