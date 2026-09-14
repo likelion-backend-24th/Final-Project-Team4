@@ -423,8 +423,8 @@ function MyPage() {
                             <button
                               className="mypage__link"
                               onClick={() =>
-                                        navigate(`/mypage/booths/${app.boothId}`)
-                                      }
+                                navigate(`/mypage/booths/${app.boothId}/vehicles/new`)
+                              }
                             >
                               부스 관리
                             </button>

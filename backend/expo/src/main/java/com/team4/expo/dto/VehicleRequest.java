@@ -28,4 +28,14 @@ public class VehicleRequest {
     private String range;
     private String battery;
     private String power;
+
+    // 상세 스펙 - AI 자동 분석 결과 또는 직접 입력. 전부 선택 입력.
+    private String brand;
+    private String category;
+    private String drivetrain;
+    private String chargingType;
+    private String chargingTime;
+    private String dimensions;
+    private String weight;
+    private Integer seatingCapacity;
 }
