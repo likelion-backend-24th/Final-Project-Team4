@@ -19,11 +19,10 @@
   background: #f8fafc;
 }
 
-.tam-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
+/* 드롭다운을 document.body에 포탈로 그려서 카드의 overflow:hidden에 잘리지 않게 함 (position: fixed) */
+.tam-menu--portal {
+  position: fixed;
+  z-index: 1000;
   min-width: 148px;
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -55,13 +54,29 @@
   color: #dc2626;
 }
 
-/* "환불" 상태 배지 — is-expired/is-rejected와 톤은 맞추되 구분되도록 별도 클래스로 둠 */
+/* "환불" 상태 배지 */
 .c-ticket-card__badge.is-refunded {
   background: #fef2f2;
   color: #dc2626;
 }
 
-/* 환불 신청 모달의 사유 선택 드롭다운 — ef-field의 input 스타일과 맞춤 */
+/* "사용예정" 상태 배지 — 연노란 배경 + 갈색 글자 */
+.c-ticket-card__badge.is-upcoming {
+  background: #fef9c3 !important;
+  color: #92400e !important;
+}
+
+/* 만료/환불된 티켓의 QR 크게 보기·이미지 저장 버튼 비활성화(회색, 클릭 불가) */
+.c-ticket-date-row__actions button:disabled {
+  opacity: 1 !important;
+  cursor: not-allowed !important;
+  background: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+  pointer-events: none;
+}
+
+/* 환불 신청 모달의 사유 선택 드롭다운 */
 .ef-field select {
   box-sizing: border-box;
   padding: 10px 12px;
