@@ -6,7 +6,6 @@ import ExpoList from './pages/ExpoList';
 import ExpoDetail from './pages/ExpoDetail';
 import BoothApplication from './pages/BoothApplication';
 import ConsultationRequests from './pages/ConsultationRequests';
-import LeadCapture from './pages/LeadCapture';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
@@ -74,7 +73,6 @@ function App() {
         element={<ExhibitorLayout><BoothVehicleRegister /></ExhibitorLayout>}
       />
       <Route path="/consultations" element={<ExhibitorLayout><ConsultationRequests /></ExhibitorLayout>} />
-      <Route path="/leads" element={<ExhibitorLayout><LeadCapture /></ExhibitorLayout>} />
       <Route path="/payment/:groupId" element={<ExhibitorLayout><Payment /></ExhibitorLayout>} />
 
       <Route path="/customer" element={<CustomerLayout><CustomerExpoList /></CustomerLayout>} />

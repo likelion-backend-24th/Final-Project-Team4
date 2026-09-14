@@ -22,13 +22,23 @@ public class VehicleResponse {
     private final String range;
     private final String battery;
     private final String power;
+    private final String brand;
+    private final String category;
+    private final String drivetrain;
+    private final String chargingType;
+    private final String chargingTime;
+    private final String dimensions;
+    private final String weight;
+    private final Integer seatingCapacity;
     private final List<VehicleImageResponse> images;
     private final LocalDateTime updatedAt;
 
     public VehicleResponse(Long vehicleId, Long boothId, String name, List<String> tags, Long startPrice,
-                            String summary, String description, String features, String colors,
-                            String range, String battery, String power,
-                            List<VehicleImageResponse> images, LocalDateTime updatedAt) {
+                           String summary, String description, String features, String colors,
+                           String range, String battery, String power,
+                           String brand, String category, String drivetrain, String chargingType, String chargingTime,
+                           String dimensions, String weight, Integer seatingCapacity,
+                           List<VehicleImageResponse> images, LocalDateTime updatedAt) {
         this.vehicleId = vehicleId;
         this.boothId = boothId;
         this.name = name;
@@ -41,6 +51,14 @@ public class VehicleResponse {
         this.range = range;
         this.battery = battery;
         this.power = power;
+        this.brand = brand;
+        this.category = category;
+        this.drivetrain = drivetrain;
+        this.chargingType = chargingType;
+        this.chargingTime = chargingTime;
+        this.dimensions = dimensions;
+        this.weight = weight;
+        this.seatingCapacity = seatingCapacity;
         this.images = images;
         this.updatedAt = updatedAt;
     }
@@ -67,6 +85,14 @@ public class VehicleResponse {
                 vehicle.getRange(),
                 vehicle.getBattery(),
                 vehicle.getPower(),
+                vehicle.getBrand(),
+                vehicle.getCategory(),
+                vehicle.getDrivetrain(),
+                vehicle.getChargingType(),
+                vehicle.getChargingTime(),
+                vehicle.getDimensions(),
+                vehicle.getWeight(),
+                vehicle.getSeatingCapacity(),
                 imageResponses,
                 vehicle.getUpdatedAt()
         );

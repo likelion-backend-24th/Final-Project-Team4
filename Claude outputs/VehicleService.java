@@ -50,10 +50,10 @@ public class VehicleService {
     private final VehicleAiAnalysisClient vehicleAiAnalysisClient;
 
     public VehicleService(BoothRepository boothRepository,
-                          BoothApplicationRepository boothApplicationRepository,
-                          VehicleRepository vehicleRepository,
-                          VehicleImageRepository vehicleImageRepository,
-                          VehicleAiAnalysisClient vehicleAiAnalysisClient) {
+                           BoothApplicationRepository boothApplicationRepository,
+                           VehicleRepository vehicleRepository,
+                           VehicleImageRepository vehicleImageRepository,
+                           VehicleAiAnalysisClient vehicleAiAnalysisClient) {
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.vehicleRepository = vehicleRepository;
@@ -234,7 +234,7 @@ public class VehicleService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "PNG, JPEG, WEBP 형식의 이미지만 업로드할 수 있습니다.");
         }
         if (image.getSize() > MAX_VEHICLE_IMAGE_SIZE) {
-            throw new CustomException(ErrorCode.VALIDATION_ERROR, "이미지 파일은 10MB를 초과할 수 없습니다.");
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "이미지 파일은 5MB를 초과할 수 없습니다.");
         }
     }
 

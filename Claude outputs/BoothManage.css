@@ -22,36 +22,6 @@
   text-decoration: none;
 }
 
-.booth-manage__page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.booth-manage__page-title {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 700;
-  font-size: 28px;
-  color: #0f172a;
-  margin: 0 0 8px;
-}
-
-.booth-manage__page-subtitle {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
-}
-
-.booth-manage__required-note {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: #ef4444;
-  white-space: nowrap;
-}
-
 .booth-manage__card {
   box-sizing: border-box;
   background: #fff;
@@ -86,38 +56,6 @@
   font-size: 13px;
   color: #475569;
   margin: 0;
-}
-
-.booth-manage__section-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.booth-manage__badge {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: #2563eb;
-  color: #fff;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.booth-manage__section-desc {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #64748b;
-  margin: 4px 0 0;
-}
-
-.booth-manage__req {
-  color: #ef4444;
 }
 
 .booth-manage__card-header {
@@ -159,24 +97,6 @@
   background: #1d4ed8;
 }
 
-.booth-manage__cta-link--disabled {
-  background: #cbd5e1;
-  color: #64748b;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.booth-manage__locked-notice {
-  margin: -8px 0 0;
-  padding: 10px 14px;
-  border: 1px solid #fde68a;
-  background: #fffbeb;
-  border-radius: 6px;
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #92400e;
-}
-
 .booth-manage__info {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -196,56 +116,13 @@
   color: #1e293b;
 }
 
-.booth-manage__basic-grid {
-  display: flex;
-  gap: 32px;
-  flex-wrap: wrap;
-}
-
-.booth-manage__basic-col {
-  flex: 1;
-  min-width: 240px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.booth-manage__half-row {
-  display: flex;
-  gap: 16px;
-}
-
-.booth-manage__half-row .booth-manage__field {
-  flex: 1;
-}
-
-.booth-manage__readonly-box {
-  box-sizing: border-box;
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #f8fafc;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.booth-manage__readonly-icon {
-  font-size: 14px;
-}
-
 .booth-manage__field {
-  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.booth-manage__field span:first-child {
+.booth-manage__field span {
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 13px;
@@ -264,21 +141,8 @@
   color: #1e293b;
 }
 
-.booth-manage__field input[readonly] {
-  background: #f8fafc;
-  color: #475569;
-}
-
 .booth-manage__field textarea {
   resize: vertical;
-}
-
-.booth-manage__counter {
-  align-self: flex-end;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  color: #94a3b8;
-  margin-top: -4px;
 }
 
 .booth-manage__card > button {
@@ -324,153 +188,34 @@
 .booth-manage__banner-row {
   display: flex;
   gap: 24px;
-  align-items: stretch;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
-.booth-manage__banner-dropzone {
-  position: relative;
-  flex: 1;
-  min-width: 260px;
-  aspect-ratio: 3 / 1;
-  border: 1px dashed #cbd5e1;
+.booth-manage__banner-preview {
+  width: 220px;
+  height: 124px;
+  flex-shrink: 0;
   border-radius: 8px;
-  background: #f8fafc;
+  background: #f1f5f9;
   overflow: hidden;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color 0.15s ease;
 }
 
-.booth-manage__banner-dropzone:hover {
-  border-color: #2563eb;
-}
-
-.booth-manage__banner-dropzone img {
+.booth-manage__banner-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.booth-manage__banner-hover-hint {
-  position: absolute;
-  inset: auto 0 0 0;
-  padding: 8px;
-  text-align: center;
-  background: rgba(15, 23, 42, 0.65);
-  color: #fff;
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.booth-manage__banner-dropzone:hover .booth-manage__banner-hover-hint {
-  opacity: 1;
-}
-
-.booth-manage__banner-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  text-align: center;
-  padding: 16px;
-}
-
-.booth-manage__banner-icon {
-  font-size: 28px;
-}
-
-.booth-manage__banner-placeholder p {
-  margin: 0;
-  font-family: 'Inter', sans-serif;
-  font-weight: 600;
-  font-size: 14px;
-  color: #475569;
-}
-
-.booth-manage__banner-hint {
+.booth-manage__banner-empty {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: #94a3b8;
-}
-
-.booth-manage__banner-select-btn {
-  margin-top: 6px;
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 14px;
-  border-radius: 6px;
-  background: #2563eb;
-  color: #fff;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 12px;
-}
-
-.booth-manage__banner-guide {
-  flex: 1;
-  min-width: 220px;
-  box-sizing: border-box;
-  border: 1px solid #dbeafe;
-  background: #eff6ff;
-  border-radius: 8px;
-  padding: 16px 18px;
-}
-
-.booth-manage__banner-guide-title {
-  margin: 0 0 8px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  color: #1d4ed8;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.booth-manage__banner-guide ul {
-  margin: 0;
-  padding-left: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-family: 'Inter', sans-serif;
-  font-size: 12.5px;
-  color: #1e40af;
-}
-
-.booth-manage__banner-actions {
-  display: flex;
-  gap: 12px;
-}
-
-.booth-manage__banner-actions button {
-  height: 38px;
-  padding: 0 20px;
-  border: none;
-  border-radius: 6px;
-  background: #2563eb;
-  color: #fff;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.booth-manage__banner-actions button.ghost {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  color: #475569;
-}
-
-.booth-manage__banner-actions button:disabled {
-  background: #cbd5e1;
-  cursor: default;
+  text-align: center;
+  padding: 0 16px;
 }
 
 .booth-manage__banner-controls {
@@ -717,13 +462,5 @@
 
   .booth-manage__vehicle-form-grid {
     grid-template-columns: 1fr;
-  }
-
-  .booth-manage__banner-row {
-    flex-direction: column;
-  }
-
-  .booth-manage__half-row {
-    flex-direction: column;
   }
 }
