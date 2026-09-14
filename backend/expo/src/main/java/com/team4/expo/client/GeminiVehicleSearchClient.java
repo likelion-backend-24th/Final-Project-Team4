@@ -1,0 +1,128 @@
+package com.team4.expo.client;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team4.expo.dto.VehicleSearchCandidate;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+// Google Gemini API로 자연어 차량 검색
+@Component
+public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiVehicleSearchClient.class);
+    private static final int MAX_ATTEMPTS = 2;
+
+    private final String apiKey;
+    private final String model;
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+
+    public GeminiVehicleSearchClient(@Value("${gemini.api-key}") String apiKey,
+                                      @Value("${gemini.model}") String model,
+                                      ObjectMapper objectMapper) {
+        this.apiKey = apiKey;
+        this.model = model;
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public Optional<VehicleSearchInterpretation> search(String query, List<VehicleSearchCandidate> candidates) {
+        if (apiKey == null || apiKey.isBlank() || candidates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        String prompt = buildPrompt(query, candidates);
+
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                String requestBody = objectMapper.writeValueAsString(Map.of(
+                        "contents", new Object[]{Map.of("parts", new Object[]{Map.of("text", prompt)})}));
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"))
+                        .header("Content-Type", "application/json")
+                        .header("x-goog-api-key", apiKey)
+                        .timeout(Duration.ofSeconds(15))
+                        .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    boolean retryable = response.statusCode() == 503 || response.statusCode() == 429;
+                    log.warn("Gemini 차량 검색 호출 실패 (status={}, attempt={}/{}): {}",
+                            response.statusCode(), attempt, MAX_ATTEMPTS, response.body());
+                    if (retryable && attempt < MAX_ATTEMPTS) {
+                        Thread.sleep(1000);
+                        continue;
+                    }
+                    return Optional.empty();
+                }
+
+                JsonNode root = objectMapper.readTree(response.body());
+                String text = root.path("candidates").path(0).path("content").path("parts").path(0).path("text").asText(null);
+                return parseResult(text);
+            } catch (IOException | InterruptedException e) {
+                log.warn("Gemini 차량 검색 호출 중 오류: {}", e.getMessage());
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
+    }
+
+    // 모델이 ```json 코드블록으로 감싸서 줄 때 걷어내고 파싱
+    private Optional<VehicleSearchInterpretation> parseResult(String text) {
+        if (text == null || text.isBlank()) {
+            return Optional.empty();
+        }
+        String cleaned = text.trim();
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replaceFirst("^```[a-zA-Z]*\\n?", "").replaceFirst("```\\s*$", "").trim();
+        }
+        try {
+            JsonNode json = objectMapper.readTree(cleaned);
+            List<Long> ids = new java.util.ArrayList<>();
+            json.path("matchedVehicleIds").forEach(node -> ids.add(node.asLong()));
+            String summary = json.path("summary").asText(null);
+            return Optional.of(new VehicleSearchInterpretation(ids, summary));
+        } catch (IOException e) {
+            log.warn("Gemini 차량 검색 응답 파싱 실패: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private String buildPrompt(String query, List<VehicleSearchCandidate> candidates) {
+        String candidatesJson;
+        try {
+            candidatesJson = objectMapper.writeValueAsString(candidates);
+        } catch (IOException e) {
+            candidatesJson = "[]";
+        }
+
+        return "다음은 모빌리티 박람회에 전시된 차량 목록이다(JSON). 각 항목의 vehicleId, name, tags, startPrice(원), "
+                + "summary, description, features, colors, range(주행거리), battery, power를 참고해서, "
+                + "사용자 질문에 맞는 차량만 골라줘.\n\n"
+                + "규칙:\n"
+                + "- 가격 질문(\"300만원대\" 등)은 startPrice(원 단위 숫자)를 보고 직접 판단해.\n"
+                + "- \"가족끼리 타기 좋은\", \"연비 좋은\" 처럼 특정 단어가 그대로 없어도, description/features/summary 내용을 보고 "
+                + "의미상 맞는지 판단해서 골라.\n"
+                + "- 순위는 필요없고, 조건에 맞는 차량의 vehicleId만 배열로 담아줘. 하나도 없으면 빈 배열.\n"
+                + "- summary 필드에 질문을 어떻게 이해했는지 한국어 한 문장으로 적어줘 (예: \"가족용 SUV/미니밴을 찾으시는 것으로 이해했어요\").\n"
+                + "- 다른 설명 없이 아래 JSON 형식만 출력해: {\"matchedVehicleIds\": [1, 2], \"summary\": \"...\"}\n\n"
+                + "차량 목록:\n" + candidatesJson + "\n\n"
+                + "사용자 질문: " + query;
+    }
+}

@@ -4,6 +4,8 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.client.ExhibitorProfile;
 import com.team4.expo.client.IdentityClient;
+import com.team4.expo.client.VehicleSearchInterpretation;
+import com.team4.expo.client.VehicleSearchInterpreter;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothApplication;
@@ -14,14 +16,20 @@ import com.team4.expo.domain.Post;
 import com.team4.expo.domain.Vehicle;
 import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.VehicleResponse;
+import com.team4.expo.dto.VehicleSearchCandidate;
+import com.team4.expo.dto.VehicleSearchResponse;
+import com.team4.expo.dto.VehicleSearchResultItem;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ExpoRepository;
 import com.team4.expo.repository.PostRepository;
 import com.team4.expo.repository.VehicleImageRepository;
 import com.team4.expo.repository.VehicleRepository;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,12 +46,14 @@ public class CustomerVehicleService {
     private final VehicleImageRepository vehicleImageRepository;
     private final BoothApplicationRepository boothApplicationRepository;
     private final IdentityClient identityClient;
+    private final VehicleSearchInterpreter vehicleSearchInterpreter;
 
     public CustomerVehicleService(ExpoRepository expoRepository, BoothRepository boothRepository,
                                    PostRepository postRepository, VehicleRepository vehicleRepository,
                                    VehicleImageRepository vehicleImageRepository,
                                    BoothApplicationRepository boothApplicationRepository,
-                                   IdentityClient identityClient) {
+                                   IdentityClient identityClient,
+                                   VehicleSearchInterpreter vehicleSearchInterpreter) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.postRepository = postRepository;
@@ -51,6 +61,7 @@ public class CustomerVehicleService {
         this.vehicleImageRepository = vehicleImageRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.identityClient = identityClient;
+        this.vehicleSearchInterpreter = vehicleSearchInterpreter;
     }
 
     public List<CustomerBoothVehiclesResponse> getExpoVehicles(Long expoId) {
@@ -86,5 +97,78 @@ public class CustomerVehicleService {
 
     private VehicleResponse toVehicleResponse(Vehicle vehicle) {
         return VehicleResponse.from(vehicle, vehicleImageRepository.findByVehicle_IdOrderBySortOrderAsc(vehicle.getId()));
+    }
+
+    // 자연어 차량 검색 - 현재 OPEN인 박람회 전체의 참가 확정 부스 차량을 대상으로 검색
+    public VehicleSearchResponse searchVehicles(String query) {
+        if (query == null || query.isBlank()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "검색어를 입력해주세요.");
+        }
+
+        List<CandidateEntry> entries = new ArrayList<>();
+        for (Expo expo : expoRepository.findByStatus(ExpoStatus.OPEN)) {
+            for (Booth booth : boothRepository.findByExpo_IdOrderByBoothNo(expo.getId())) {
+                if (booth.getStatus() != BoothStatus.ASSIGNED) {
+                    continue;
+                }
+                List<Vehicle> vehicles = vehicleRepository.findByBooth_IdOrderByCreatedAtAsc(booth.getId());
+                if (vehicles.isEmpty()) {
+                    continue;
+                }
+                String companyName = companyNameOf(booth);
+                for (Vehicle vehicle : vehicles) {
+                    entries.add(new CandidateEntry(expo, booth, companyName, vehicle));
+                }
+            }
+        }
+
+        if (entries.isEmpty()) {
+            return new VehicleSearchResponse(List.of(), null);
+        }
+
+        List<VehicleSearchCandidate> candidates = entries.stream()
+                .map(e -> toCandidate(e.vehicle()))
+                .toList();
+        Optional<VehicleSearchInterpretation> interpretation = vehicleSearchInterpreter.search(query, candidates);
+
+        List<CandidateEntry> matched;
+        String summary;
+        if (interpretation.isPresent()) {
+            Set<Long> matchedIds = new HashSet<>(interpretation.get().getMatchedVehicleIds());
+            matched = entries.stream().filter(e -> matchedIds.contains(e.vehicle().getId())).toList();
+            summary = interpretation.get().getSummary();
+        } else {
+            matched = entries.stream().filter(e -> containsQuery(e.vehicle(), query)).toList();
+            summary = null;
+        }
+
+        List<VehicleSearchResultItem> results = matched.stream()
+                .map(e -> new VehicleSearchResultItem(
+                        e.expo().getId(), e.expo().getTitle(),
+                        e.booth().getId(), e.booth().getBoothNo(),
+                        e.companyName(), toVehicleResponse(e.vehicle())))
+                .toList();
+
+        return new VehicleSearchResponse(results, summary);
+    }
+
+    // 차량 후보로 변환
+    private VehicleSearchCandidate toCandidate(Vehicle v) {
+        return new VehicleSearchCandidate(v.getId(), v.getName(), v.getTags(), v.getStartPrice(),
+                v.getSummary(), v.getDescription(), v.getFeatures(), v.getColors(),
+                v.getRange(), v.getBattery(), v.getPower());
+    }
+
+    // AI 미설정/호출 실패 시 폴백 - 원문을 차량의 텍스트 필드 전체에 대해 단순 포함검색
+    private boolean containsQuery(Vehicle v, String query) {
+        String needle = query.toLowerCase();
+        return List.of(v.getName(), v.getTags(), v.getColors(), v.getSummary(), v.getDescription(),
+                        v.getFeatures(), v.getRange(), v.getBattery(), v.getPower())
+                .stream()
+                .filter(s -> s != null && !s.isBlank())
+                .anyMatch(s -> s.toLowerCase().contains(needle));
+    }
+
+    private record CandidateEntry(Expo expo, Booth booth, String companyName, Vehicle vehicle) {
     }
 }
