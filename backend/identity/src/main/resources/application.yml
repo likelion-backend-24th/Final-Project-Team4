@@ -5,7 +5,7 @@ spring:
   application:
     name: identity
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/identity?serverTimezone=UTC&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/identity?serverTimezone=Asia%2FSeoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
     username: ${DB_USER:app}
     password: ${DB_PASSWORD:app_local_only}
     driver-class-name: com.mysql.cj.jdbc.Driver
