@@ -6,6 +6,10 @@ spring:
           uri: http://identity:8081
           predicates:
             - Path=/api/auth/**
+        - id: identity-oauth2
+          uri: http://identity:8081
+          predicates:
+            - Path=/oauth2/**,/login/oauth2/**
         - id: payment
           uri: http://payment:8083
           predicates:
