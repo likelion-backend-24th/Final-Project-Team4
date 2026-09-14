@@ -33,6 +33,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     // 화이트리스트 - 토큰 없이 통과 가능 경로 (로그인,회원가입,토큰 재발급,로그아웃, 비회원 박람회 접근 api)
     private static final List<PathPattern> WHITELIST = List.of(
             parse("/api/auth/**"),
+            parse("/oauth2/**"), // 소셜 로그인 리다이렉트
+            parse("/login/oauth2/**"), // 소셜 로그인 콜백
             parse("/api/customer/expos"),
             parse("/api/customer/expos/{id}"),
             parse("/api/customer/expos/{id}/booths"),
