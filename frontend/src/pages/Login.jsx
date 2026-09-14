@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logoIcon from "../assets/logo-icon.png";
-import apiClient from "../api/client";
+import googleSymbol from "../assets/google.png";
+import kakaoSymbol from "../assets/kakako.png";
+import naverSymbol from "../assets/naver-n.png";
+import apiClient, { apiBaseUrl } from "../api/client";
 import { setAuth } from "../api/auth";
 import "./Login.css";
 
@@ -103,6 +106,35 @@ function Login() {
             >
               {submitting ? "로그인 중..." : "로그인"}
             </button>
+
+            <div className="login__divider">
+              <span>또는</span>
+            </div>
+
+            <div className="login__social">
+              <a
+                href={`${apiBaseUrl}/oauth2/authorization/google`}
+                className="login__social-btn login__social-btn--google"
+              >
+                <img src={googleSymbol} alt="" className="login__social-icon" />
+                Google 로그인
+              </a>
+              <a
+                href={`${apiBaseUrl}/oauth2/authorization/kakao`}
+                className="login__social-btn login__social-btn--kakao"
+              >
+                <img src={kakaoSymbol} alt="" className="login__social-icon" />
+                카카오 로그인
+              </a>
+              <a
+                href={`${apiBaseUrl}/oauth2/authorization/naver`}
+                className="login__social-btn login__social-btn--naver"
+              >
+                <img src={naverSymbol} alt="" className="login__social-icon" />
+                네이버 로그인
+              </a>
+            </div>
+
             <Link to="/customer" className="login__browse">
               로그인 없이 박람회 둘러보기
             </Link>
