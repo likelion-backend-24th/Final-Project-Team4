@@ -45,6 +45,9 @@ public class Consultation {
 
     private int aiSummaryRetryCount;
 
+    // 참가업체가 현장에서 QR 스캔으로 연락처를 확보하는 데 동의하는지(STORY 11 리드 기능용). 기본 false.
+    private boolean leadConsent;
+
     @Enumerated(EnumType.STRING)
     private ConsultationStatus status;
 
@@ -57,7 +60,8 @@ public class Consultation {
     public Consultation(Booth booth, Long customerId, String customerName, String customerPhone,
                          String customerEmail, boolean wantsPurchase, boolean wantsTestDrive,
                          String interestedVehicle, boolean hasDriverLicense,
-                         LocalDate preferredDate, LocalTime preferredTime, String message) {
+                         LocalDate preferredDate, LocalTime preferredTime, String message,
+                         boolean leadConsent) {
         this.booth = booth;
         this.customerId = customerId;
         this.customerName = customerName;
@@ -70,6 +74,7 @@ public class Consultation {
         this.preferredDate = preferredDate;
         this.preferredTime = preferredTime;
         this.message = message;
+        this.leadConsent = leadConsent;
         this.status = ConsultationStatus.REQUESTED;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -126,7 +131,7 @@ public class Consultation {
     // 수정 후에는 기존 AI 요약이 더 이상 내용과 맞지 않으므로 서비스가 다시 붙여준다.
     public void updateDetails(boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,
                                boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
-                               String message) {
+                               String message, boolean leadConsent) {
         this.wantsPurchase = wantsPurchase;
         this.wantsTestDrive = wantsTestDrive;
         this.interestedVehicle = interestedVehicle;
@@ -134,6 +139,7 @@ public class Consultation {
         this.preferredDate = preferredDate;
         this.preferredTime = preferredTime;
         this.message = message;
+        this.leadConsent = leadConsent;
         this.aiSummary = null;
         this.updatedAt = LocalDateTime.now();
     }

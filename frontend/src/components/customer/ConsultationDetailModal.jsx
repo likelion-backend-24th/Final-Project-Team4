@@ -28,6 +28,7 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
   const [interestedVehicle, setInterestedVehicle] = useState(consultation.interestedVehicle ?? '');
   const [hasDriverLicense, setHasDriverLicense] = useState(consultation.hasDriverLicense);
   const [message, setMessage] = useState(consultation.message ?? '');
+  const [leadConsent, setLeadConsent] = useState(consultation.leadConsent ?? false);
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
   const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
@@ -112,6 +113,7 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
       preferredDate: toIsoDate(viewYear, viewMonth, selectedDay),
       preferredTime: `${selectedTime}:00`,
       message: message.trim() || null,
+      leadConsent,
     })
       .then(() => {
         onChanged();
@@ -152,6 +154,10 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
               <div className="c-modal__info-row">
                 <dt>희망 방문일</dt>
                 <dd>{consultation.preferredDate} {consultation.preferredTime?.slice(0, 5)}</dd>
+              </div>
+              <div className="c-modal__info-row">
+                <dt>QR 연락처 제공 동의</dt>
+                <dd>{consultation.leadConsent ? '동의함' : '동의 안 함'}</dd>
               </div>
             </dl>
 
@@ -268,6 +274,11 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
             <label className="c-consult__field">
               <span>기타 요청사항</span>
               <textarea className="c-bulk-consult__textarea" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="자유롭게 작성해주세요. (선택)" />
+            </label>
+
+            <label className="c-bulk-consult__checkbox-row">
+              <input type="checkbox" checked={leadConsent} onChange={(e) => setLeadConsent(e.target.checked)} />
+              <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (선택)</span>
             </label>
 
             {error && <p className="c-consult__error">{error}</p>}

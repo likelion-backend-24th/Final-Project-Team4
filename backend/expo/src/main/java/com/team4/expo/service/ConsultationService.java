@@ -69,7 +69,8 @@ public class ConsultationService {
                 .map(booth -> new Consultation(booth, customerId, request.getCustomerName(), request.getCustomerPhone(),
                         request.getCustomerEmail(), request.isWantsPurchase(), request.isWantsTestDrive(),
                         request.getInterestedVehicle(), request.isHasDriverLicense(),
-                        request.getPreferredDate(), request.getPreferredTime(), request.getMessage()))
+                        request.getPreferredDate(), request.getPreferredTime(), request.getMessage(),
+                        request.isLeadConsent()))
                 .toList();
 
         // 신청 내용은 업체 수와 무관하게 동일하므로 요약도 한 번만 생성해 모든 건에 붙인다.
@@ -115,7 +116,8 @@ public class ConsultationService {
         }
 
         consultation.updateDetails(request.isWantsPurchase(), request.isWantsTestDrive(), request.getInterestedVehicle(),
-                request.isHasDriverLicense(), request.getPreferredDate(), request.getPreferredTime(), request.getMessage());
+                request.isHasDriverLicense(), request.getPreferredDate(), request.getPreferredTime(), request.getMessage(),
+                request.isLeadConsent());
 
         aiSummaryClient.summarizeConsultation(request.isWantsPurchase(), request.isWantsTestDrive(),
                         request.getInterestedVehicle(), request.isHasDriverLicense(), request.getMessage())
