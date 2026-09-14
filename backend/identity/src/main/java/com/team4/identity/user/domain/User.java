@@ -30,8 +30,15 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false, length = 60)
-    private String passwordHash;
+    @Column(name = "password_hash", length = 60)
+    private String passwordHash; // 소셜 전용 계정은 null
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private AuthProvider provider; // 일반 이메일 가입은 null
+
+    @Column(name = "provider_id", length = 100)
+    private String providerId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -79,6 +86,15 @@ public class User {
         this.passwordHash = passwordHash;
         this.role = role;
         this.status = UserStatus.ACTIVE;
+    }
+
+    // 소셜 로그인 최초 가입
+    public static User createSocialMember(String email, AuthProvider provider, String providerId, String name) {
+        User user = new User(email, null, Role.USER);
+        user.provider = provider;
+        user.providerId = providerId;
+        user.name = name;
+        return user;
     }
 
     public static User createMember(String email, String passwordHash, String name, String phone) {
