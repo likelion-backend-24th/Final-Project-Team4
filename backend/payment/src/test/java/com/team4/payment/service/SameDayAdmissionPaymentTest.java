@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.team4.payment.repository.AdmissionPaymentTicketRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 class SameDayAdmissionPaymentTest {
 
     @Mock private AdmissionPaymentRepository admissionPaymentRepository;
+    @Mock private AdmissionPaymentTicketRepository admissionPaymentTicketRepository;
     @Mock private ReservationClient reservationClient;
     @Mock private PaymentGateway paymentGateway;
 
@@ -37,7 +39,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 이미_티켓을_가진_날짜가_없으면_정상_결제된다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));
@@ -62,7 +64,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 이미_티켓을_가진_날짜가_섞여있으면_결제할_수_없다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, ONE_DATE, 20_000L));
@@ -74,7 +76,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 결제_금액이_입장_금액과_다르면_거부된다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));
@@ -86,7 +88,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 여러_날짜_결제금액은_1일_입장료_곱하기_날짜수여야_한다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
         List<LocalDate> threeDates = List.of(LocalDate.now(), LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
 
         when(reservationClient.getAdmissionContext(100L, 1L, threeDates))
@@ -100,7 +102,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 지난_날짜가_섞여있으면_결제_게이트웨이_호출_전에_거부된다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
         List<LocalDate> pastAndToday = List.of(LocalDate.now().minusDays(1), LocalDate.now());
 
         assertThatThrownBy(() -> service.pay(100L, 1L, pastAndToday, 40_000L, "CARD", "test-admission-5"))
@@ -115,7 +117,7 @@ class SameDayAdmissionPaymentTest {
     @Test
     void 이전에_다른_날짜를_결제한_고객도_겹치지_않으면_같은_박람회를_또_결제할_수_있다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
         List<LocalDate> anotherDate = List.of(LocalDate.now().plusDays(1));
 
         // "고객당 박람회당 결제 1건" 제약은 폐기됨 — 이미 결제 이력이 있어도 겹치는 날짜만 없으면

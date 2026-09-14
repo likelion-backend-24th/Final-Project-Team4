@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.team4.payment.repository.AdmissionPaymentTicketRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.when;
 class AdmissionPaymentCompletionTest {
 
     @Mock private AdmissionPaymentRepository admissionPaymentRepository;
+    @Mock private AdmissionPaymentTicketRepository admissionPaymentTicketRepository;
     @Mock private ReservationClient reservationClient;
     @Mock private PaymentGateway paymentGateway;
 
@@ -37,7 +39,7 @@ class AdmissionPaymentCompletionTest {
     @Test
     void 결제_성공시에만_Reservation에_티켓_발급이_1번_요청된다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));
@@ -63,7 +65,7 @@ class AdmissionPaymentCompletionTest {
     @Test
     void 결제_실패시에는_Reservation에_티켓_발급을_요청하지_않는다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));
@@ -81,7 +83,7 @@ class AdmissionPaymentCompletionTest {
     @Test
     void Reservation_티켓_발급이_실패해도_이미_완료된_결제_데이터는_그대로_유지된다() {
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));

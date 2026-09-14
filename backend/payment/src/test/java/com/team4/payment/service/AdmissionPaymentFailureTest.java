@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.team4.payment.repository.AdmissionPaymentTicketRepository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 public class AdmissionPaymentFailureTest {
     @Mock private AdmissionPaymentRepository admissionPaymentRepository;
+    @Mock private AdmissionPaymentTicketRepository admissionPaymentTicketRepository;
     @Mock private ReservationClient reservationClient;
     @Mock private PaymentGateway paymentGateway;
 
@@ -30,7 +32,7 @@ public class AdmissionPaymentFailureTest {
     @Test
     void 결제_실패시_FAILED_상태로_저장되고_PAID로_저장되지_않는다(){
         AdmissionPaymentService service =
-                new AdmissionPaymentService(admissionPaymentRepository, reservationClient, paymentGateway);
+                new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, List.of(), 20_000L));
