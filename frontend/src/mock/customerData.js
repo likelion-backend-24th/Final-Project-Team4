@@ -143,14 +143,19 @@ export function addMyTicket(ticket) {
   }
 }
 
-// CANCELLED(환불 완료)를 usedAt/만료보다 먼저 확인
+// CANCELLED(환불 완료)를 usedAt/만료보다 먼저 확인.
+// 상태는 박람회 전체 기간(endsAt)이 아니라 "이 티켓의 방문일(visitDate)" 기준으로 판단한다 —
+// 입장권은 하루짜리 QR이라 방문일이 지나면 그날치는 못 쓰고(만료), 아직 방문일이 안 왔으면 사용예정으로 구분한다.
 export function getTicketStatus(ticket) {
   if (ticket.status === 'CANCELLED') return '환불';
   if (ticket.usedAt) return '사용완료';
-  if (ticket.endsAt) {
-    const end = new Date(ticket.endsAt);
-    end.setHours(23, 59, 59, 999);
-    if (new Date() > end) return '만료';
+  if (ticket.visitDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const visit = new Date(ticket.visitDate);
+    visit.setHours(0, 0, 0, 0);
+    if (visit.getTime() < today.getTime()) return '만료';
+    if (visit.getTime() > today.getTime()) return '사용예정';
   }
   return '사용가능';
 }
