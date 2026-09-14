@@ -1,5 +1,6 @@
 server:
   port: 8081
+  forward-headers-strategy: framework  # nginx/gateway가 붙여주는 X-Forwarded-* 헤더를 신뢰해 {baseUrl}을 실제 접속 주소로 계산하게 함
 
 spring:
   application:
