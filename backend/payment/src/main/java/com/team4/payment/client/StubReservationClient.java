@@ -29,4 +29,10 @@ public class StubReservationClient implements ReservationClient{
                 .map(visitDate -> new AdmissionTicket(-1L, visitDate, "stub-qr-token", null))
                 .toList();
     }
+
+    @Override
+    public boolean cancelTicket(Long ticketId) {
+        log.info("[STUB] Reservation 티켓 취소 연동 미구현 - 항상 성공으로 응답 ticketId={}", ticketId);
+        return true;
+    }
 }

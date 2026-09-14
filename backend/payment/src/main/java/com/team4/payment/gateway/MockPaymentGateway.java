@@ -19,4 +19,12 @@ public class MockPaymentGateway implements PaymentGateway{
         }
         return PaymentGatewayResult.succeeded();
     }
+
+    @Override
+    public RefundResult cancelPayment(String paymentId, Long amount, String reason) {
+        if (paymentId != null && paymentId.startsWith(FORCE_FAIL_PREFIX)) {
+            return RefundResult.failure("테스트로 강제 실패 처리됨 (paymentId=" + paymentId + ")");
+        }
+        return RefundResult.succeeded();
+    }
 }

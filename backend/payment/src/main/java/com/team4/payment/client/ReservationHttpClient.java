@@ -121,4 +121,29 @@ public class ReservationHttpClient implements ReservationClient {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
         }
     }
+
+    @Override
+    public boolean cancelTicket(Long ticketId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(reservationBaseUrl + "/internal/reservation/tickets/" + ticketId + "/cancel"))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "Reservation 티켓 취소 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+
+            JsonNode data = objectMapper.readTree(response.body()).path("data");
+            return data.path("cancelled").asBoolean(false);
+
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
+        }
+    }
 }

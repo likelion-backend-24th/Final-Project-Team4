@@ -84,4 +84,13 @@ public class AdmissionPayment {
         ticket.setAdmissionPayment(this);
         this.tickets.add(ticket);
     }
+
+    // 이 결제에 딸린 티켓이 전부(1건짜리 결제면 그 1건, 여러 날짜 결제면 전체) 환불 처리됐을 때 호출.
+    // AdmissionPaymentService.refundTicket()에서 마지막 남은 티켓까지 환불되는 순간에만 호출된다 —
+    // 일부만 환불된 상태(여러 날짜 중 하나만 환불)에서는 결제 자체는 여전히 PAID로 남는다.
+    public void cancel(String reason, LocalDateTime cancelledAt){
+        this.status = PaymentStatus.CANCELLED;
+        this.cancelledAt = cancelledAt;
+        this.cancelReason = reason;
+    }
 }

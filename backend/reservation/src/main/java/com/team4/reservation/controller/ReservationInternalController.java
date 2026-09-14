@@ -5,6 +5,7 @@ import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.IssueAdmissionTicketRequest;
+import com.team4.reservation.dto.TicketCancelResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
 import com.team4.reservation.dto.VisitApplicationResponse;
 import com.team4.reservation.service.TicketService;
@@ -66,6 +67,19 @@ public class ReservationInternalController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 ticketService.issueAdmissionTicket(customerId, expoId, request.getVisitDates())));
+    }
+
+    // Payment -> Reservation. 환불 처리 중 호출 — 해당 티켓(QR)을 강제 무효화(CANCELLED).
+    // cancelled=false면 이미 체크인(USED)된 티켓이라는 뜻이며, Payment는 이 경우 환불 자체를 막는다.
+    @PostMapping("/tickets/{ticketId}/cancel")
+    public ResponseEntity<ApiResponse<TicketCancelResponse>> cancelTicket(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long ticketId) {
+
+        requirePaymentService(authorization);
+
+        boolean cancelled = ticketService.cancelTicket(ticketId);
+        return ResponseEntity.ok(ApiResponse.success(new TicketCancelResponse(cancelled)));
     }
 
     // Expo -> Reservation. 상담 신청 접수 시점에 그 날짜 입장권 보유 여부를 확인.
