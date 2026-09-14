@@ -95,7 +95,8 @@ public class SignInService {
         }
     }
 
-    private TokenResponse issue(User user, HttpServletResponse response) {
+    // 소셜 로그인에서 재사용
+    public TokenResponse issue(User user, HttpServletResponse response) {
         String role = user.getRole().name();
         Duration refreshTtl = Duration.ofMillis(jwtProvider.getRefreshTokenExp());
 
