@@ -42,6 +42,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             TokenResponse token = socialLoginService.loginOrSignUp(email, AuthProvider.valueOf(registrationId.toUpperCase()), providerId, name, response);
             redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
                     .queryParam("accessToken", token.getAccessToken())
+                    .queryParam("role", token.getRole())
                     .build().toUriString();
 
         } catch (CustomException e) {

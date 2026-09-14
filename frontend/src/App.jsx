@@ -7,6 +7,7 @@ import ExpoDetail from './pages/ExpoDetail';
 import BoothApplication from './pages/BoothApplication';
 import ConsultationRequests from './pages/ConsultationRequests';
 import Login from './pages/Login';
+import OAuth2Redirect from './pages/OAuth2Redirect';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -54,6 +55,7 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
