@@ -38,4 +38,7 @@ public class ConsultationRequest {
     private LocalTime preferredTime;
 
     private String message;
+
+    // 참가업체가 현장에서 QR 스캔으로 연락처를 확보하는 데 동의하는지(STORY 11). 선택, 기본 false.
+    private boolean leadConsent;
 }

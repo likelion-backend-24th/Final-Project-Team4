@@ -104,7 +104,7 @@ class ConsultationLifecycleAcceptanceTest {
     private Consultation requestedConsultation(Booth booth, LocalDate preferredDate) {
         return consultationRepository.save(new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
                 "hong@example.com", true, false, "EV6", true,
-                preferredDate, LocalTime.of(14, 0), "상담 부탁드립니다"));
+                preferredDate, LocalTime.of(14, 0), "상담 부탁드립니다", false));
     }
 
     private String updateBody(LocalDate preferredDate) {

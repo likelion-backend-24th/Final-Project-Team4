@@ -100,6 +100,10 @@ class ConsultationApplyAcceptanceTest {
     }
 
     private String applyBody(List<Long> boothIds, boolean wantsPurchase, boolean wantsTestDrive) {
+        return applyBody(boothIds, wantsPurchase, wantsTestDrive, false);
+    }
+
+    private String applyBody(List<Long> boothIds, boolean wantsPurchase, boolean wantsTestDrive, boolean leadConsent) {
         return body(Map.ofEntries(
                 Map.entry("boothIds", boothIds),
                 Map.entry("customerName", "홍길동"),
@@ -111,7 +115,8 @@ class ConsultationApplyAcceptanceTest {
                 Map.entry("hasDriverLicense", true),
                 Map.entry("preferredDate", LocalDate.now().plusDays(1).toString()),
                 Map.entry("preferredTime", "14:00:00"),
-                Map.entry("message", "상담 부탁드립니다")));
+                Map.entry("message", "상담 부탁드립니다"),
+                Map.entry("leadConsent", leadConsent)));
     }
 
     private String body(Map<String, ?> map) {
@@ -139,6 +144,26 @@ class ConsultationApplyAcceptanceTest {
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].status").value("REQUESTED"))
                 .andExpect(jsonPath("$.data[0].customerId").value(CUSTOMER_ID));
+    }
+
+    @Test
+    @DisplayName("leadConsent를 체크 안 하면 false로 저장되고, 체크하면 true로 저장된다")
+    void 리드동의_기본값_및_체크() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, "A-101");
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth.getId()), true, false)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data[0].leadConsent").value(false));
+
+        Booth booth2 = assignedBooth(expo, "A-102");
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth2.getId()), true, false, true)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data[0].leadConsent").value(true));
     }
 
     @Test
@@ -264,7 +289,7 @@ class ConsultationApplyAcceptanceTest {
 
         Consultation rejected = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
                 "hong@example.com", true, false, "EV6", true,
-                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다");
+                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다", false);
         rejected.reject("일정상 어려움");
         consultationRepository.save(rejected);
 

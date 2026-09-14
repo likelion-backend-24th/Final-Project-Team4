@@ -35,6 +35,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
   const [interestedVehicle, setInterestedVehicle] = useState('');
   const [hasDriverLicense, setHasDriverLicense] = useState(false);
   const [message, setMessage] = useState('');
+  const [leadConsent, setLeadConsent] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -168,6 +169,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
       preferredDate: preferredDate(),
       preferredTime: selectedTime,
       message: message.trim() || null,
+      leadConsent,
     })
       .then(() => {
         const dateLabel = `${viewYear}년 ${viewMonth + 1}월 ${selectedDay}일(${WEEKDAYS[new Date(viewYear, viewMonth, selectedDay).getDay()]})`;
@@ -451,6 +453,15 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                     onChange={(e) => setMessage(e.target.value)}
                     rows={4}
                   />
+                </label>
+
+                <label className="c-bulk-consult__checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={leadConsent}
+                    onChange={(e) => setLeadConsent(e.target.checked)}
+                  />
+                  <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (선택)</span>
                 </label>
 
                 {submitError && <p className="c-consult__error">{submitError}</p>}

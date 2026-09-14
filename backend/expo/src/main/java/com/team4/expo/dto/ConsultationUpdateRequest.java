@@ -23,4 +23,6 @@ public class ConsultationUpdateRequest {
     private LocalTime preferredTime;
 
     private String message;
+
+    private boolean leadConsent;
 }
