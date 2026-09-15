@@ -20,11 +20,15 @@ function Login() {
     try {
       const { data } = await apiClient.post(
         "/api/auth/signin",
-        { email: form.get("email"), password: form.get("password") },
+        {
+          email: form.get("email"),
+          password: form.get("password"),
+          rememberMe: form.get("rememberMe") === "on",
+        },
         { skipAuthRefresh: true }, // 로그인 실패(401)를 토큰 재발급으로 재시도하지 않음
       );
       const loginRole = data.data.role;
-      setAuth(data.data.accessToken, loginRole);
+      setAuth(data.data.accessToken, loginRole, data.data.rememberMe);
       if (loginRole === "ADMIN") {
         navigate("/admin/applications");
       } else if (loginRole === "USER") {
@@ -90,7 +94,7 @@ function Login() {
 
           <div className="login__options">
             <label className="login__remember">
-              <input type="checkbox" />
+              <input type="checkbox" name="rememberMe" />
               로그인 상태 유지
             </label>
             <Link to="/forgot-password" className="login__find-pw">

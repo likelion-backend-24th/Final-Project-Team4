@@ -15,4 +15,6 @@ public class SignInRequest {
 
     @NotBlank
     private final String password;
+
+    private final boolean rememberMe;
 }

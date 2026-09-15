@@ -9,19 +9,26 @@ const ROLE_KEY = 'role';
 const listeners = new Set();
 const notify = () => listeners.forEach((fn) => fn());
 
-export const setAuth = (token, role) => {
-  localStorage.setItem(TOKEN_KEY, token);
-  if (role) localStorage.setItem(ROLE_KEY, role);
+// rememberMe=false면 sessionStorage에 저장 -> 탭/브라우저를 닫으면 같이 사라짐(서버의 세션 쿠키와 동일한 생명주기)
+export const setAuth = (token, role, rememberMe = true) => {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  const other = rememberMe ? sessionStorage : localStorage;
+  storage.setItem(TOKEN_KEY, token);
+  if (role) storage.setItem(ROLE_KEY, role);
+  other.removeItem(TOKEN_KEY);
+  other.removeItem(ROLE_KEY);
   notify();
 };
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
+export const getToken = () => sessionStorage.getItem(TOKEN_KEY) ?? localStorage.getItem(TOKEN_KEY);
 
-export const getRole = () => localStorage.getItem(ROLE_KEY);
+export const getRole = () => sessionStorage.getItem(ROLE_KEY) ?? localStorage.getItem(ROLE_KEY);
 
 export const clearAuth = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ROLE_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(ROLE_KEY);
   notify();
 };
 
@@ -35,7 +42,7 @@ const subscribe = (fn) => {
   return () => listeners.delete(fn);
 };
 export const useIsLoggedIn = () =>
-  useSyncExternalStore(subscribe, () => Boolean(localStorage.getItem(ROLE_KEY)));
+  useSyncExternalStore(subscribe, () => Boolean(getRole()));
 
 // 마이페이지에서 내 정보(이름 등)를 수정했을 때 헤더가 다시 조회하도록 알리는 용도
 let profileVersion = 0;

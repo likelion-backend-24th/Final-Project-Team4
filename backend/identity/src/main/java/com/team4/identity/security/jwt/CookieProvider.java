@@ -20,15 +20,22 @@ public class CookieProvider {
         return createCookie(name, value, maxAge, "/api/auth", sameSite);
     }
 
+    // 로그인 상태 유지 미선택
+    public ResponseCookie createSessionCookie(String name, String value) {
+        return createCookie(name, value, null, "/api/auth", sameSite);
+    }
+
     // oauth2를 세션 대신 쿠키 기반으로 동작하도록 구분짓기 위해 path, sameSite 받게함
     public ResponseCookie createCookie(String name, String value, Duration maxAge, String path, String sameSite){
-        return ResponseCookie.from(name, value)
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .secure(secure)
                 .sameSite(sameSite)
-                .path(path)
-                .maxAge(maxAge)
-                .build();
+                .path(path);
+        if (maxAge != null) {
+            builder.maxAge(maxAge);
+        }
+        return builder.build();
     }
 
     public ResponseCookie clearCookie(String name) {
