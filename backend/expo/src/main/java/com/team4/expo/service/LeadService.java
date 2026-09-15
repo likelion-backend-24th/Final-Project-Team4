@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.client.AiSummaryClient;
 import com.team4.expo.client.CustomerContact;
+import com.team4.expo.client.ExhibitorProfile;
 import com.team4.expo.client.IdentityClient;
 import com.team4.expo.client.ReservationClient;
 import com.team4.expo.client.TicketResolveResult;
@@ -85,9 +86,12 @@ public class LeadService {
     }
 
     // 참가업체가 QR 리드 화면에서 고를 본인 부스 목록(참가 확정된 부스만) - 화면의 부스 하드코딩을 대체(2026-09-15).
+    // boothNo/expoTitle까지 화면에 보여줘야 해서 JOIN FETCH 버전을 쓴다(N+1 방지) - findByExhibitorIdAndStatus를
+    // 그대로 쓰면 부스 수만큼 booth 쿼리가, expo까지 건드리면 또 그만큼 expo 쿼리가 추가로 나간다.
     @Transactional(readOnly = true)
     public List<MyBoothResponse> listMyBooths(Long exhibitorId) {
-        return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
+        return boothApplicationRepository
+                .findWithBoothAndExpoByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
                 .map(application -> MyBoothResponse.from(application.getBooth()))
                 .collect(Collectors.toList());
     }
@@ -112,14 +116,12 @@ public class LeadService {
         return LeadResponse.from(lead);
     }
 
-    private static final String SEND_INFO_SUBJECT = "[모빌리티 엑스포] 방문 상담 내용 정리 및 안내";
-
     // 참가업체가 확정한 이메일 본문을 고객에게 최종 발송(TASK 11-4). Identity 내부 API 호출 실패 시
     // 예외가 그대로 전파되어(fail-closed) 리드 상태를 바꾸지 않고 재시도 가능하게 둔다.
     public LeadResponse sendInfo(Long exhibitorId, Long leadId, String emailBody) {
         Lead lead = findOwnedLead(exhibitorId, leadId);
 
-        identityClient.sendMail(lead.getCustomerEmail(), SEND_INFO_SUBJECT, emailBody);
+        identityClient.sendMail(lead.getCustomerEmail(), buildSendInfoSubject(exhibitorId, lead), emailBody);
         lead.markSent();
 
         // 발송 성공이 실제 상담 완료의 직접 증거이므로, 연결된 Consultation이 APPROVED면 방문 예정일과 무관하게
@@ -130,6 +132,18 @@ public class LeadService {
         }
 
         return LeadResponse.from(lead);
+    }
+
+    // 고객이 여러 박람회·여러 업체에서 상담을 받으면 메일 제목만 보고는 구분이 안 되던 문제(2026-09-15) -
+    // 박람회명 + 참가업체명을 제목에 박아준다. 회사명 조회 실패 시엔 부스 번호로 대체(발송 자체는 막지 않음).
+    private String buildSendInfoSubject(Long exhibitorId, Lead lead) {
+        String expoTitle = lead.getBooth().getExpo().getTitle();
+        String exhibitorLabel = identityClient.getExhibitorProfile(exhibitorId)
+                .map(ExhibitorProfile::companyName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElseGet(() -> lead.getBooth().getBoothNo() + " 부스");
+
+        return "[" + expoTitle + "] " + exhibitorLabel + " 방문 상담 내용 정리 및 안내";
     }
 
     private Booth findOwnedBooth(Long exhibitorId, Long boothId) {
