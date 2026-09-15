@@ -3,10 +3,24 @@ import { Link } from "react-router-dom";
 import { getExpoList } from "../api/expo";
 import "./ExpoList.css";
 
-// 상단 필터 탭 목록
-const FILTERS = ["전체", "모집중", "모집마감", "진행중", "종료"];
+// 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
+const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
 
 const PAGE_SIZE = 8;
+
+// 부스 참가 신청을 받지 않는 단계. 모집예정은 부스 배치도까진 볼 수 있어야 해서 카드 자체는 막지 않음(ExpoDetail.jsx에서 신청 버튼만 막음)
+const NOT_APPLICABLE = ["모집마감", "종료"];
+const FOOTER_TEXT = {
+  모집마감: "모집 마감",
+  종료: "신청 종료",
+};
+
+// 정렬 기준 - 상태 탭과 무관하게 동일한 3가지 옵션을 공용으로 씀 (CustomerExpoList.jsx와 동일)
+const SORTS = [
+  { value: "start", label: "시작일", key: "startsAt" },
+  { value: "deadline", label: "신청 마감", key: "applyEndsAt" },
+  { value: "end", label: "종료일", key: "endsAt" },
+];
 
 // 카드 썸네일에 순서대로 돌려가며 입힐 그라데이션 색상들
 const GRADIENTS = [
@@ -31,16 +45,16 @@ const phaseOf = (e) => {
   return "종료";
 };
 
-// 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환
+// 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환 (정렬에 쓸 원본 날짜는 그대로 둠)
 const toRealCard = (e) => ({
   key: `real-${e.expoId}`,
   expoId: e.expoId,
   title: e.title,
   phase: phaseOf(e),
   venue: e.venue,
-  startsAt: fmtDate(e.startsAt),
-  endsAt: fmtDate(e.endsAt),
-  applyEnd: fmtDate(e.applyEndsAt),
+  startsAt: e.startsAt,
+  endsAt: e.endsAt,
+  applyEndsAt: e.applyEndsAt,
 });
 
 function ExpoList() {
@@ -48,6 +62,8 @@ function ExpoList() {
   const [cards, setCards] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("전체");
+  const [sortBy, setSortBy] = useState(SORTS[0].value);
+  const [sortDir, setSortDir] = useState("asc");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
 
@@ -63,23 +79,25 @@ function ExpoList() {
       );
   }, []);
 
-  // 선택된 필터(상태 탭)와 검색어에 맞는 카드만 걸러냄
-  const filtered = useMemo(
-    () =>
-      cards.filter((c) => {
+  // 선택된 필터(상태 탭)와 검색어에 맞는 카드만 걸러내고 정렬함
+  const filtered = useMemo(() => {
+    const sortKey = SORTS.find((s) => s.value === sortBy).key;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return cards
+      .filter((c) => {
         const matchesFilter = filter === "전체" || c.phase === filter;
         const matchesKeyword = c.title
           .toLowerCase()
           .includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
-      }),
-    [cards, filter, keyword],
-  );
+      })
+      .sort((a, b) => dir * (new Date(a[sortKey]) - new Date(b[sortKey])));
+  }, [cards, filter, keyword, sortBy, sortDir]);
 
-    // 필터/검색 결과가 바뀌면 페이지를 1로 초기화
+    // 필터/정렬/검색 결과가 바뀌면 페이지를 1로 초기화
   useEffect(() => {
     setPage(1);
-  }, [filter, keyword]);
+  }, [filter, sortBy, sortDir, keyword]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -107,14 +125,14 @@ function ExpoList() {
             {c.phase}
           </span>
           <span>
-            신청 마감 <strong>{c.applyEnd}</strong>
+            신청 마감 <strong>{fmtDate(c.applyEndsAt)}</strong>
           </span>
         </div>
         <h3>{c.title}</h3>
         <div className="expo-card__meta-list">
           <p>
             <span className="expo-card__icon expo-card__icon--calendar" />
-            {c.startsAt} - {c.endsAt}
+            {fmtDate(c.startsAt)} - {fmtDate(c.endsAt)}
           </p>
           <p>
             <span className="expo-card__icon expo-card__icon--pin" />
@@ -124,9 +142,9 @@ function ExpoList() {
         <div className="expo-card__divider" />
         <div className="expo-card__footer">
           <span className="expo-card__link">
-            {c.phase === "종료" ? "신청 종료" : "상세 보기 및 부스 신청"}
+            {FOOTER_TEXT[c.phase] ?? "상세 보기 및 부스 신청"}
           </span>
-          {c.phase !== "종료" && <span className="expo-card__arrow" />}
+          {!NOT_APPLICABLE.includes(c.phase) && <span className="expo-card__arrow" />}
         </div>
       </div>
     </>
@@ -158,14 +176,35 @@ function ExpoList() {
             </button>
           ))}
         </div>
-        <div className="expo-list__search-wrap">
-          <span className="expo-list__search-icon" />
-          <input
-            className="expo-list__search"
-            placeholder="박람회 명칭 검색..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
+        <div className="expo-list__toolbar-right">
+          <select
+            className="expo-list__sort"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            {SORTS.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="expo-list__sort-dir"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            aria-label={sortDir === "asc" ? "오름차순" : "내림차순"}
+          >
+            {sortDir === "asc" ? "▲" : "▼"}
+          </button>
+          <div className="expo-list__search-wrap">
+            <span className="expo-list__search-icon" />
+            <input
+              className="expo-list__search"
+              placeholder="박람회 명칭 검색..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -174,8 +213,8 @@ function ExpoList() {
         {loadError && <p className="expo-list__status">{loadError}</p>}
         <div className="expo-list__grid">
           {paginated.map((c, i) =>
-            // 종료된 박람회는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
-            c.phase === "종료" ? (
+            // 모집예정/모집마감/종료는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
+            NOT_APPLICABLE.includes(c.phase) ? (
               <div key={c.key} className="expo-card expo-card--disabled">
                 {renderCardBody(c, i)}
               </div>

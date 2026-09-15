@@ -142,6 +142,8 @@ public class ExpoService {
 
         validateDateOrder(request.getApplyStartsAt(), request.getApplyEndsAt(), request.getStartsAt(), request.getEndsAt());
 
+        //TODO:  알림 기능 추가되면 scheduleChanged일 때 이 박람회 기존 QR(Reservation) 전부 취소 + 사용자 알림 발송
+        // - 모집중 단계부터 박람회 일정 수정 시 기존 고객 QR에 대한 처리가 없어서 QR이 고아가 되버릴 수 있음.
         boolean scheduleChanged = !expo.getStartsAt().isEqual(request.getStartsAt())
                 || !expo.getEndsAt().isEqual(request.getEndsAt())
                 || !expo.getApplyStartsAt().isEqual(request.getApplyStartsAt())

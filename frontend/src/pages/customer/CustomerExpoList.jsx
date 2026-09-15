@@ -5,7 +5,13 @@ import { getCustomerExpoList, searchVehicles } from '../../api/expo';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import './CustomerExpoList.css';
 
-const FILTERS = ['전체', '진행중', '모집중', '모집예정', '종료'];
+// phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (ExpoList.jsx와 동일해야 함)
+const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
+
+// 관리자가 일정 변경 시 막는 장치가 없어(Expo 쪽 가드는 부스 신청 여부만 봄) 기존 고객 QR이 고아가 될 수 있음.
+// 모집중 이후 구간은 나중에 알림 기능에서 "일정 변경 시 기존 QR 취소 + 알림"으로 별도 처리 해야함.
+const NOT_BOOKABLE = ["모집예정", "종료"];
+const CTA_TEXT = { 모집예정: "모집 예정", 종료: "종료" };
 
 // 정렬 기준 - 상태 탭과 무관하게 동일한 3가지 옵션을 공용으로 씀
 const SORTS = [
@@ -251,10 +257,10 @@ function CustomerExpoList() {
                      <button
                       type="button"
                       className="c-expo-card__cta"
-                      disabled={e.phase === '종료'}
+                      disabled={NOT_BOOKABLE.includes(e.phase)}
                       onClick={() => setCheckinExpo(e)}
                     >
-                      {e.phase === '종료' ? '종료' : '선택하기'}
+                      {CTA_TEXT[e.phase] ?? '선택하기'}
                     </button>
                   </div>
                 </div>
