@@ -3,6 +3,7 @@ package com.team4.expo.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.ExhibitorProfile;
 import com.team4.expo.client.IdentityClient;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
@@ -22,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -128,9 +131,25 @@ class LeadSendInfoAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("SENT"));
 
-        verify(identityClient).sendMail("hong@example.com", "[모빌리티 엑스포] 방문 상담 내용 정리 및 안내", "정리된 이메일 본문");
+        // getExhibitorProfile을 스텁 안 했으면(=회사명 조회 실패) 부스 번호로 대체하는지 함께 검증
+        verify(identityClient).sendMail("hong@example.com", "[2026 모빌리티 엑스포] A-101 부스 방문 상담 내용 정리 및 안내", "정리된 이메일 본문");
         assertThat(consultationRepository.findById(consultation.getId()).orElseThrow().getStatus())
                 .isEqualTo(ConsultationStatus.COMPLETED);
+    }
+
+    @Test
+    @DisplayName("참가업체 회사명 조회가 되면 메일 제목에 부스 번호 대신 회사명이 들어간다")
+    void 제목에_회사명_포함() throws Exception {
+        when(identityClient.getExhibitorProfile(EXHIBITOR_ID)).thenReturn(Optional.of(
+                new ExhibitorProfile("전기차 충전기 주식회사", "전기차 충전", "000-00-00000", "홍대표", "ex@example.com")));
+
+        mockMvc.perform(post("/api/exhibitor/leads/{leadId}/send-info", lead.getId()).with(exhibitor())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("정리된 이메일 본문")))
+                .andExpect(status().isOk());
+
+        verify(identityClient).sendMail("hong@example.com",
+                "[2026 모빌리티 엑스포] 전기차 충전기 주식회사 방문 상담 내용 정리 및 안내", "정리된 이메일 본문");
     }
 
     @Test

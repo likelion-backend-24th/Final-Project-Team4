@@ -3,6 +3,8 @@ package com.team4.expo.repository;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.BoothApplication;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +27,14 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
     // (관리자가 한 부스를 여러 업체에 중복 승인하는 것을 막기 위한 검증)
     boolean existsByBooth_IdAndStatusIn(Long boothId, List<ApplicationStatus> statuses);
 
-    // 참가업체가 참가 확정(CONFIRMED)받은 부스 목록 - 상담 신청 목록 조회 시 담당 부스 범위를 좁히는 데 사용
+    // 참가업체가 참가 확정(CONFIRMED)받은 부스 목록 - 상담 신청 목록 조회 시 담당 부스 범위를 좁히는 데 사용.
+    // booth/expo는 id만 쓰는 호출부라 lazy 그대로 둠(getId()는 프록시에서 쿼리 없이 바로 나옴).
     List<BoothApplication> findByExhibitorIdAndStatus(Long exhibitorId, ApplicationStatus status);
+
+    // LeadService.listMyBooths() 전용 - boothNo/expoTitle처럼 id가 아닌 필드까지 읽어야 해서
+    // JOIN FETCH로 한 번에 가져옴(N+1 방지, 위 findByExhibitorIdAndStatus와 달리 booth/expo까지 로딩).
+    @Query("SELECT ba FROM BoothApplication ba JOIN FETCH ba.booth b JOIN FETCH b.expo "
+            + "WHERE ba.exhibitorId = :exhibitorId AND ba.status = :status")
+    List<BoothApplication> findWithBoothAndExpoByExhibitorIdAndStatus(
+            @Param("exhibitorId") Long exhibitorId, @Param("status") ApplicationStatus status);
 }
