@@ -86,12 +86,9 @@ public class LeadService {
     }
 
     // 참가업체가 QR 리드 화면에서 고를 본인 부스 목록(참가 확정된 부스만) - 화면의 부스 하드코딩을 대체(2026-09-15).
-    // boothNo/expoTitle까지 화면에 보여줘야 해서 JOIN FETCH 버전을 쓴다(N+1 방지) - findByExhibitorIdAndStatus를
-    // 그대로 쓰면 부스 수만큼 booth 쿼리가, expo까지 건드리면 또 그만큼 expo 쿼리가 추가로 나간다.
     @Transactional(readOnly = true)
     public List<MyBoothResponse> listMyBooths(Long exhibitorId) {
-        return boothApplicationRepository
-                .findWithBoothAndExpoByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
+        return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
                 .map(application -> MyBoothResponse.from(application.getBooth()))
                 .collect(Collectors.toList());
     }
