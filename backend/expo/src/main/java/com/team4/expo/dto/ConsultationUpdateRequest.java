@@ -1,5 +1,6 @@
 package com.team4.expo.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -24,5 +25,7 @@ public class ConsultationUpdateRequest {
 
     private String message;
 
+    // 신청 시 필수 동의였던 항목 - 수정 중에 철회할 수 없게 같은 제약을 건다(2026-09-15).
+    @AssertTrue(message = "리드 확보(연락처 제공) 동의가 필요합니다.")
     private boolean leadConsent;
 }
