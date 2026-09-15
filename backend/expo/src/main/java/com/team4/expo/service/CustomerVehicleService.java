@@ -83,7 +83,7 @@ public class CustomerVehicleService {
                 .map(this::toVehicleResponse)
                 .collect(Collectors.toList());
 
-        return CustomerBoothVehiclesResponse.of(booth, post, companyNameOf(booth), vehicles);
+        return CustomerBoothVehiclesResponse.of(booth, post, companyNameOf(booth), applicationGroupIdOf(booth), vehicles);
     }
 
     // post(부스 소개 콘텐츠)를 아직 등록하지 않은 업체를 위한 제목 대체용. 실패해도 null로 넘어가 boothNo 폴백을 쓴다.
@@ -92,6 +92,15 @@ public class CustomerVehicleService {
                 .map(BoothApplication::getExhibitorId)
                 .flatMap(identityClient::getExhibitorProfile)
                 .map(ExhibitorProfile::companyName)
+                .orElse(null);
+    }
+
+    // 같은 신청(BoothApplicationGroup)으로 함께 접수한 부스끼리만 화면에서 묶어서 보여주기 위한 값.
+    private String applicationGroupIdOf(Booth booth) {
+        return boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED)
+                .map(BoothApplication::getGroup)
+                .filter(java.util.Objects::nonNull)
+                .map(group -> String.valueOf(group.getId()))
                 .orElse(null);
     }
 
