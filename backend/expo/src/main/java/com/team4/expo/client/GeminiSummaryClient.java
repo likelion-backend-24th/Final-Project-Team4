@@ -42,11 +42,20 @@ public class GeminiSummaryClient implements AiSummaryClient {
     @Override
     public Optional<String> summarizeConsultation(boolean wantsPurchase, boolean wantsTestDrive,
                                                     String interestedVehicle, boolean hasDriverLicense, String message) {
+        String prompt = buildPrompt(wantsPurchase, wantsTestDrive, interestedVehicle, hasDriverLicense, message);
+        return callGemini(prompt);
+    }
+
+    @Override
+    public Optional<String> summarizeForEmail(String customerName, String consultationNote) {
+        String prompt = buildEmailPrompt(customerName, consultationNote);
+        return callGemini(prompt);
+    }
+
+    private Optional<String> callGemini(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
             return Optional.empty();
         }
-
-        String prompt = buildPrompt(wantsPurchase, wantsTestDrive, interestedVehicle, hasDriverLicense, message);
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
@@ -106,5 +115,27 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "관심 차종: " + (interestedVehicle == null || interestedVehicle.isBlank() ? "미입력" : interestedVehicle) + "\n"
                 + "시승 시 운전면허 소지: " + (wantsTestDrive ? (hasDriverLicense ? "소지" : "미소지") : "해당없음") + "\n"
                 + "기타 요청사항: " + (message == null || message.isBlank() ? "없음" : message);
+    }
+
+    // spec.md "이메일 초안 목표 포맷(2026-09-14 확정)" - 제목+인사말+이모지 헤더 카테고리 불릿+안내 문구+마무리 인사.
+    private String buildEmailPrompt(String customerName, String consultationNote) {
+        return "다음은 모빌리티 박람회 참가업체 담당자가 부스에서 고객과 나눈 상담 내용을 현장에서 자유롭게 적은 메모다. "
+                + "이 메모를 참가업체가 고객에게 보낼 정중한 이메일 본문으로 정리해줘.\n"
+                + "형식(아래 구조와 어투를 그대로 따르되, 카테고리와 불릿 내용은 메모 내용에 맞게 자유롭게 구성):\n\n"
+                + "제목: 방문 상담 내용 정리 및 안내\n\n"
+                + "안녕하세요, " + customerName + " 고객님!\n"
+                + "오늘 저희 부스에 방문해 주셔서 진심으로 감사합니다.\n"
+                + "상담 나누었던 내용과 요청하신 사항들을 아래와 같이 정리해 드립니다.\n\n"
+                + "📋 주요 상담 및 관심 사항 요약\n\n"
+                + "* 카테고리1\n"
+                + "   * 세부항목\n"
+                + "* 카테고리2\n"
+                + "   * 세부항목\n\n"
+                + "📌 향후 안내 사항\n"
+                + "요청해 주신 내용은 확인 후 빠르게 안내드리겠습니다. 추가로 궁금하신 점이나 변경 사항이 있으시면 언제든지 편하게 연락 주시기 바랍니다.\n\n"
+                + "다시 한번 저희 부스를 찾아주셔서 감사드립니다.\n"
+                + "감사합니다.\n\n"
+                + "다른 설명 없이 위 형식의 이메일 본문만 출력해.\n\n"
+                + "상담 메모: " + (consultationNote == null || consultationNote.isBlank() ? "없음" : consultationNote);
     }
 }
