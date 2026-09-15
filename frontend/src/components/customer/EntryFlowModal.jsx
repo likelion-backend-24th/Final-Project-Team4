@@ -286,7 +286,11 @@ function EntryFlowModal({ expo, onClose }) {
       });
       setPaidPayment(payment);
 
-      setStep('pay-done');
+      // 결제(PAID)는 성공했는데 Reservation 발급 호출이 실패하면 payment.tickets가 비어서 온다
+      // (AdmissionPaymentService.pay 7번 단계 — 예외를 삼키고 결제만 저장). 이 경우 QR 화면으로 보내면
+      // tickets.length===0이라 'ticket-qr' 스텝이 아무것도 못 그리므로, 별도 안내 화면으로 분기한다.
+      const issued = payment.status === 'PAID' && (payment.tickets?.length ?? 0) > 0;
+      setStep(issued ? 'pay-done' : 'pay-issue-failed');
     } catch (err) {
       setPayError(err.response?.data?.error?.message ?? '결제 처리 중 오류가 발생했습니다.');
     } finally {
@@ -393,6 +397,10 @@ function EntryFlowModal({ expo, onClose }) {
 
         {step === 'pay-done' && (
           <PayDone amount={totalFee} payMethod={payMethod} onCheckQr={issuePaidTickets} onLookAround={goDetail} />
+        )}
+
+        {step === 'pay-issue-failed' && (
+          <PayIssueFailed amount={totalFee} payMethod={payMethod} onMyPage={goMyPage} onLookAround={goDetail} />
         )}
 
         {step === 'ticket-qr' && tickets.length > 0 && (
@@ -802,6 +810,48 @@ function PayDone({ amount, payMethod, onCheckQr, onLookAround }) {
       </dl>
       <button type="button" className="c-modal__primary" onClick={onCheckQr}>
         QR 확인하기
+      </button>
+      <button type="button" className="c-modal__secondary" onClick={onLookAround}>
+        박람회 둘러보기
+      </button>
+    </>
+  );
+}
+
+// 결제(PAID)는 완료됐지만 Reservation 쪽 QR 발급이 실패한 예외 상황 전용 안내 화면.
+// 돈은 이미 냈으므로 "실패"가 아니라 "결제는 됐는데 QR이 아직 없다"를 정확히 전달하고,
+// 재발급 API가 따로 없어 지금은 마이페이지 재확인 + 고객센터 안내만 제공한다.
+function PayIssueFailed({ amount, payMethod, onMyPage, onLookAround }) {
+  return (
+    <>
+      <div className="c-modal__icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 8v5M12 16h.01" strokeLinecap="round" />
+        </svg>
+      </div>
+      <h2>결제는 완료됐지만 QR 발급에 실패했어요</h2>
+      <p className="c-modal__desc">
+        결제 금액은 정상 처리됐지만 입장권(QR) 발급 중 일시적인 오류가 발생했습니다. 잠시 후
+        마이페이지에서 다시 확인해주세요. 계속 보이지 않으면 고객센터로 문의해주시면 결제 내역을
+        확인해 QR을 재발급해드립니다.
+      </p>
+      <dl className="c-modal__info">
+        <div className="c-modal__info-row">
+          <dt>결제 일시</dt>
+          <dd>{nowLabel()}</dd>
+        </div>
+        <div className="c-modal__info-row">
+          <dt>결제 수단</dt>
+          <dd>{PAY_METHODS.find((m) => m.key === payMethod)?.label ?? payMethod}</dd>
+        </div>
+        <div className="c-modal__info-row">
+          <dt>결제 금액</dt>
+          <dd>₩{amount.toLocaleString()}</dd>
+        </div>
+      </dl>
+      <button type="button" className="c-modal__primary" onClick={onMyPage}>
+        마이페이지에서 확인하기
       </button>
       <button type="button" className="c-modal__secondary" onClick={onLookAround}>
         박람회 둘러보기

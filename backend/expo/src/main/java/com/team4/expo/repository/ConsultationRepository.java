@@ -4,6 +4,7 @@ import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ConsultationRepository extends JpaRepository<Consultation, Long> {
@@ -18,4 +19,8 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
     // REJECTED는 제외해서 반려 후 재신청은 허용한다.
     boolean existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
             Long customerId, Long boothId, LocalDate preferredDate, List<ConsultationStatus> statuses);
+
+    // QR 스캔 리드 생성 시 - 같은 고객+부스+방문일(visitDate=preferredDate)의 승인된 신청을 찾아 리드에 연결(TASK 11-2)
+    Optional<Consultation> findByCustomerIdAndBooth_IdAndPreferredDateAndStatus(
+            Long customerId, Long boothId, LocalDate preferredDate, ConsultationStatus status);
 }

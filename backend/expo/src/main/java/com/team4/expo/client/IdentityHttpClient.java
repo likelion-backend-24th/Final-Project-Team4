@@ -67,4 +67,29 @@ public class IdentityHttpClient implements IdentityClient {
             return Optional.empty();
         }
     }
+
+    @Override
+    public Optional<CustomerContact> getCustomerContact(Long customerId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(identityBaseUrl + "/internal/identity/users/" + customerId))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.warn("Identity 고객 정보 조회 실패 customerId={}, status={}", customerId, response.statusCode());
+                return Optional.empty();
+            }
+
+            JsonNode data = objectMapper.readTree(response.body()).path("data");
+            return Optional.of(new CustomerContact(data.path("name").asText(null), data.path("email").asText(null)));
+        } catch (IOException | InterruptedException e) {
+            log.warn("Identity 서버 통신 중 오류 customerId={}: {}", customerId, e.getMessage());
+            return Optional.empty();
+        }
+    }
 }
