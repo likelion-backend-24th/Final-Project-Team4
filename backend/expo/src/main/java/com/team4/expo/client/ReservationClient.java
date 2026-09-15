@@ -6,4 +6,9 @@ import java.time.LocalDate;
 // 조회 자체가 실패/타임아웃되면 신청을 성공으로 열면 안 되므로(fail-closed), 구현체는 예외를 삼키지 않고 던진다.
 public interface ReservationClient {
     boolean hasTicket(Long customerId, Long expoId, LocalDate visitDate);
+
+    // 참가업체가 부스에서 고객 QR을 스캔해 리드를 만들 때 고객 식별용(TASK 11-2).
+    // 유효하지 않거나 만료된 QR이면 CustomException(NOT_FOUND)을 던진다(업무상 404 - fail-closed 대상 아님).
+    // 조회 자체가 실패/타임아웃되면 다른 메서드와 마찬가지로 예외를 삼키지 않고 던져 리드 생성을 막는다(fail-closed).
+    TicketResolveResult resolveTicket(String qrToken);
 }
