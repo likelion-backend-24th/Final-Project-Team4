@@ -51,4 +51,10 @@ public class Lead {
         this.status = LeadStatus.NEW;
         this.createdAt = LocalDateTime.now();
     }
+
+    // LeadService.generateEmailSummary()에서 호출. 현장 상담 메모 입력 + Gemini 요약(또는 fail-open 시 메모 원문) 저장.
+    public void recordEmailSummary(String interestNote, String emailSummary) {
+        this.interestNote = interestNote;
+        this.emailSummary = emailSummary;
+    }
 }

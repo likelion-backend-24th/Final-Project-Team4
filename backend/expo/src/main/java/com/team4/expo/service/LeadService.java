@@ -2,6 +2,7 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.AiSummaryClient;
 import com.team4.expo.client.CustomerContact;
 import com.team4.expo.client.IdentityClient;
 import com.team4.expo.client.ReservationClient;
@@ -21,7 +22,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-// 참가업체가 부스에서 고객 QR을 스캔해 리드(연락처)를 확보 (TASK 11-2).
+// 참가업체가 부스에서 고객 QR을 스캔해 리드(연락처)를 확보 (TASK 11-2), 현장 상담 메모를 이메일 초안으로 정리 (TASK 11-3).
 @Service
 @Transactional
 public class LeadService {
@@ -32,17 +33,20 @@ public class LeadService {
     private final ConsultationRepository consultationRepository;
     private final ReservationClient reservationClient;
     private final IdentityClient identityClient;
+    private final AiSummaryClient aiSummaryClient;
 
     public LeadService(LeadRepository leadRepository, BoothRepository boothRepository,
                         BoothApplicationRepository boothApplicationRepository,
                         ConsultationRepository consultationRepository,
-                        ReservationClient reservationClient, IdentityClient identityClient) {
+                        ReservationClient reservationClient, IdentityClient identityClient,
+                        AiSummaryClient aiSummaryClient) {
         this.leadRepository = leadRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.consultationRepository = consultationRepository;
         this.reservationClient = reservationClient;
         this.identityClient = identityClient;
+        this.aiSummaryClient = aiSummaryClient;
     }
 
     public LeadResponse scanLead(Long exhibitorId, Long boothId, String qrToken) {
@@ -87,17 +91,42 @@ public class LeadService {
                 .collect(Collectors.toList());
     }
 
+    // 현장 상담 메모를 입력받아 Gemini로 고객용 이메일 본문 초안을 생성(TASK 11-3). 이 시점엔 발송하지 않음(미리보기).
+    // Gemini 실패/타임아웃이면 fail-open - 메모 원문을 그대로 이메일 본문 후보로 저장.
+    public LeadResponse generateEmailSummary(Long exhibitorId, Long leadId, String consultationNote) {
+        Lead lead = findOwnedLead(exhibitorId, leadId);
+
+        String emailBody = aiSummaryClient.summarizeForEmail(lead.getCustomerName(), consultationNote)
+                .orElse(consultationNote);
+        lead.recordEmailSummary(consultationNote, emailBody);
+
+        return LeadResponse.from(lead);
+    }
+
     private Booth findOwnedBooth(Long exhibitorId, Long boothId) {
         Booth booth = boothRepository.findById(boothId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
 
-        boolean owns = boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED)
-                .stream()
-                .anyMatch(application -> application.getBooth().getId().equals(boothId));
-        if (!owns) {
+        if (!ownsBooth(exhibitorId, boothId)) {
             throw new CustomException(ErrorCode.FORBIDDEN, "본인 부스의 리드만 다룰 수 있습니다.");
         }
 
         return booth;
+    }
+
+    private Lead findOwnedLead(Long exhibitorId, Long leadId) {
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "리드를 찾을 수 없습니다."));
+
+        if (!ownsBooth(exhibitorId, lead.getBooth().getId())) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 부스의 리드만 다룰 수 있습니다.");
+        }
+
+        return lead;
+    }
+
+    private boolean ownsBooth(Long exhibitorId, Long boothId) {
+        return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
+                .anyMatch(application -> application.getBooth().getId().equals(boothId));
     }
 }
