@@ -4,6 +4,7 @@ import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments } from "../api/payment";
 import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
 import { clearAuth, notifyProfileUpdated } from "../api/auth";
+import { isFoodBooth } from "../utils/boothType";
 import "../components/customer/Modal.css";
 import "../components/customer/EntryFlowModal.css";
 import "./MyPage.css";
@@ -367,110 +368,134 @@ function MyPage() {
           </button>
         </section>
 
-        <section className="mypage__card">
+                <section className="mypage__card">
           <h2>부스 참가 신청 현황</h2>
           {loadError && <p className="mypage__cell-muted">{loadError}</p>}
-          <div className="mypage__table-scroll">
-            <table className="mypage__table">
-              <thead>
-                <tr>
-                  <th className="mypage__col-flex">박람회명</th>
-                  <th className="mypage__col-120">부스번호</th>
-                  <th className="mypage__col-140">신청일</th>
-                  <th className="mypage__col-100">진행 상태</th>
-                  <th className="mypage__col-120 mypage__col-right">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {myApplications.length === 0 && !loadError && (
-                  <tr>
-                    <td colSpan={5} className="mypage__cell-muted">
-                      신청 내역이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {myApplications.map((app) => {
-                  const isOpen = openId === app.id;
-                  return (
-                    <Fragment key={app.id}>
-                      <tr>
-                        <td className="mypage__cell-strong">{app.expoTitle}</td>
-                        <td>{app.boothNo}</td>
-                        <td>{app.appliedAt}</td>
-                        <td>
-                          <span
-                            className={`mypage__badge ${STATUS_BADGE[app.status] ?? ""}`}
-                          >
-                            {app.status}
+          {applicationGroups.length === 0 && !loadError && (
+            <p className="mypage__cell-muted">신청 내역이 없습니다.</p>
+          )}
+          <div className="mypage__group-list">
+            {applicationGroups.map((group) => {
+              const isOpen = openId === group.groupId;
+              const totalCount = group.applications.length;
+              const pendingCount = group.applications.filter((a) => a.status === "SUBMITTED").length;
+              const reviewComplete = pendingCount === 0;
+              const payableApps = group.applications.filter((a) => a.status === "PAYMENT_PENDING");
+              const payableTotal = payableApps.reduce((sum, a) => sum + a.fee, 0);
+              const confirmedApps = group.applications.filter((a) => a.status === "CONFIRMED");
+              const rejectedApps = group.applications.filter((a) => a.status === "REJECTED" && a.rejectReason);
+              const assemblyApps = group.applications.filter((a) => !isFoodBooth(a.boothType));
+              const foodApps = group.applications.filter((a) => isFoodBooth(a.boothType));
+
+              const boothSection = (label, apps) =>
+                apps.length > 0 && (
+                  <div className="mypage__booth-section" key={label}>
+                    <span className="mypage__booth-section-label">{label}</span>
+                    <div className="mypage__booth-chip-row">
+                      {apps.map((app) => (
+                        <span key={app.applicationId} className="mypage__booth-chip">
+                          {app.boothNo}
+                          <span className={`mypage__badge ${STATUS_BADGE[STATUS_LABEL[app.status]] ?? ""}`}>
+                            {STATUS_LABEL[app.status] ?? app.status}
                           </span>
-                        </td>
-                        <td className="mypage__col-right">
-                          {app.status === "신청 승인" ? (
-                            <button
-                              className="mypage__link"
-                              onClick={() =>
-                                navigate(`/payment/${app.groupId}`, {
-                                  state: {
-                                    amount: app.payableTotal,
-                                    expoTitle: app.expoTitle,
-                                  },
-                                })
-                              }
-                            >
-                              결제하기
-                            </button>
-                          ) : app.status === "참가 확정" ? (
-                            <button
-                              className="mypage__link"
-                              onClick={() =>
-                                        navigate(`/mypage/booths/${app.boothId}`)
-                                      }
-                            >
-                              부스 관리
-                            </button>
-                          ) : (
-                            <button
-                              className="mypage__link"
-                              onClick={() => setOpenId(isOpen ? null : app.id)}
-                            >
-                              {isOpen ? "접기" : "신청 상세"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                      {isOpen && (
-                        <tr>
-                          <td colSpan={5}>
-                            <dl className="mypage__detail">
-                              <dt>전시 품목</dt>
-                              <dd>{app.exhibitionItem}</dd>
-                              <dt>전시 컨셉 설명</dt>
-                              <dd>{app.conceptDescription}</dd>
-                              <dt>부대시설 요청</dt>
-                              <dd>{facilityLabel(app)}</dd>
-                              <dt>추가 요청 사항</dt>
-                              <dd>{app.additionalRequest || "-"}</dd>
-                              <dt>부스 임차료</dt>
-                              <dd>
-                                {app.fee
-                                  ? `${app.fee.toLocaleString()} 원`
-                                  : "-"}
-                              </dd>
-                              {app.rejectReason && (
-                                <>
-                                  <dt>반려 사유</dt>
-                                  <dd>{app.rejectReason}</dd>
-                                </>
-                              )}
-                            </dl>
-                          </td>
-                        </tr>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+
+              return (
+                <div className="mypage__group-card" key={group.groupId}>
+                  <div className="mypage__group-row">
+                    <div className="mypage__group-main">
+                      <div className="mypage__group-title-row">
+                        <span className="mypage__cell-strong">{group.expoTitle}</span>
+                        <span className="mypage__group-date">{fmtDate(group.createdAt)} 신청</span>
+                        <span className={`mypage__status-dot ${reviewComplete ? "is-complete" : "is-pending"}`}>
+                          {reviewComplete ? "심사 완료" : `심사 중 (${totalCount - pendingCount}/${totalCount} 완료)`}
+                        </span>
+                      </div>
+
+                      {boothSection("조립 부스", assemblyApps)}
+                      {boothSection("먹거리 부스", foodApps)}
+                    </div>
+
+                    <div className="mypage__group-side">
+                      {payableApps.length > 0 && reviewComplete && (
+                        <button
+                          type="button"
+                          className="mypage__action-btn"
+                          onClick={() =>
+                            navigate(`/payment/${group.groupId}`, {
+                              state: { amount: payableTotal, expoTitle: group.expoTitle },
+                            })
+                          }
+                        >
+                          <span className="mypage__action-btn-label">
+                            <span aria-hidden="true">💳</span>
+                            결제하기 ({payableApps.length}개 부스 · {payableTotal.toLocaleString()}원)
+                          </span>
+                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
+                        </button>
                       )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
+                      {payableApps.length === 0 && confirmedApps.length > 0 && (
+                        <button
+                          type="button"
+                          className="mypage__action-btn"
+                          onClick={() => navigate(`/mypage/booths/${confirmedApps[0].boothId}`)}
+                        >
+                          <span className="mypage__action-btn-label">
+                            <span aria-hidden="true">⚙️</span>
+                            부스 관리 바로가기
+                          </span>
+                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
+                        </button>
+                      )}
+                      {payableApps.length > 0 && !reviewComplete && (
+                        <button type="button" className="mypage__action-btn mypage__action-btn--disabled" disabled>
+                          <span className="mypage__action-btn-label">
+                            <span aria-hidden="true">💳</span>
+                            결제 대기 중
+                          </span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="mypage__action-btn mypage__action-btn--secondary"
+                        onClick={() => setOpenId(isOpen ? null : group.groupId)}
+                      >
+                        <span className="mypage__action-btn-label">
+                          <span aria-hidden="true">📄</span>
+                          {isOpen ? "접기" : "신청 상세 보기"}
+                        </span>
+                        <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <dl className="mypage__detail">
+                      <dt>전시 품목</dt>
+                      <dd>{group.exhibitionItem}</dd>
+                      <dt>전시 컨셉 설명</dt>
+                      <dd>{group.conceptDescription}</dd>
+                      <dt>부대시설 요청</dt>
+                      <dd>{facilityLabel(group)}</dd>
+                      <dt>추가 요청 사항</dt>
+                      <dd>{group.additionalRequest || "-"}</dd>
+                      {rejectedApps.length > 0 && (
+                        <>
+                          <dt>반려된 부스</dt>
+                          <dd>
+                            {rejectedApps.map((app) => `${app.boothNo}: ${app.rejectReason}`).join(" / ")}
+                          </dd>
+                        </>
+                      )}
+                    </dl>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
 

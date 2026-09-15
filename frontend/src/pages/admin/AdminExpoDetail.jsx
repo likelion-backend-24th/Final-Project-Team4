@@ -28,6 +28,12 @@ const STATUS_CLASS = {
   취소됨: 'admin-badge--rejected',
 };
 
+// 심사 대기(SUBMITTED) 부스가 신청일로부터 며칠째 방치되고 있는지 계산 - 관리자가 놓치지 않도록 경고 배지로 보여줌
+const daysWaiting = (submittedAt) => {
+  if (!submittedAt) return 0;
+  return Math.floor((Date.now() - new Date(submittedAt).getTime()) / (1000 * 60 * 60 * 24));
+};
+
 const FILTER_TABS = ['전체', '심사중', '결제대기', '반려'];
 
 // ISO(2026-01-20T10:14:00) → 2026.01.20 10:14
@@ -457,16 +463,22 @@ const mapBooths = useMemo(
                     <Fragment key={group.groupId}>
                       <tr className={isOpen ? 'is-open' : ''}>
                         <td className="is-strong">#{group.exhibitorId}</td>
-                        <td>
+                                                <td>
                           <div className="admin-applications__chip-row">
-                            {group.applications.map((app) => (
-                              <span key={app.applicationId} className="admin-applications__chip">
-                                {app.boothNo}
-                                <span className={`admin-badge ${STATUS_CLASS[app.statusLabel] ?? ''}`}>
-                                  {app.statusLabel}
+                            {group.applications.map((app) => {
+                              const waitingDays = app.status === 'SUBMITTED' ? daysWaiting(app.submittedAt) : 0;
+                              return (
+                                <span key={app.applicationId} className="admin-applications__chip">
+                                  {app.boothNo}
+                                  <span className={`admin-badge ${STATUS_CLASS[app.statusLabel] ?? ''}`}>
+                                    {app.statusLabel}
+                                  </span>
+                                  {waitingDays >= 3 && (
+                                    <span className="admin-applications__waiting-flag">{waitingDays}일째 대기</span>
+                                  )}
                                 </span>
-                              </span>
-                            ))}
+                              );
+                            })}
                           </div>
                         </td>
                         <td>{group.createdAt.slice(0, 10)}</td>

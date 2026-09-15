@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import BulkConsultationModal from '../../components/customer/BulkConsultationModal';
 import LoginPromptModal from '../../components/customer/LoginPromptModal';
 import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
 import { getCustomerExpo, getCustomerExpoVehicles } from '../../api/expo';
-import { isLoggedIn } from '../../api/auth';
 import './ExhibitorVehicleList.css';
 import './ExhibitorList.css';
 
@@ -14,22 +15,11 @@ const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 // "한 번에 상담 신청"으로 여러 업체를 골라 상담 신청 정보를 한 번만 입력해 동시에 신청할 수 있다.
 function ExhibitorList() {
   const { expoId } = useParams();
-  const navigate = useNavigate();
   const [expo, setExpo] = useState(null);
   const [groups, setGroups] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [expoGone, setExpoGone] = useState(false);
   const [keyword, setKeyword] = useState('');
-  const [showBulkConsult, setShowBulkConsult] = useState(false);
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
-
-  const openBulkConsult = () => {
-    if (isLoggedIn()) {
-      setShowBulkConsult(true);
-    } else {
-      setShowLoginPrompt(true);
-    }
-  };
 
   useEffect(() => {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
@@ -112,40 +102,8 @@ function ExhibitorList() {
           </div>
         </div>
 
-        <aside className="c-bulk-promo">
-          <span className="c-bulk-promo__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M4 4h16v11H8l-4 4V4z" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-          <h2>
-            관심 있는 <span className="c-bulk-promo__accent">모든 업체에</span>
-            <br />
-            <span className="c-bulk-promo__accent">한 번에 상담 신청</span>
-          </h2>
-          <button type="button" className="c-bulk-promo__cta" onClick={openBulkConsult}>
-            원클릭 상담 신청
-          </button>
-          <ul className="c-bulk-promo__checklist">
-            <li>여러 업체에 한 번에 신청</li>
-            <li>간편한 정보 입력</li>
-            <li>빠른 답변을 받아보세요</li>
-          </ul>
-          <p className="c-bulk-promo__tagline">CONNECT FOR A BETTER MOBILITY</p>
-        </aside>
+        <BulkConsultPromo expoId={expoId} groups={groups} />
       </div>
-
-      {showBulkConsult && (
-        <BulkConsultationModal expoId={expoId} groups={groups} onClose={() => setShowBulkConsult(false)} />
-      )}
-
-      {showLoginPrompt && (
-        <LoginPromptModal
-          desc="상담 신청은 로그인한 회원만 이용할 수 있습니다."
-          onLogin={() => navigate('/login')}
-          onClose={() => setShowLoginPrompt(false)}
-        />
-      )}
     </div>
   );
 }
