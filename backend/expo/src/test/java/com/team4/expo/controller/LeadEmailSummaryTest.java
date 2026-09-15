@@ -158,6 +158,24 @@ class LeadEmailSummaryTest {
     }
 
     @Test
+    @DisplayName("재시도 횟수(3회)를 넘기면 409")
+    void 재시도_횟수초과_409() throws Exception {
+        when(aiSummaryClient.summarizeForEmail(anyString(), anyString())).thenReturn(Optional.empty());
+
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post("/api/exhibitor/leads/{leadId}/summary", lead.getId()).with(exhibitor())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body("메모 " + i)))
+                    .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(post("/api/exhibitor/leads/{leadId}/summary", lead.getId()).with(exhibitor())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body("네 번째 메모")))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     @DisplayName("존재하지 않는 리드면 404")
     void 존재하지않는_리드_404() throws Exception {
         mockMvc.perform(post("/api/exhibitor/leads/{leadId}/summary", 999_999L).with(exhibitor())
