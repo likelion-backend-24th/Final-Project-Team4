@@ -57,11 +57,13 @@ function AdminExpoList() {
           const pendingRatio = expo.totalApplications > 0 ? (expo.pendingCount / expo.totalApplications) * 100 : 0;
 
           return (
-            <button
+            <div
               key={expo.expoId}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={`admin-expo-card admin-expo-card--${expo.status.toLowerCase()}`}
               onClick={() => navigate(`/admin/applications/${expo.expoId}`)}
+              onKeyDown={(e) => e.key === 'Enter' && navigate(`/admin/applications/${expo.expoId}`)}
             >
               <div className="admin-expo-card__accent" />
               <div className="admin-expo-card__body">
@@ -72,6 +74,16 @@ function AdminExpoList() {
                   {expo.pendingCount > 0 && (
                     <span className="admin-expo-card__urgent">심사 대기 {expo.pendingCount}건</span>
                   )}
+                  <button
+                    type="button"
+                    className="admin-expo-card__edit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/admin/expos/${expo.expoId}/edit`);
+                    }}
+                  >
+                    수정
+                  </button>
                 </div>
                 <h2>{expo.title}</h2>
                 <p className="admin-expo-card__period">
@@ -109,7 +121,7 @@ function AdminExpoList() {
                   </div>
                 </div>
               </div>
-            </button>
+            </div>
            );
         })}
       </section>

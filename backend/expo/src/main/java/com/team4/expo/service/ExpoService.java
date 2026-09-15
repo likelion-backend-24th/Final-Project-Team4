@@ -128,8 +128,9 @@ public class ExpoService {
     public ExpoSummaryResponse getExpoForAdmin(Long expoId) {
         Expo expo = expoRepository.findById(expoId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        return ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, LocalDateTime.now()),
-                boothRepository.countByExpo_IdAndStatus(expoId, BoothStatus.ASSIGNED));
+        boolean hasApplications = !boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty();
+
+        return ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, LocalDateTime.now()), boothRepository.countByExpo_IdAndStatus(expoId, BoothStatus.ASSIGNED), hasApplications);
     }
 
     // 박람회 정보 수정.

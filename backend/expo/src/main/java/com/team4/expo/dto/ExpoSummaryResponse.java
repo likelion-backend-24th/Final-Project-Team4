@@ -23,8 +23,15 @@ public class ExpoSummaryResponse {
     private final ExpoPhase phase; // 진행 단계 (모집예정/모집중/개최예정/진행중/진행종료)
     private final long boothCount; // 참여 확정(ASSIGNED) 부스 수
     private final ExpoStatus status; // DRAFT/OPEN - 고객·참가업체 조회는 항상 OPEN만 나가고, Admin 수정 화면의 공개/비공개 버튼 표시에 사용
+    private final boolean hasApplications; // 부스 신청 존재 여부 - Admin 수정 화면에서 일정 필드 수정 가능 여부 판단용. 고객·참가업체 조회에서는 항상 false(조회 안 함)
 
+    // 고객·참가업체 조회용 - 신청 존재 여부는 필요 없어서 조회하지 않고 false 고정
     public static ExpoSummaryResponse of(Expo expo, ExpoPhase phase, long boothCount) {
+        return of(expo, phase, boothCount, false);
+    }
+
+    // Admin 수정 화면 조회용 - 신청 존재 여부를 실제로 계산해서 넣어줌
+    public static ExpoSummaryResponse of(Expo expo, ExpoPhase phase, long boothCount, boolean hasApplications) {
         return new ExpoSummaryResponse(
                 expo.getId(),
                 expo.getTitle(),
@@ -36,6 +43,7 @@ public class ExpoSummaryResponse {
                 expo.getAdmissionFee(),
                 phase,
                 boothCount,
-                expo.getStatus());
+                expo.getStatus(),
+                hasApplications);
     }
 }
