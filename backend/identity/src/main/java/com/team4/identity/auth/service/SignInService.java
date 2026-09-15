@@ -12,6 +12,7 @@ import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +31,7 @@ public class SignInService {
 
     // 이메일 로그인 - 일반회원,관리자,참가업체 공통
     @Transactional(readOnly = true)
-    public TokenResponse signIn(String email, String rawPassword, HttpServletResponse response) {
+    public TokenResponse signIn(String email, String rawPassword, boolean rememberMe, HttpServletResponse response) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다."));
         verifyPassword(rawPassword, user, "이메일 또는 비밀번호가 올바르지 않습니다.");
 
@@ -38,7 +39,7 @@ public class SignInService {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "탈퇴한 계정입니다.");
         }
 
-        return issue(user, response);
+        return issue(user, rememberMe, response);
     }
 
     // 재발급
@@ -50,13 +51,11 @@ public class SignInService {
 
         Long userId = parseUserId(refreshToken);
 
-        if (!refreshTokenStore.matches(userId, refreshToken)) {
-            throw new CustomException(ErrorCode.UNAUTHENTICATED, "만료된 리프레시 토큰입니다.");
-        }
+        boolean rememberMe = refreshTokenStore.validate(userId, refreshToken).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "만료된 리프레시 토큰입니다."));
 
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "유효하지 않은 리프레시 토큰입니다."));
 
-        return issue(user, response);
+        return issue(user, rememberMe, response);
     }
 
     // 로그아웃
@@ -95,18 +94,26 @@ public class SignInService {
         }
     }
 
-    // 소셜 로그인에서 재사용
+    // 소셜 로그인에서 재사용 - 소셜 로그인은 항상 로그인 유지
     public TokenResponse issue(User user, HttpServletResponse response) {
+        return issue(user, true, response);
+    }
+
+    public TokenResponse issue(User user, boolean rememberMe, HttpServletResponse response) {
         String role = user.getRole().name();
         Duration refreshTtl = Duration.ofMillis(jwtProvider.getRefreshTokenExp());
 
         String accessToken = jwtProvider.createAccessToken(user.getId(), role);
         String refreshToken = jwtProvider.createRefreshToken(user.getId());
-        refreshTokenStore.save(user.getId(), refreshToken, refreshTtl);
+        refreshTokenStore.save(user.getId(), refreshToken, refreshTtl, rememberMe);
 
-        addCookie(response, cookieProvider.createCookie("refreshToken", refreshToken, refreshTtl).toString());
+        ResponseCookie cookie = rememberMe
+                ? cookieProvider.createCookie("refreshToken", refreshToken, refreshTtl)
+                : cookieProvider.createSessionCookie("refreshToken", refreshToken);
 
-        return TokenResponse.of(accessToken, jwtProvider.getAccessTokenExp() / 1000, role);
+        addCookie(response, cookie.toString());
+
+        return TokenResponse.of(accessToken, jwtProvider.getAccessTokenExp() / 1000, role, rememberMe);
     }
 
     private void addCookie(HttpServletResponse response, String cookie) {

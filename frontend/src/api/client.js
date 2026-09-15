@@ -38,8 +38,8 @@ const refreshAuth = () =>
   axios
     .post(`${apiBaseUrl}/api/auth/refresh`, null, { withCredentials: true })
     .then((res) => {
-      const { accessToken, role } = res.data.data;
-      setAuth(accessToken, role); // 재시도 요청은 request 인터셉터가 이 토큰을 다시 붙임
+      const { accessToken, role, rememberMe } = res.data.data;
+      setAuth(accessToken, role, rememberMe); // 재시도 요청은 request 인터셉터가 이 토큰을 다시 붙임
     })
     .catch((err) => {
       clearAuth();

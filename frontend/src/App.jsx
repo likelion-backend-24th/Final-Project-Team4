@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { getRole } from './api/auth';
 import Header from './components/Header';
 import AdminHeader from './components/AdminHeader';
 import CustomerHeader from './components/customer/CustomerHeader';
@@ -54,6 +55,19 @@ function AdminLayout({ children }) {
   );
 }
 
+// "/"는 원래 참가업체(EXHIBITOR) 전용 홈. USER/ADMIN 계정이 로그인 후 새탭·북마크 등으로
+// 여기 들어오면 API가 403만 내려줄 뿐 자동으로 자기 화면으로 보내주지 않았음 -> role 보고 보내줌
+function ExhibitorHome() {
+  const role = getRole();
+  if (role === 'USER') return <Navigate to="/customer" replace />;
+  if (role === 'ADMIN') return <Navigate to="/admin/applications" replace />;
+  return (
+    <ExhibitorLayout>
+      <ExpoList />
+    </ExhibitorLayout>
+  );
+}
+
 function App() {
   return (
     <Routes>
@@ -63,7 +77,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 
-      <Route path="/" element={<ExhibitorLayout><ExpoList /></ExhibitorLayout>} />
+      <Route path="/" element={<ExhibitorHome />} />
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />

@@ -8,8 +8,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.Optional;
 
-// refreshToken SHA-256 해시를 Redis에 저장
+// refreshToken SHA-256 해시를 Redis에 저장. 값 앞 1글자는 rememberMe 여부('1'/'0')
 @Component
 @RequiredArgsConstructor
 public class RefreshTokenStore {
@@ -18,13 +19,19 @@ public class RefreshTokenStore {
 
     private final StringRedisTemplate redis;
 
-    public void save(Long userId, String refreshToken, Duration ttl) {
-        redis.opsForValue().set(KEY_PREFIX + userId, hash(refreshToken), ttl);
+    public void save(Long userId, String refreshToken, Duration ttl, boolean rememberMe) {
+        redis.opsForValue().set(KEY_PREFIX + userId, (rememberMe ? "1" : "0") + hash(refreshToken), ttl);
     }
 
-    public boolean matches(Long userId, String refreshToken) {
+    // 토큰이 일치하면 저장 당시의 rememberMe 값을 반환
+    public Optional<Boolean> validate(Long userId, String refreshToken) {
         String stored = redis.opsForValue().get(KEY_PREFIX + userId);
-        return stored != null && stored.equals(hash(refreshToken));
+
+        if (stored == null || !stored.substring(1).equals(hash(refreshToken))) {
+            return Optional.empty();
+        }
+
+        return Optional.of(stored.charAt(0) == '1');
     }
 
     public void delete(Long userId) {

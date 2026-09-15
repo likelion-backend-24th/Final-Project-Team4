@@ -43,7 +43,7 @@ public class AuthController {
 
     @PostMapping("/signin")
     public ResponseEntity<ApiResponse<TokenResponse>> signIn(@Valid @RequestBody SignInRequest request, HttpServletResponse response) {
-        TokenResponse token = signInService.signIn(request.getEmail(), request.getPassword(), response);
+        TokenResponse token = signInService.signIn(request.getEmail(), request.getPassword(), request.isRememberMe(), response);
         return ResponseEntity.ok(ApiResponse.success(token));
     }
 
