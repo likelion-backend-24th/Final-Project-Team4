@@ -2,6 +2,8 @@ package com.team4.expo.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team4.common.error.CustomException;
+import com.team4.common.error.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -90,6 +93,29 @@ public class IdentityHttpClient implements IdentityClient {
         } catch (IOException | InterruptedException e) {
             log.warn("Identity 서버 통신 중 오류 customerId={}: {}", customerId, e.getMessage());
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public void sendMail(String to, String subject, String body) {
+        try {
+            String requestBody = objectMapper.writeValueAsString(Map.of("to", to, "subject", subject, "body", body));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(identityBaseUrl + "/internal/identity/mails"))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .header("Content-Type", "application/json")
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.INTERNAL_ERROR,
+                        "Identity 메일 발송 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.INTERNAL_ERROR, "Identity 서버 통신 중 오류: " + e.getMessage());
         }
     }
 }

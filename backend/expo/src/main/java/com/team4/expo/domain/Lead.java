@@ -57,4 +57,9 @@ public class Lead {
         this.interestNote = interestNote;
         this.emailSummary = emailSummary;
     }
+
+    // LeadService.sendInfo()에서 Identity 메일 발송 성공 후 호출(TASK 11-4).
+    public void markSent() {
+        this.status = LeadStatus.SENT;
+    }
 }
