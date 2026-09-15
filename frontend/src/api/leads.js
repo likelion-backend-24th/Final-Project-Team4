@@ -16,6 +16,9 @@ const mapLead = (lead) => ({
   createdAt: lead.createdAt,
 });
 
+// GET /api/exhibitor/booths/mine — 참가 확정된 본인 부스 목록(QR 리드 화면의 부스 선택 드롭다운용)
+export const getMyBooths = () => apiClient.get('/api/exhibitor/booths/mine').then((res) => res.data.data);
+
 // POST /api/exhibitor/booths/{boothId}/leads — Body { qrToken }
 // 같은 QR 재스캔은 기존 리드를 그대로 반환(멱등), 동의 없는/워크인/타 박람회 QR은 409, 만료 QR은 404,
 // Reservation 조회 실패는 202 — 전부 apiClient 인터셉터가 err.response.data.error.message로 정리해줌.

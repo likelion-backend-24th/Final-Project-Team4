@@ -1,6 +1,6 @@
 import jsQR from 'jsqr';
 import { useEffect, useRef, useState } from 'react';
-import { getLeads, scanLeadQr, sendLeadInfo, summarizeLeadEmail } from '../api/leads';
+import { getLeads, getMyBooths, scanLeadQr, sendLeadInfo, summarizeLeadEmail } from '../api/leads';
 import './LeadCapture.css';
 
 const STATUS_LABEL = {
@@ -9,14 +9,15 @@ const STATUS_LABEL = {
   SENT: '발송 완료',
 };
 
-const DEFAULT_BOOTH_ID = 1;
-
 // ISO → 화면 표시용(2026.09.14 10:16)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
 
 // QR 스캔 → 리드 확보 → 상담 메모 → Gemini 이메일 초안 → 발송 (STORY 11, TASK 11-2~4 실제 API 연동)
 function LeadCapture() {
-  const [boothId] = useState(DEFAULT_BOOTH_ID);
+  const [myBooths, setMyBooths] = useState([]);
+  const [boothsLoading, setBoothsLoading] = useState(true);
+  const [boothsError, setBoothsError] = useState(null);
+  const [boothId, setBoothId] = useState(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
@@ -37,7 +38,21 @@ function LeadCapture() {
   const streamRef = useRef(null);
   const rafRef = useRef(null);
 
+  useEffect(() => {
+    getMyBooths()
+      .then((booths) => {
+        setMyBooths(booths);
+        setBoothId(booths[0]?.boothId ?? null);
+      })
+      .catch((err) => setBoothsError(err.response?.data?.error?.message ?? err.message))
+      .finally(() => setBoothsLoading(false));
+  }, []);
+
   const refreshLeads = () => getLeads(boothId).then(setLeads);
+
+  useEffect(() => {
+    if (boothId != null) refreshLeads();
+  }, [boothId]);
 
   const submitToken = (token) => {
     setScanning(true);
@@ -192,17 +207,39 @@ function LeadCapture() {
         <p>고객 QR을 스캔해 연락처를 확보하고, 상담 내용을 AI로 정리해 이메일로 보낼 수 있습니다.</p>
       </section>
 
-      <main className="lead-container">
-        <section className="lead-scan">
-          <button type="button" className="lead-scan__button" onClick={openScanModal}>
-            QR 스캔
-          </button>
-        </section>
+      {boothsLoading && <p className="lead-empty">내 부스 목록을 불러오는 중...</p>}
+      {!boothsLoading && boothsError && <p className="lead-error">{boothsError}</p>}
+      {!boothsLoading && !boothsError && myBooths.length === 0 && (
+        <p className="lead-empty">참가 확정된 부스가 없어 QR 리드 기능을 사용할 수 없습니다.</p>
+      )}
 
-        <section className="lead-list">
-          <div className="lead-list__head">리드 목록 <span>{leads.length}</span>건</div>
-          {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
-          {leads.map((lead) => (
+      {!boothsLoading && !boothsError && myBooths.length > 0 && (
+        <main className="lead-container">
+          {myBooths.length > 1 && (
+            <section className="lead-scan">
+              <label>
+                부스 선택{' '}
+                <select value={boothId ?? ''} onChange={(e) => setBoothId(Number(e.target.value))}>
+                  {myBooths.map((booth) => (
+                    <option key={booth.boothId} value={booth.boothId}>
+                      {booth.expoTitle} · {booth.boothNo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </section>
+          )}
+
+          <section className="lead-scan">
+            <button type="button" className="lead-scan__button" onClick={openScanModal}>
+              QR 스캔
+            </button>
+          </section>
+
+          <section className="lead-list">
+            <div className="lead-list__head">리드 목록 <span>{leads.length}</span>건</div>
+            {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
+            {leads.map((lead) => (
             <div key={lead.leadId} className="lead-row" onClick={() => openLead(lead)}>
               <div>
                 <span className="lead-row__name">{lead.customerName}</span>
@@ -214,8 +251,9 @@ function LeadCapture() {
               </span>
             </div>
           ))}
-        </section>
-      </main>
+          </section>
+        </main>
+      )}
 
       {scanModalOpen && (
         <div className="lead-drawer-backdrop" onClick={closeScanModal}>

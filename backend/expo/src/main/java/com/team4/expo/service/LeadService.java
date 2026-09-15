@@ -13,6 +13,7 @@ import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Lead;
 import com.team4.expo.dto.LeadResponse;
+import com.team4.expo.dto.MyBoothResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
@@ -81,6 +82,14 @@ public class LeadService {
         Lead lead = new Lead(booth, ticket.customerId(), consultation,
                 contact.name(), contact.email(), null);
         return LeadResponse.from(leadRepository.save(lead));
+    }
+
+    // 참가업체가 QR 리드 화면에서 고를 본인 부스 목록(참가 확정된 부스만) - 화면의 부스 하드코딩을 대체(2026-09-15).
+    @Transactional(readOnly = true)
+    public List<MyBoothResponse> listMyBooths(Long exhibitorId) {
+        return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
+                .map(application -> MyBoothResponse.from(application.getBooth()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
