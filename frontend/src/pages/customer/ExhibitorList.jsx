@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import BulkConsultationModal from '../../components/customer/BulkConsultationModal';
-import LoginPromptModal from '../../components/customer/LoginPromptModal';
+import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
 import { getCustomerExpo, getCustomerExpoVehicles } from '../../api/expo';
 import './ExhibitorVehicleList.css';
