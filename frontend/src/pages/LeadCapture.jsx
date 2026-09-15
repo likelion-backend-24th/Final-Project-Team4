@@ -14,7 +14,7 @@ const DEFAULT_BOOTH_ID = 1;
 // ISO → 화면 표시용(2026.09.14 10:16)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
 
-// TASK 11-5: QR 스캔 → 리드 확보 → 상담 메모 → Gemini 이메일 초안 → 발송 Mock 화면 (STORY 11)
+// QR 스캔 → 리드 확보 → 상담 메모 → Gemini 이메일 초안 → 발송 (STORY 11, TASK 11-2~4 실제 API 연동)
 function LeadCapture() {
   const [boothId] = useState(DEFAULT_BOOTH_ID);
   const [scanModalOpen, setScanModalOpen] = useState(false);
@@ -187,7 +187,7 @@ function LeadCapture() {
   return (
     <div className="lead">
       <section className="lead-hero">
-        <div className="lead-hero__eyebrow">EXHIBITOR LEAD CAPTURE (Mock)</div>
+        <div className="lead-hero__eyebrow">EXHIBITOR LEAD CAPTURE</div>
         <h1>QR 리드 확보</h1>
         <p>고객 QR을 스캔해 연락처를 확보하고, 상담 내용을 AI로 정리해 이메일로 보낼 수 있습니다.</p>
       </section>
