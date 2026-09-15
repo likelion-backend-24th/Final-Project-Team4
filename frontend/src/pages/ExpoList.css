@@ -79,6 +79,37 @@
   font-weight: 700;
 }
 
+.expo-list__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expo-list__sort {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.expo-list__sort-dir {
+  box-sizing: border-box;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .expo-list__search-wrap {
   box-sizing: border-box;
   display: flex;
@@ -318,6 +349,11 @@
 
   .expo-list__filters button {
     flex-shrink: 0;
+  }
+
+  .expo-list__toolbar-right {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .expo-list__search-wrap {
