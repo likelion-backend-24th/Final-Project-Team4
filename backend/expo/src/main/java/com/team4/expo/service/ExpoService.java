@@ -71,7 +71,7 @@ public class ExpoService {
 
     // 박람회와 부스 목록을 등록 (관리자용, 등록 직후엔 비공개 DRAFT 상태).
     public ExpoResponse registerExpo(ExpoRegisterRequest request) {
-        validateDateOrder(request);
+        validateDateOrder(request.getApplyStartsAt(), request.getApplyEndsAt(), request.getStartsAt(), request.getEndsAt());
         validateNoDuplicateBoothNo(request.getBooths());
 
         Expo expo = new Expo(
@@ -105,6 +105,69 @@ public class ExpoService {
         expo.open();
 
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
+    }
+
+    // 공개된 박람회를 다시 비공개로 전환. 부스 신청이 하나라도 있으면 전환할 수 없음
+    public ExpoResponse closeExpo(Long expoId) {
+        Expo expo = expoRepository.findById(expoId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
+
+        if (expo.getStatus() != ExpoStatus.OPEN) {
+            throw new CustomException(ErrorCode.INVALID_STATE);
+        }
+        if (!boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "부스 신청이 있는 박람회는 비공개로 전환할 수 없습니다.");
+        }
+
+        expo.close();
+
+        return new ExpoResponse(expo.getId(), expo.getStatus(), null);
+    }
+
+    // Admin - 수정 화면 진입 시 기존 값을 채워주기 위한 단건 조회
+    @Transactional(readOnly = true)
+    public ExpoSummaryResponse getExpoForAdmin(Long expoId) {
+        Expo expo = expoRepository.findById(expoId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        boolean hasApplications = !boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty();
+
+        return ExpoSummaryResponse.of(expo, ExpoPhase.of(expo, LocalDateTime.now()), boothRepository.countByExpo_IdAndStatus(expoId, BoothStatus.ASSIGNED), hasApplications);
+    }
+
+    // 박람회 정보 수정.
+    // 부스 신청이 하나라도 들어온 뒤에는 일정(신청/개최 기간) 수정 불가.
+    // 제목/장소/입장료는 상태·신청 여부와 무관하게 항상 수정 가능.
+    public ExpoResponse updateExpo(Long expoId, ExpoUpdateRequest request) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        validateDateOrder(request.getApplyStartsAt(), request.getApplyEndsAt(), request.getStartsAt(), request.getEndsAt());
+
+        boolean scheduleChanged = !expo.getStartsAt().isEqual(request.getStartsAt())
+                || !expo.getEndsAt().isEqual(request.getEndsAt())
+                || !expo.getApplyStartsAt().isEqual(request.getApplyStartsAt())
+                || !expo.getApplyEndsAt().isEqual(request.getApplyEndsAt());
+
+        if (scheduleChanged && !boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "부스 신청이 있는 박람회는 일정을 수정할 수 없습니다.");
+        }
+
+        expo.update(request.getTitle(), request.getVenue(), request.getStartsAt(), request.getEndsAt(),
+                request.getApplyStartsAt(), request.getApplyEndsAt(), request.getAdmissionFee());
+
+        return new ExpoResponse(expo.getId(), expo.getStatus(), null);
+    }
+
+    // 박람회 삭제. 부스 신청이 하나도 없으면 삭제 가능
+    public void deleteExpo(Long expoId) {
+        Expo expo = expoRepository.findById(expoId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
+
+        if (!boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "부스 신청이 있는 박람회는 삭제할 수 없습니다.");
+        }
+
+        boothRepository.deleteAll(boothRepository.findByExpo_IdOrderByBoothNo(expoId));
+        expoRepository.delete(expo);
     }
 
     // Admin - 전체 박람회 목록(상태 무관) + 박람회별 부스·신청 현황 집계
@@ -186,10 +249,10 @@ public class ExpoService {
     }
 
     // 신청기간 <= 행사시작 < 행사종료 순서로 날짜가 맞는지 확인
-    private void validateDateOrder(ExpoRegisterRequest request) {
-        boolean valid = request.getApplyStartsAt().isBefore(request.getApplyEndsAt())
-                && !request.getApplyEndsAt().isAfter(request.getStartsAt())
-                && request.getStartsAt().isBefore(request.getEndsAt());
+    private void validateDateOrder(LocalDateTime applyStartsAt, LocalDateTime applyEndsAt, LocalDateTime startsAt, LocalDateTime endsAt) {
+        boolean valid = applyStartsAt.isBefore(applyEndsAt)
+                && !applyEndsAt.isAfter(startsAt)
+                && startsAt.isBefore(endsAt);
 
         if (!valid) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "일자 순서가 올바르지 않습니다.");

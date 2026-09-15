@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import BulkConsultationModal from '../../components/customer/BulkConsultationModal';
+import LoginPromptModal from '../../components/customer/LoginPromptModal';
+import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
 import { getCustomerExpo, getCustomerExpoVehicles } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 import './ExhibitorList.css';
@@ -14,6 +18,7 @@ function ExhibitorList() {
   const [expo, setExpo] = useState(null);
   const [groups, setGroups] = useState([]);
   const [loadError, setLoadError] = useState(null);
+  const [expoGone, setExpoGone] = useState(false);
   const [keyword, setKeyword] = useState('');
 
   useEffect(() => {
@@ -22,9 +27,13 @@ function ExhibitorList() {
         setExpo(expoRes);
         setGroups(groupsRes);
       })
-      .catch((err) =>
-        setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
-      );
+      .catch((err) => {
+        if (err.response?.status === 404) {
+          setExpoGone(true);
+        } else {
+          setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.');
+        }
+      });
   }, [expoId]);
 
   const filteredGroups = useMemo(
@@ -32,6 +41,9 @@ function ExhibitorList() {
     [groups, keyword]
   );
 
+  if (expoGone) {
+    return <ExpoUnavailableModal onConfirm={() => navigate('/customer')} />;
+  }
   if (loadError) {
     return <p className="c-vehicle-list__status">{loadError}</p>;
   }

@@ -104,10 +104,32 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
         }
     }
 
+    // description/features/colors는 자유 텍스트라 수백~2000자까지 길어질 수 있음 - 의미 판단엔 앞부분만으로도
+    // 충분해서(뒤로 갈수록 부가 설명) 잘라서 보냄. 차량 수와 무관하게 매 검색마다 나가는 토큰이라 여기서
+    // 줄이는 게 후보 수 필터링보다 보편적으로 효과 큼(2026-09-15, 담당자 승인 하에 적용).
+    private static final int LONG_FIELD_MAX_LENGTH = 200;
+
+    private static String truncate(String text) {
+        if (text == null || text.length() <= LONG_FIELD_MAX_LENGTH) {
+            return text;
+        }
+        return text.substring(0, LONG_FIELD_MAX_LENGTH) + "...";
+    }
+
+    private record PromptCandidate(Long vehicleId, String name, String tags, Long startPrice, String summary,
+                                    String description, String features, String colors,
+                                    String range, String battery, String power) {
+        static PromptCandidate from(VehicleSearchCandidate c) {
+            return new PromptCandidate(c.getVehicleId(), c.getName(), c.getTags(), c.getStartPrice(), c.getSummary(),
+                    truncate(c.getDescription()), truncate(c.getFeatures()), truncate(c.getColors()),
+                    c.getRange(), c.getBattery(), c.getPower());
+        }
+    }
+
     private String buildPrompt(String query, List<VehicleSearchCandidate> candidates) {
         String candidatesJson;
         try {
-            candidatesJson = objectMapper.writeValueAsString(candidates);
+            candidatesJson = objectMapper.writeValueAsString(candidates.stream().map(PromptCandidate::from).toList());
         } catch (IOException e) {
             candidatesJson = "[]";
         }

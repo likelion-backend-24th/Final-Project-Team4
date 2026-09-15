@@ -9,6 +9,8 @@ import com.team4.expo.dto.ExpoAdminSummaryResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoRegisterRequest;
 import com.team4.expo.dto.ExpoResponse;
+import com.team4.expo.dto.ExpoSummaryResponse;
+import com.team4.expo.dto.ExpoUpdateRequest;
 import com.team4.expo.service.BoothApplicationReviewService;
 import com.team4.expo.service.BoothApplicationService;
 import com.team4.expo.service.ExpoService;
@@ -45,6 +47,31 @@ public class ExpoAdminController {
     public ResponseEntity<ApiResponse<ExpoResponse>> openExpo(@PathVariable Long expoId) {
         ExpoResponse response = expoService.openExpo(expoId);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/api/admin/expos/{expoId}/close")
+    public ResponseEntity<ApiResponse<ExpoResponse>> closeExpo(@PathVariable Long expoId) {
+        ExpoResponse response = expoService.closeExpo(expoId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    // Admin - 수정 화면 진입용 단건 조회
+    @GetMapping("/api/admin/expos/{expoId}")
+    public ResponseEntity<ApiResponse<ExpoSummaryResponse>> getExpoForAdmin(@PathVariable Long expoId) {
+        return ResponseEntity.ok(ApiResponse.success(expoService.getExpoForAdmin(expoId)));
+    }
+
+    @PutMapping("/api/admin/expos/{expoId}")
+    public ResponseEntity<ApiResponse<ExpoResponse>> updateExpo(@PathVariable Long expoId,
+                                                                @Valid @RequestBody ExpoUpdateRequest request) {
+        ExpoResponse response = expoService.updateExpo(expoId, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @DeleteMapping("/api/admin/expos/{expoId}")
+    public ResponseEntity<ApiResponse<Void>> deleteExpo(@PathVariable Long expoId) {
+        expoService.deleteExpo(expoId);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     // Admin - 전체 박람회 목록 (상태 무관) + 박람회별 신청 현황 집계
