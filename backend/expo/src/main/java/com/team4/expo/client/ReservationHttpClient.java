@@ -9,9 +9,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 
@@ -57,6 +59,40 @@ public class ReservationHttpClient implements ReservationClient {
 
             JsonNode data = objectMapper.readTree(response.body()).path("data");
             return data.path("hasTicket").asBoolean(false);
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public TicketResolveResult resolveTicket(String qrToken) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(reservationBaseUrl + "/internal/reservation/tickets/resolve?qrToken="
+                            + URLEncoder.encode(qrToken, StandardCharsets.UTF_8)))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            JsonNode body = objectMapper.readTree(response.body());
+
+            // 유효하지 않은/만료된 QR은 업무상 404 - 조회 실패(타임아웃/5xx 등)와 구분해서 그대로 404로 전달한다.
+            if (response.statusCode() == 404) {
+                throw new CustomException(ErrorCode.NOT_FOUND, body.path("error").path("message").asText("유효하지 않은 QR입니다."));
+            }
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "Reservation 서버 조회 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+
+            JsonNode data = body.path("data");
+            return new TicketResolveResult(
+                    data.path("customerId").asLong(),
+                    data.path("ticketId").asLong(),
+                    data.path("expoId").asLong(),
+                    LocalDate.parse(data.path("visitDate").asText()));
         } catch (IOException | InterruptedException e) {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
         }
