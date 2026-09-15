@@ -103,6 +103,26 @@ public class LeadService {
         return LeadResponse.from(lead);
     }
 
+    private static final String SEND_INFO_SUBJECT = "[모빌리티 엑스포] 방문 상담 내용 정리 및 안내";
+
+    // 참가업체가 확정한 이메일 본문을 고객에게 최종 발송(TASK 11-4). Identity 내부 API 호출 실패 시
+    // 예외가 그대로 전파되어(fail-closed) 리드 상태를 바꾸지 않고 재시도 가능하게 둔다.
+    public LeadResponse sendInfo(Long exhibitorId, Long leadId, String emailBody) {
+        Lead lead = findOwnedLead(exhibitorId, leadId);
+
+        identityClient.sendMail(lead.getCustomerEmail(), SEND_INFO_SUBJECT, emailBody);
+        lead.markSent();
+
+        // 발송 성공이 실제 상담 완료의 직접 증거이므로, 연결된 Consultation이 APPROVED면 방문 예정일과 무관하게
+        // 바로 COMPLETED로 전이한다(기존 completeConsultation()의 "다음날부터" 날짜 게이트와 별개 경로, 2026-09-14 확정).
+        Consultation consultation = lead.getConsultation();
+        if (consultation != null && consultation.getStatus() == ConsultationStatus.APPROVED) {
+            consultation.complete();
+        }
+
+        return LeadResponse.from(lead);
+    }
+
     private Booth findOwnedBooth(Long exhibitorId, Long boothId) {
         Booth booth = boothRepository.findById(boothId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
