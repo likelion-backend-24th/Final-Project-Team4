@@ -106,8 +106,14 @@ public class LeadService {
 
     // 현장 상담 메모를 입력받아 Gemini로 고객용 이메일 본문 초안을 생성(TASK 11-3). 이 시점엔 발송하지 않음(미리보기).
     // Gemini 실패/타임아웃이면 fail-open - 메모 원문을 그대로 이메일 본문 후보로 저장.
+    // 상담 AI 요약(MAX_AI_SUMMARY_RETRY)과 같은 이유로 재시도 횟수 제한 - 메모 안 바꾸고 버튼 계속 눌러도
+    // 매번 실제 Gemini 호출이 나가서 무제한으로 뒀다가는 비용이 새는 지점이었음(2026-09-15).
     public LeadResponse generateEmailSummary(Long exhibitorId, Long leadId, String consultationNote) {
         Lead lead = findOwnedLead(exhibitorId, leadId);
+
+        if (!lead.canRetryEmailSummary()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "AI 요약 생성 횟수를 초과했습니다.");
+        }
 
         String emailBody = aiSummaryClient.summarizeForEmail(lead.getCustomerName(), consultationNote)
                 .orElse(consultationNote);
