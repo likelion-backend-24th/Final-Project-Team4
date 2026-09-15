@@ -99,8 +99,9 @@ class ConsultationApplyAcceptanceTest {
         return boothRepository.saveAndFlush(booth);
     }
 
+    // leadConsent는 2026-09-15부터 필수라 기본값을 true로 둔다 - 그 필드 자체를 검증하는 테스트만 4-arg로 명시 호출.
     private String applyBody(List<Long> boothIds, boolean wantsPurchase, boolean wantsTestDrive) {
-        return applyBody(boothIds, wantsPurchase, wantsTestDrive, false);
+        return applyBody(boothIds, wantsPurchase, wantsTestDrive, true);
     }
 
     private String applyBody(List<Long> boothIds, boolean wantsPurchase, boolean wantsTestDrive, boolean leadConsent) {
@@ -147,23 +148,30 @@ class ConsultationApplyAcceptanceTest {
     }
 
     @Test
-    @DisplayName("leadConsent를 체크 안 하면 false로 저장되고, 체크하면 true로 저장된다")
-    void 리드동의_기본값_및_체크() throws Exception {
+    @DisplayName("leadConsent를 체크하면 true로 저장된다")
+    void 리드동의_체크시_저장() throws Exception {
         Expo expo = openExpo();
         Booth booth = assignedBooth(expo, "A-101");
 
         mockMvc.perform(post("/api/customer/consultations").with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(List.of(booth.getId()), true, false)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data[0].leadConsent").value(false));
-
-        Booth booth2 = assignedBooth(expo, "A-102");
-        mockMvc.perform(post("/api/customer/consultations").with(customer())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(applyBody(List.of(booth2.getId()), true, false, true)))
+                        .content(applyBody(List.of(booth.getId()), true, false, true)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data[0].leadConsent").value(true));
+    }
+
+    @Test
+    @DisplayName("leadConsent(연락처 제공 동의)를 체크하지 않으면 400 - 2026-09-15부터 필수")
+    void 리드동의_안하면_400() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, "A-101");
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth.getId()), true, false, false)))
+                .andExpect(status().isBadRequest());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).isEmpty();
     }
 
     @Test

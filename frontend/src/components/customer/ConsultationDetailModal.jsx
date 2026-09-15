@@ -98,6 +98,7 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
     if (!wantsPurchase && !wantsTestDrive) errors.consultType = '상담 유형을 하나 이상 선택해주세요.';
     if (!selectedDay) errors.date = '방문 희망 날짜를 선택해주세요.';
     else if (!selectedTime) errors.time = '방문 희망 시간을 선택해주세요.';
+    if (!leadConsent) errors.leadConsent = '연락처 제공 동의는 필수입니다.';
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -278,8 +279,9 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
 
             <label className="c-bulk-consult__checkbox-row">
               <input type="checkbox" checked={leadConsent} onChange={(e) => setLeadConsent(e.target.checked)} />
-              <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (선택)</span>
+              <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (필수)</span>
             </label>
+            {fieldErrors.leadConsent && <p className="c-consult__error">{fieldErrors.leadConsent}</p>}
 
             {error && <p className="c-consult__error">{error}</p>}
 
@@ -287,7 +289,12 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
               <button type="button" className="c-bulk-consult__back" onClick={() => setMode('view')}>
                 취소
               </button>
-              <button type="button" className="c-consult__submit" disabled={submitting} onClick={handleSave}>
+              <button
+                type="button"
+                className="c-consult__submit"
+                disabled={submitting || !leadConsent}
+                onClick={handleSave}
+              >
                 {submitting ? '저장 중...' : '저장'}
               </button>
             </div>
