@@ -15,7 +15,12 @@ function BulkConsultPromo({ expoId, groups }) {
   const [showBulkConsult, setShowBulkConsult] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
+  // 아직 참가 확정된 업체가 하나도 없으면(groups 비어있음) 상담 신청 폼을 열어봐야 고를 업체가
+  // 없어 신청이 안 됨 - 버튼 자체를 막고 이유를 알려준다.
+  const noExhibitors = groups.length === 0;
+
   const openBulkConsult = () => {
+    if (noExhibitors) return;
     if (isLoggedIn()) {
       setShowBulkConsult(true);
     } else {
@@ -44,8 +49,8 @@ function BulkConsultPromo({ expoId, groups }) {
           <br />
           <span className="c-bulk-promo__accent">한 번에 상담 신청</span>
         </h2>
-        <button type="button" className="c-bulk-promo__cta" onClick={openBulkConsult}>
-          원클릭 상담 신청 →
+        <button type="button" className="c-bulk-promo__cta" onClick={openBulkConsult} disabled={noExhibitors}>
+          {noExhibitors ? '참가 업체가 생겨야 상담 신청이 가능해요' : '원클릭 상담 신청 →'}
         </button>
         <ul className="c-bulk-promo__checklist">
           <li>여러 업체에 한 번에 신청</li>

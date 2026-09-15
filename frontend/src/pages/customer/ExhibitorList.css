@@ -66,6 +66,16 @@
   background: #1d4ed8;
 }
 
+.c-bulk-promo__cta:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.c-bulk-promo__cta:disabled:hover {
+  background: #cbd5e1;
+}
+
 .c-bulk-promo__checklist {
   list-style: none;
   margin: 0;
