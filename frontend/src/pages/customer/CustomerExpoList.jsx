@@ -7,6 +7,13 @@ import './CustomerExpoList.css';
 
 const FILTERS = ['전체', '진행중', '모집중', '모집예정', '종료'];
 
+// 정렬 기준 - 상태 탭과 무관하게 동일한 3가지 옵션을 공용으로 씀
+const SORTS = [
+  { value: 'start', label: '시작일', key: 'startsAt' },
+  { value: 'deadline', label: '신청 마감', key: 'applyEndsAt' },
+  { value: 'end', label: '종료일', key: 'endsAt' },
+];
+
 // 한 페이지에서 보여줄 카드 개수 - 초과될 경우 하단에 페이지 넘버링
 const PAGE_SIZE = 8;
 
@@ -32,6 +39,8 @@ const toCard = (e) => ({
   venue: e.venue,
   startsAt: e.startsAt,
   endsAt: e.endsAt,
+  applyStartsAt: e.applyStartsAt,
+  applyEndsAt: e.applyEndsAt,
   admissionFee: e.admissionFee,
   boothCount: e.boothCount,
   phase: phaseOf(e),
@@ -42,6 +51,8 @@ function CustomerExpoList() {
   const [expos, setExpos] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState('전체');
+  const [sortBy, setSortBy] = useState(SORTS[0].value);
+  const [sortDir, setSortDir] = useState('asc');
   const [keyword, setKeyword] = useState('');
   const [page, setPage] = useState(1);
   const [checkinExpo, setCheckinExpo] = useState(null);
@@ -79,19 +90,21 @@ function CustomerExpoList() {
       );
   }, []);
 
-  const filtered = useMemo(
-    () =>
-      expos.filter((e) => {
+  const filtered = useMemo(() => {
+    const sortKey = SORTS.find((s) => s.value === sortBy).key;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return expos
+      .filter((e) => {
         const matchesFilter = filter === '전체' || e.phase === filter;
         const matchesKeyword = e.title.toLowerCase().includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
-      }),
-    [expos, filter, keyword]
-  );
+      })
+      .sort((a, b) => dir * (new Date(a[sortKey]) - new Date(b[sortKey])));
+  }, [expos, filter, keyword, sortBy, sortDir]);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, keyword]);
+  }, [filter, sortBy, sortDir, keyword]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -170,14 +183,35 @@ function CustomerExpoList() {
                 </button>
               ))}
             </div>
-            <div className="c-expo-list__search-wrap">
-              <span className="c-expo-list__search-icon" />
-              <input
-                className="c-expo-list__search"
-                placeholder="박람회명 또는 지역을 검색하세요."
-                value={keyword}
-                onChange={(e) => setKeyword(e.target.value)}
-              />
+            <div className="c-expo-list__toolbar-right">
+              <select
+                className="c-expo-list__sort"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                {SORTS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="c-expo-list__sort-dir"
+                onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                aria-label={sortDir === 'asc' ? '오름차순' : '내림차순'}
+              >
+                {sortDir === 'asc' ? '▲' : '▼'}
+              </button>
+              <div className="c-expo-list__search-wrap">
+                <span className="c-expo-list__search-icon" />
+                <input
+                  className="c-expo-list__search"
+                  placeholder="박람회명 또는 지역을 검색하세요."
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 

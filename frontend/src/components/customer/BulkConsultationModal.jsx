@@ -153,6 +153,10 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
       setFieldErrors({ consultType: '상담 유형을 하나 이상 선택해주세요.' });
       return;
     }
+    if (!leadConsent) {
+      setFieldErrors({ leadConsent: '연락처 제공 동의는 필수입니다.' });
+      return;
+    }
     setFieldErrors({});
     setSubmitting(true);
     setSubmitError(null);
@@ -461,8 +465,9 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                     checked={leadConsent}
                     onChange={(e) => setLeadConsent(e.target.checked)}
                   />
-                  <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (선택)</span>
+                  <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (필수)</span>
                 </label>
+                {fieldErrors.leadConsent && <p className="c-consult__error">{fieldErrors.leadConsent}</p>}
 
                 {submitError && <p className="c-consult__error">{submitError}</p>}
               </div>
@@ -479,7 +484,12 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                 <button type="button" className="c-bulk-consult__back" onClick={() => setStep(1)}>
                   이전
                 </button>
-                <button type="button" className="c-consult__submit" disabled={submitting} onClick={handleSubmit}>
+                <button
+                  type="button"
+                  className="c-consult__submit"
+                  disabled={submitting || !leadConsent}
+                  onClick={handleSubmit}
+                >
                   {submitting ? '신청 중...' : '상담 신청하기'}
                 </button>
               </>

@@ -116,7 +116,8 @@ class ConsultationLifecycleAcceptanceTest {
                     "hasDriverLicense", true,
                     "preferredDate", preferredDate.toString(),
                     "preferredTime", "15:00:00",
-                    "message", "수정된 요청사항"));
+                    "message", "수정된 요청사항",
+                    "leadConsent", true));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -184,6 +185,41 @@ class ConsultationLifecycleAcceptanceTest {
         mockMvc.perform(post("/api/customer/consultations/{id}/cancel", consultation.getId()).with(customer()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("CANCELED"));
+    }
+
+    @Test
+    @DisplayName("취소한 상담은 같은 참가업체·같은 날짜로 다시 신청할 수 있다")
+    void 취소후_같은날짜_재신청_가능() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, EXHIBITOR_ID, "A-101");
+        LocalDate preferredDate = LocalDate.now().plusDays(1);
+        Consultation consultation = requestedConsultation(booth, preferredDate);
+
+        mockMvc.perform(post("/api/customer/consultations/{id}/cancel", consultation.getId()).with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("CANCELED"));
+
+        String applyBody = objectMapper.writeValueAsString(Map.ofEntries(
+                Map.entry("boothIds", java.util.List.of(booth.getId())),
+                Map.entry("customerName", "홍길동"),
+                Map.entry("customerPhone", "010-1234-5678"),
+                Map.entry("customerEmail", "hong@example.com"),
+                Map.entry("wantsPurchase", true),
+                Map.entry("wantsTestDrive", false),
+                Map.entry("interestedVehicle", "EV6"),
+                Map.entry("hasDriverLicense", true),
+                Map.entry("preferredDate", preferredDate.toString()),
+                Map.entry("preferredTime", "14:00:00"),
+                Map.entry("message", "다시 신청합니다"),
+                Map.entry("leadConsent", true)));
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data[0].status").value("REQUESTED"));
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(2);
     }
 
     @Test

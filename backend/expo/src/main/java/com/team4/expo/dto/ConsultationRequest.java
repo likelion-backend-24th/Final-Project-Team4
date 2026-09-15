@@ -1,5 +1,6 @@
 package com.team4.expo.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -39,6 +40,8 @@ public class ConsultationRequest {
 
     private String message;
 
-    // 참가업체가 현장에서 QR 스캔으로 연락처를 확보하는 데 동의하는지(STORY 11). 선택, 기본 false.
+    // 참가업체가 현장에서 QR 스캔으로 연락처를 확보하는 데 동의하는지(STORY 11).
+    // 2026-09-15 확정: 필수 동의로 전환 - 동의하지 않으면 상담 신청 자체를 받지 않는다.
+    @AssertTrue(message = "리드 확보(연락처 제공) 동의가 필요합니다.")
     private boolean leadConsent;
 }
