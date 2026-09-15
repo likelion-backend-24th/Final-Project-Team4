@@ -4,6 +4,11 @@ spring:
     username: ${DB_USER:app}
     password: ${DB_PASSWORD:app_local_only}
     driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      # 기본값(10)은 VisitApplicationAcceptanceTest의 동시 신청 테스트(워커 스레드 10개 + 결과 확인하는
+      # 메인 테스트 스레드)가 순간적으로 11개 커넥션을 필요로 할 수 있어 여유가 없음 - CI처럼 느린
+      # 환경에서 커넥션 대기로 타이밍이 어긋나 가끔 실패(flaky)하는 원인이 될 수 있어 여유를 둠.
+      maximum-pool-size: 20
   jpa:
     hibernate:
       ddl-auto: validate
