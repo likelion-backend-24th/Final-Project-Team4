@@ -17,7 +17,7 @@ const isoLocal = (days) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const BOOTH_TYPES = ['조립 부스 (3m x 3m)', '독립 부스 (6m x 3m)', '푸드 부스 (3m x 3m)'];
+const BOOTH_TYPES = ['조립 부스 (3m x 3m)', '푸드 부스 (3m x 3m)'];
 
 function AdminExpoCreate() {
   const navigate = useNavigate();

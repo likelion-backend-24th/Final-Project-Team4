@@ -9,6 +9,7 @@ import {
   uploadBoothBannerImage,
 } from '../api/expo';
 import { getMyProfile } from '../api/identity';
+import { isFoodBooth } from '../utils/boothType';
 import './BoothManage.css';
 
 const TITLE_MAX = 50;
@@ -84,12 +85,15 @@ function BoothManage() {
   const bannerDisplayUrl = bannerPreview ?? savedBannerUrl;
 
   // "배너 이미지"와 "부스 소개"를 둘 다 완료해야만 아래 "전시 차량 관리"에서 새 차량을 등록할 수 있다.
-  // (이미 등록된 차량의 수정/삭제는 이 조건과 무관하게 항상 가능)
+  // (이미 등록된 차량의 수정/이미지 관리/삭제는 이 조건과 무관하게 항상 가능)
   const hasBanner = Boolean(detail.bannerImageUrl);
   const hasIntro = Boolean(
     detail.content && detail.content.title?.trim() && detail.content.content?.trim()
   );
   const canRegisterVehicle = hasBanner && hasIntro;
+
+  // 먹거리(푸드) 부스는 전시할 차량이 없으므로 "전시 차량 관리" 섹션 자체를 보여주지 않는다.
+  const showVehicleSection = !isFoodBooth(detail.boothType);
 
   const handleContentSave = () => {
     if (!contentForm.title.trim() || !contentForm.content.trim()) {
@@ -192,10 +196,17 @@ function BoothManage() {
                 </div>
               </label>
               <label className="booth-manage__field">
+                <span>부스 유형 <span className="booth-manage__req">*</span></span>
+                <div className="booth-manage__readonly-box">
+                  <span className="booth-manage__readonly-icon">🏷️</span>
+                  {detail.boothType}
+                </div>
+              </label>
+              <label className="booth-manage__field">
                 <span>부스 번호 <span className="booth-manage__req">*</span></span>
                 <div className="booth-manage__readonly-box">
                   <span className="booth-manage__readonly-icon">📍</span>
-                  {detail.boothNo} ({detail.boothType})
+                  {detail.boothNo}
                 </div>
               </label>
             </div>
@@ -336,6 +347,7 @@ function BoothManage() {
           </button>
         </section>
 
+        {showVehicleSection && (
         <section className="booth-manage__card">
           <div className="booth-manage__card-header">
             <div className="booth-manage__section-header">
@@ -404,6 +416,7 @@ function BoothManage() {
             ))}
           </div>
         </section>
+        )}
       </div>
     </div>
   );
