@@ -3,10 +3,17 @@ import { Link } from "react-router-dom";
 import { getExpoList } from "../api/expo";
 import "./ExpoList.css";
 
-// 상단 필터 탭 목록
-const FILTERS = ["전체", "모집중", "모집마감", "진행중", "종료"];
+// 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
+const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
 
 const PAGE_SIZE = 8;
+
+// 부스 참가 신청을 받지 않는 단계. 모집예정은 부스 배치도까진 볼 수 있어야 해서 카드 자체는 막지 않음(ExpoDetail.jsx에서 신청 버튼만 막음)
+const NOT_APPLICABLE = ["모집마감", "종료"];
+const FOOTER_TEXT = {
+  모집마감: "모집 마감",
+  종료: "신청 종료",
+};
 
 // 카드 썸네일에 순서대로 돌려가며 입힐 그라데이션 색상들
 const GRADIENTS = [
@@ -124,9 +131,9 @@ function ExpoList() {
         <div className="expo-card__divider" />
         <div className="expo-card__footer">
           <span className="expo-card__link">
-            {c.phase === "종료" ? "신청 종료" : "상세 보기 및 부스 신청"}
+            {FOOTER_TEXT[c.phase] ?? "상세 보기 및 부스 신청"}
           </span>
-          {c.phase !== "종료" && <span className="expo-card__arrow" />}
+          {!NOT_APPLICABLE.includes(c.phase) && <span className="expo-card__arrow" />}
         </div>
       </div>
     </>
@@ -174,8 +181,8 @@ function ExpoList() {
         {loadError && <p className="expo-list__status">{loadError}</p>}
         <div className="expo-list__grid">
           {paginated.map((c, i) =>
-            // 종료된 박람회는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
-            c.phase === "종료" ? (
+            // 모집예정/모집마감/종료는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
+            NOT_APPLICABLE.includes(c.phase) ? (
               <div key={c.key} className="expo-card expo-card--disabled">
                 {renderCardBody(c, i)}
               </div>

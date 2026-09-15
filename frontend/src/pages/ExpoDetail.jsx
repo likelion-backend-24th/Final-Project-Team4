@@ -96,6 +96,9 @@ function ExpoDetail() {
       );
   }, [expoId]);
 
+  // 모집예정(신청 시작 전)이면 부스 배치도는 볼 수 있되 신청은 막음
+  const notYetOpen = summary ? new Date() < new Date(summary.applyStartsAt) : false;
+
   const booths = detail?.booths ?? [];
   const halls = useMemo(
     () => [...new Set(booths.map((b) => getBoothHall(b.boothNo)))].sort(),
@@ -119,6 +122,7 @@ function ExpoDetail() {
     );
 
   const goApply = () => {
+    if (notYetOpen) return;
     const query = selectedBoothIds.map((id) => `boothId=${id}`).join('&');
     navigate(`/expos/${expoId}/apply${query ? `?${query}` : ''}`);
   };
@@ -128,7 +132,7 @@ function ExpoDetail() {
       <section className="expo-detail__hero">
         <div className="expo-detail__hero-main">
           <div className="expo-detail__hero-badges">
-            <span className="expo-detail__badge">모집중</span>
+            <span className="expo-detail__badge">{notYetOpen ? '모집예정' : '모집중'}</span>
             <span className="expo-detail__badge expo-detail__badge--soft">
               신청 가능 부스 {detail.availableCount}개
             </span>
@@ -307,8 +311,8 @@ function ExpoDetail() {
                   <p className="expo-detail__perk-label">임차료 합계</p>
                   <p className="expo-detail__perk-value">{totalFee.toLocaleString()} 원</p>
                 </div>
-                <button type="button" className="expo-detail__cta" onClick={goApply}>
-                  {selectedBooths.length}개 부스 선택 및 신청하기
+                <button type="button" className="expo-detail__cta" onClick={goApply} disabled={notYetOpen}>
+                  {notYetOpen ? '모집 시작 전입니다' : `${selectedBooths.length}개 부스 선택 및 신청하기`}
                 </button>
               </>
             ) : (
@@ -329,8 +333,8 @@ function ExpoDetail() {
                 <p className="expo-detail__perk-label">제공 혜택</p>
                 <p className="expo-detail__perk-value">무료 무선인터넷, 기본 전력 1kW 제공</p>
               </div>
-              <button type="button" className="expo-detail__cta" onClick={goApply}>
-                부스 선택 및 신청하기
+              <button type="button" className="expo-detail__cta" onClick={goApply} disabled={notYetOpen}>
+                {notYetOpen ? '모집 시작 전입니다' : '부스 선택 및 신청하기'}
               </button>
               <div className="expo-detail__contact">
                 <h4><IconHeadset /> 문의 안내</h4>
@@ -352,8 +356,8 @@ function ExpoDetail() {
             </span>
           )}
         </div>
-        <button type="button" onClick={goApply}>
-          참가 신청하기
+        <button type="button" onClick={goApply} disabled={notYetOpen}>
+          {notYetOpen ? '모집 시작 전입니다' : '참가 신청하기'}
         </button>
       </footer>
     </div>
