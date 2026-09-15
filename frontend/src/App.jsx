@@ -25,6 +25,7 @@ import CustomerMyPage from './pages/customer/CustomerMyPage';
 import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
+import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 
 function ExhibitorLayout({ children }) {
   return (
@@ -97,6 +98,7 @@ function App() {
       {/* 대시보드 임시 비활성화: /admin 접속 시 참가신청 관리로 이동 */}
       <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
       <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
+      <Route path="/admin/expos/:expoId/edit" element={<AdminLayout><AdminExpoEdit /></AdminLayout>} />
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
     </Routes>

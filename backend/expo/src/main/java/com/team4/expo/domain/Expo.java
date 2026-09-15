@@ -62,4 +62,23 @@ public class Expo {
         this.status = ExpoStatus.OPEN;
         this.updatedAt = LocalDateTime.now();
     }
+
+    // 관리자가 박람회를 다시 비공개로 돌릴 때 호출 (ExpoService.closeExpo). OPEN -> DRAFT.
+    public void close() {
+        this.status = ExpoStatus.DRAFT;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // 관리자가 박람회 정보를 수정
+    public void update(String title, String venue, LocalDateTime startsAt, LocalDateTime endsAt,
+                        LocalDateTime applyStartsAt, LocalDateTime applyEndsAt, Long admissionFee) {
+        this.title = title;
+        this.venue = venue;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
+        this.applyStartsAt = applyStartsAt;
+        this.applyEndsAt = applyEndsAt;
+        this.admissionFee = admissionFee;
+        this.updatedAt = LocalDateTime.now();
+    }
 }

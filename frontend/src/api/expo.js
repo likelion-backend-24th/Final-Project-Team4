@@ -58,6 +58,22 @@ export const registerExpo = (payload) =>
 export const openExpo = (expoId) =>
   apiClient.post(`/api/admin/expos/${expoId}/open`).then((res) => res.data.data);
 
+// POST /api/admin/expos/{expoId}/close — Admin: 박람회 비공개 전환 (OPEN → DRAFT, 신청 있으면 실패)
+export const closeExpo = (expoId) =>
+  apiClient.post(`/api/admin/expos/${expoId}/close`).then((res) => res.data.data);
+
+// GET /api/admin/expos/{expoId} — Admin: 박람회 단건 조회 (수정 화면 진입용)
+export const getAdminExpo = (expoId) =>
+  apiClient.get(`/api/admin/expos/${expoId}`).then((res) => res.data.data);
+
+// PUT /api/admin/expos/{expoId} — Admin: 박람회 정보 수정 (부스 목록은 대상 아님)
+export const updateExpo = (expoId, payload) =>
+  apiClient.put(`/api/admin/expos/${expoId}`, payload).then((res) => res.data.data);
+
+// DELETE /api/admin/expos/{expoId} — Admin: 박람회 삭제 (DRAFT + 신청 0건일 때만 가능)
+export const deleteExpo = (expoId) =>
+  apiClient.delete(`/api/admin/expos/${expoId}`).then((res) => res.data.data);
+
 // GET /api/admin/expos — Admin: 전체 박람회 목록 + 박람회별 신청 현황 집계
 export const getAdminExpoList = (params) =>
   apiClient.get('/api/admin/expos', { params }).then((res) => res.data.data);
