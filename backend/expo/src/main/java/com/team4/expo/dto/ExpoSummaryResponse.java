@@ -2,6 +2,7 @@ package com.team4.expo.dto;
 
 import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoPhase;
+import com.team4.expo.domain.ExpoStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -21,6 +22,7 @@ public class ExpoSummaryResponse {
     private final Long admissionFee; // 당일 유료 입장료
     private final ExpoPhase phase; // 진행 단계 (모집예정/모집중/개최예정/진행중/진행종료)
     private final long boothCount; // 참여 확정(ASSIGNED) 부스 수
+    private final ExpoStatus status; // DRAFT/OPEN - 고객·참가업체 조회는 항상 OPEN만 나가고, Admin 수정 화면의 공개/비공개 버튼 표시에 사용
 
     public static ExpoSummaryResponse of(Expo expo, ExpoPhase phase, long boothCount) {
         return new ExpoSummaryResponse(
@@ -33,6 +35,7 @@ public class ExpoSummaryResponse {
                 expo.getApplyEndsAt(),
                 expo.getAdmissionFee(),
                 phase,
-                boothCount);
+                boothCount,
+                expo.getStatus());
     }
 }
