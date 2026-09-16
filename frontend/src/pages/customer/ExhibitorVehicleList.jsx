@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
@@ -12,6 +12,8 @@ function ExhibitorVehicleList() {
   const [group, setGroup] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [keyword, setKeyword] = useState('');
+  const [reviews, setReviews] = useState(null);
+  const [reviewTab, setReviewTab] = useState('CONSULT');
 
   useEffect(() => {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
@@ -28,6 +30,12 @@ function ExhibitorVehicleList() {
         setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
       );
   }, [expoId, boothId]);
+
+  useEffect(() => {
+    getBoothReviews(boothId)
+      .then(setReviews)
+      .catch(() => setReviews({ totalCount: 0, consultReviews: [], boothReviews: [] }));
+  }, [boothId]);
 
   const filteredVehicles = useMemo(
     () => group?.vehicles.filter((v) => v.name.toLowerCase().includes(keyword.toLowerCase())) ?? [],
@@ -103,6 +111,57 @@ function ExhibitorVehicleList() {
                 </div>
               </Link>
             ))}
+          </div>
+        </section>
+
+        <section className="c-review-section">
+          <div className="c-review-header">
+            <div className="c-review-title-wrap">
+              <div className="c-review-title">후기 내역</div>
+              <div className="c-review-description">해당 차량 및 부스와 관련된 방문 후기를 확인할 수 있습니다.</div>
+            </div>
+            {reviews && <div className="c-review-count">전체 <strong>{reviews.totalCount}</strong>건</div>}
+          </div>
+
+          <div className="c-review-tabs">
+            <button
+              type="button"
+              className={`c-review-tab${reviewTab === 'CONSULT' ? ' is-active' : ''}`}
+              onClick={() => setReviewTab('CONSULT')}
+            >
+              상담후기
+            </button>
+            <button
+              type="button"
+              className={`c-review-tab${reviewTab === 'BOOTH' ? ' is-active' : ''}`}
+              onClick={() => setReviewTab('BOOTH')}
+            >
+              부스후기
+            </button>
+          </div>
+
+          <div className="c-review-list">
+            {(() => {
+              const list = reviewTab === 'CONSULT' ? reviews?.consultReviews : reviews?.boothReviews;
+              if (!list) {
+                return <p className="c-review-empty">불러오는 중...</p>;
+              }
+              if (list.length === 0) {
+                return <p className="c-review-empty">아직 등록된 후기가 없습니다.</p>;
+              }
+              return list.map((r) => (
+                <div key={r.reviewId} className="c-review-item">
+                  <div className="c-review-user">
+                    <div className="c-review-user-name">{r.customerName}</div>
+                    <div className="c-review-date">{fmtDate(r.createdAt)}</div>
+                  </div>
+                  <div className="c-review-main">
+                    <div className="c-review-tag">{r.vehicleName || `부스 ${r.boothNo}`}</div>
+                    <div className="c-review-text">{r.content}</div>
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </section>
       </div>

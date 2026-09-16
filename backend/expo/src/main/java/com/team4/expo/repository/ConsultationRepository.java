@@ -30,4 +30,7 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
     // QR 스캔 리드 생성 시 - 같은 고객+부스+방문일(visitDate=preferredDate)의 승인된 신청을 찾아 리드에 연결(TASK 11-2)
     Optional<Consultation> findByCustomerIdAndBooth_IdAndPreferredDateAndStatus(
             Long customerId, Long boothId, LocalDate preferredDate, ConsultationStatus status);
+
+    // 후기 작성 자격 검증 - 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기를 남길 수 있다.
+    boolean existsByCustomerIdAndBooth_IdAndStatus(Long customerId, Long boothId, ConsultationStatus status);
 }

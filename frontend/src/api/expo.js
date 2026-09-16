@@ -227,6 +227,11 @@ export const completeConsultation = (consultationId) =>
 export const markConsultationNoShow = (consultationId) =>
   apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);
 
+// GET /api/customer/booths/{boothId}/reviews — 부스 후기(상담후기/부스후기) 목록 (비회원 조회 가능)
+// 응답: { totalCount, consultReviews: ReviewResponse[], boothReviews: ReviewResponse[] }
+export const getBoothReviews = (boothId) =>
+  apiClient.get(`/api/customer/booths/${boothId}/reviews`).then((res) => res.data.data);
+
 // GET /api/customer/vehicles/search — 자연어 질의로 전시 차량 AI 검색 (전체 공개 박람회 대상)
 // 응답: { interpretedSummary, results: [{ expoId, expoTitle, boothId, boothNo, companyName, vehicle }] }
 export const searchVehicles = (query) =>

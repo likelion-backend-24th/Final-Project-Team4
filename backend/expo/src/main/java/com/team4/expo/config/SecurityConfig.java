@@ -24,6 +24,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/exhibitor/**").hasRole("EXHIBITOR")
                         .requestMatchers("/api/customer/consultations/**").hasRole("USER")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/customer/booths/*/reviews").hasRole("USER")
                         .anyRequest().permitAll())
                 .addFilterBefore(new GatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e

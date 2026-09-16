@@ -242,6 +242,149 @@
   transform: rotate(45deg);
 }
 
+.c-review-section {
+  max-width: 1080px;
+}
+
+.c-review-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.c-review-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.c-review-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.c-review-description,
+.c-review-count {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.c-review-count strong {
+  color: #2563eb;
+}
+
+.c-review-tabs {
+  display: flex;
+  align-items: center;
+  height: 46px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding-left: 4px;
+}
+
+.c-review-tab {
+  height: 100%;
+  min-width: 110px;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  position: relative;
+}
+
+.c-review-tab.is-active {
+  color: #0f172a;
+}
+
+.c-review-tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  height: 2px;
+  background: #2563eb;
+}
+
+.c-review-list {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0 0 8px 8px;
+}
+
+.c-review-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.c-review-item:last-child {
+  border-bottom: none;
+}
+
+.c-review-user {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.c-review-user-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.c-review-date {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.c-review-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.c-review-tag {
+  display: inline-block;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.c-review-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #475569;
+}
+
+.c-review-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+}
+
 @media (max-width: 768px) {
   .c-vehicle-list__hero,
   .c-vehicle-list__toolbar,
@@ -252,5 +395,15 @@
 
   .c-vehicle-list__search-wrap {
     width: 100%;
+  }
+
+  .c-review-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .c-review-user {
+    width: auto;
   }
 }
