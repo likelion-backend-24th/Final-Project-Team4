@@ -159,6 +159,7 @@ function ExhibitorVehicleList() {
                     <div className="c-review-tag">{r.vehicleName || `부스 ${r.boothNo}`}</div>
                     <div className="c-review-text">{r.content}</div>
                   </div>
+                  <div className="c-review-arrow">›</div>
                 </div>
               ));
             })()}

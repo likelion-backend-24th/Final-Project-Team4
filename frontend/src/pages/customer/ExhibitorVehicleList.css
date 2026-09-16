@@ -156,18 +156,19 @@
 
 .c-vehicle-group__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(165px, 165px));
+  gap: 16px;
 }
 
 .c-vehicle-card {
   display: block;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 1px solid #e0e6ee;
+  border-radius: 7px;
   overflow: hidden;
   text-decoration: none;
   color: inherit;
   background: #fff;
+  box-shadow: 0 1px 2px rgba(20, 35, 55, 0.02);
   transition: box-shadow 0.15s ease;
 }
 
@@ -176,7 +177,7 @@
 }
 
 .c-vehicle-card__thumb {
-  height: 140px;
+  height: 105px;
   background: linear-gradient(135deg, #e2e8f0, #f8fafc);
   overflow: hidden;
 }
@@ -188,33 +189,32 @@
 }
 
 .c-vehicle-card__body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 12px;
 }
 
 .c-vehicle-card__body h3 {
-  font-family: 'Outfit', sans-serif;
-  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
-  margin: 0;
+  color: #172033;
+  margin: 0 0 8px;
 }
 
 .c-vehicle-card__tags {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 11px;
 }
 
 .c-vehicle-card__tag {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
-  color: #475569;
-  background: #f1f5f9;
-  padding: 3px 8px;
-  border-radius: 4px;
+  color: #607087;
+  background: #f0f3f7;
+  padding: 3px 6px;
+  border-radius: 3px;
 }
 
 .c-vehicle-card__link {
@@ -222,14 +222,14 @@
   align-items: center;
   gap: 4px;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #2563eb;
+  font-size: 10px;
+  color: #2e6edc;
   font-weight: 600;
 }
 
 .c-vehicle-card__arrow {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   position: relative;
 }
 
@@ -237,12 +237,13 @@
   content: '';
   position: absolute;
   inset: 20%;
-  border-top: 2px solid #2563eb;
-  border-right: 2px solid #2563eb;
+  border-top: 2px solid #2e6edc;
+  border-right: 2px solid #2e6edc;
   transform: rotate(45deg);
 }
 
 .c-review-section {
+  margin-top: 10px;
   max-width: 1080px;
 }
 
@@ -250,7 +251,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 17px;
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -258,25 +259,26 @@
 .c-review-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .c-review-title {
-  font-family: 'Outfit', sans-serif;
-  font-size: 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
   font-weight: 700;
-  color: #0f172a;
+  letter-spacing: -0.5px;
+  color: #172033;
 }
 
 .c-review-description,
 .c-review-count {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #64748b;
+  font-size: 11px;
+  color: #8b97a9;
 }
 
 .c-review-count strong {
-  color: #2563eb;
+  color: #326fd7;
 }
 
 .c-review-tabs {
@@ -284,9 +286,9 @@
   align-items: center;
   height: 46px;
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e0e6ee;
   border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-radius: 7px 7px 0 0;
   padding-left: 4px;
 }
 
@@ -296,39 +298,40 @@
   border: none;
   background: transparent;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #94a3b8;
+  color: #8a96a8;
   cursor: pointer;
   position: relative;
 }
 
 .c-review-tab.is-active {
-  color: #0f172a;
+  color: #1d2738;
 }
 
 .c-review-tab.is-active::after {
   content: '';
   position: absolute;
-  left: 16px;
-  right: 16px;
+  left: 17px;
+  right: 17px;
   bottom: 0;
   height: 2px;
-  background: #2563eb;
+  background: #2f6fed;
 }
 
 .c-review-list {
   background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0 0 8px 8px;
+  border: 1px solid #e0e6ee;
+  border-radius: 0 0 7px 7px;
 }
 
 .c-review-item {
   display: flex;
   align-items: center;
+  min-height: 88px;
   gap: 20px;
-  padding: 18px 22px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 17px 22px;
+  border-bottom: 1px solid #edf0f4;
 }
 
 .c-review-item:last-child {
@@ -336,22 +339,22 @@
 }
 
 .c-review-user {
-  width: 110px;
+  width: 120px;
   flex-shrink: 0;
 }
 
 .c-review-user-name {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
-  color: #0f172a;
-  margin-bottom: 4px;
+  color: #273247;
+  margin-bottom: 5px;
 }
 
 .c-review-date {
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  color: #94a3b8;
+  font-size: 10px;
+  color: #a0a9b7;
 }
 
 .c-review-main {
@@ -362,27 +365,39 @@
 .c-review-tag {
   display: inline-block;
   font-family: 'Inter', sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
-  padding: 3px 8px;
-  border-radius: 4px;
+  color: #52709c;
+  background: #f1f5fa;
+  padding: 3px 6px;
+  border-radius: 3px;
   margin-bottom: 6px;
 }
 
 .c-review-text {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: #475569;
+  font-size: 11px;
+  color: #4e5b70;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 650px;
+}
+
+.c-review-arrow {
+  width: 25px;
+  flex-shrink: 0;
+  color: #b1bac7;
+  font-size: 14px;
+  text-align: right;
 }
 
 .c-review-empty {
-  padding: 40px 20px;
+  padding: 45px 20px;
   text-align: center;
-  color: #94a3b8;
+  color: #9ba5b4;
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 11px;
 }
 
 @media (max-width: 768px) {
@@ -405,5 +420,14 @@
 
   .c-review-user {
     width: auto;
+  }
+
+  .c-review-text {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .c-review-arrow {
+    display: none;
   }
 }
