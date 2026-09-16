@@ -25,7 +25,7 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
   const editable = consultation.status === 'REQUESTED';
 
   const goWriteReview = () => {
-    const params = new URLSearchParams({ writeReview: 'CONSULT' });
+    const params = new URLSearchParams({ writeReview: 'CONSULT', consultationId: consultation.consultationId });
     if (consultation.interestedVehicle) params.set('vehicleName', consultation.interestedVehicle);
     navigate(`/customer/expos/${consultation.expoId}/booths/${consultation.boothId}?${params.toString()}`);
   };

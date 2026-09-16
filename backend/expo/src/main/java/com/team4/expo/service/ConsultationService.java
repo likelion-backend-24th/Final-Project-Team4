@@ -12,13 +12,17 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
+import com.team4.expo.domain.Lead;
 import com.team4.expo.dto.BoothReviewEligibilityResponse;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
+import com.team4.expo.dto.ConsultationReviewContextResponse;
+import com.team4.expo.dto.ConsultationReviewDraftResponse;
 import com.team4.expo.dto.ConsultationUpdateRequest;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
+import com.team4.expo.repository.LeadRepository;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,17 +37,19 @@ public class ConsultationService {
     private final BoothRepository boothRepository;
     private final ConsultationRepository consultationRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final LeadRepository leadRepository;
     private final ReservationClient reservationClient;
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
 
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
-                                BoothApplicationRepository boothApplicationRepository,
+                                BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
                                 IdentityClient identityClient) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.leadRepository = leadRepository;
         this.reservationClient = reservationClient;
         this.aiSummaryClient = aiSummaryClient;
         this.identityClient = identityClient;
@@ -168,6 +174,41 @@ public class ConsultationService {
                 .stream().anyMatch(Consultation::isReviewable);
 
         return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
+    }
+
+    // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모(있으면). 작성 가능한(reviewable) 상담만 허용.
+    @Transactional(readOnly = true)
+    public ConsultationReviewContextResponse getReviewContext(Long customerId, Long consultationId) {
+        Consultation consultation = findReviewableConsultation(customerId, consultationId);
+        String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
+                .map(Lead::getInterestNote)
+                .orElse(null);
+
+        return new ConsultationReviewContextResponse(consultation.getInterestedVehicle(),
+                consultation.isWantsPurchase(), consultation.isWantsTestDrive(),
+                consultation.getMessage(), exhibitorNote);
+    }
+
+    // AI 후기 초안 생성 - 같은 컨텍스트(요구사항+참가업체 메모)로 Gemini에 초안을 요청. 실패 시 draft=null(fail-open).
+    public ConsultationReviewDraftResponse draftReview(Long customerId, Long consultationId, String reviewType, String vehicleName) {
+        Consultation consultation = findReviewableConsultation(customerId, consultationId);
+        String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
+                .map(Lead::getInterestNote)
+                .orElse(null);
+
+        String draft = aiSummaryClient
+                .draftReview(reviewType, vehicleName, consultation.getMessage(), exhibitorNote)
+                .orElse(null);
+
+        return new ConsultationReviewDraftResponse(draft);
+    }
+
+    private Consultation findReviewableConsultation(Long customerId, Long consultationId) {
+        Consultation consultation = findOwnedConsultation(customerId, consultationId);
+        if (!consultation.isReviewable()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "후기를 작성할 수 있는 상담이 아닙니다.");
+        }
+        return consultation;
     }
 
     private Consultation findOwnedConsultation(Long customerId, Long consultationId) {

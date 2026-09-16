@@ -182,6 +182,7 @@ function ExhibitorVehicleList() {
       {writeReviewType && (
         <ReviewWriteModal
           boothId={boothId}
+          consultationId={searchParams.get('consultationId')}
           defaultType={writeReviewType}
           defaultVehicleName={searchParams.get('vehicleName') ?? ''}
           lockType

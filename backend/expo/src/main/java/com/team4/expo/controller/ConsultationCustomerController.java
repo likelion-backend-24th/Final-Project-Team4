@@ -3,6 +3,9 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
+import com.team4.expo.dto.ConsultationReviewContextResponse;
+import com.team4.expo.dto.ConsultationReviewDraftRequest;
+import com.team4.expo.dto.ConsultationReviewDraftResponse;
 import com.team4.expo.dto.ConsultationUpdateRequest;
 import com.team4.expo.security.GatewayUser;
 import com.team4.expo.service.ConsultationService;
@@ -65,5 +68,26 @@ public class ConsultationCustomerController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 consultationService.cancelConsultation(customer.getId(), consultationId)));
+    }
+
+    // 후기 작성 화면 - 본인 요구사항 + 참가업체 상담 메모("상담내용" 패널용).
+    @GetMapping("/{consultationId}/review-context")
+    public ResponseEntity<ApiResponse<ConsultationReviewContextResponse>> getReviewContext(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long consultationId) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationService.getReviewContext(customer.getId(), consultationId)));
+    }
+
+    // 후기 작성 화면 - AI 후기 초안 생성.
+    @PostMapping("/{consultationId}/review-draft")
+    public ResponseEntity<ApiResponse<ConsultationReviewDraftResponse>> draftReview(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long consultationId,
+            @Valid @RequestBody ConsultationReviewDraftRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationService.draftReview(customer.getId(), consultationId, request.getReviewType(), request.getVehicleName())));
     }
 }

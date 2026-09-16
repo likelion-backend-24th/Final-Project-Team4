@@ -12,4 +12,7 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 
     // 참가업체가 본인 부스로 확보한 리드 목록
     List<Lead> findByBooth_IdOrderByCreatedAtDesc(Long boothId);
+
+    // 고객이 후기 작성 시 참가업체가 현장에서 남긴 상담 메모(interestNote)를 보여주기 위한 조회.
+    Optional<Lead> findByConsultation_Id(Long consultationId);
 }

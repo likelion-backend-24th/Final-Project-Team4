@@ -199,6 +199,16 @@ export const updateConsultation = (consultationId, payload) =>
 export const cancelConsultation = (consultationId) =>
   apiClient.post(`/api/customer/consultations/${consultationId}/cancel`).then((res) => res.data.data);
 
+// GET /api/customer/consultations/{consultationId}/review-context — 후기 작성 화면의 "상담내용" 패널
+// 응답: { interestedVehicle, wantsPurchase, wantsTestDrive, customerMessage, exhibitorNote }
+export const getConsultationReviewContext = (consultationId) =>
+  apiClient.get(`/api/customer/consultations/${consultationId}/review-context`).then((res) => res.data.data);
+
+// POST /api/customer/consultations/{consultationId}/review-draft — AI 후기 초안 생성
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName? } / 응답: { draft: string | null }
+export const draftConsultationReview = (consultationId, payload) =>
+  apiClient.post(`/api/customer/consultations/${consultationId}/review-draft`, payload).then((res) => res.data.data);
+
 // GET /api/exhibitor/consultations — 참가업체: 본인 부스로 들어온 상담 신청 목록
 export const getExhibitorConsultations = () =>
   apiClient.get('/api/exhibitor/consultations').then((res) => res.data.data);
