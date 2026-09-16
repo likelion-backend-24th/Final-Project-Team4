@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAdminExpoList } from '../../api/expo';
+import { getAdminExpoList, toAssetUrl } from '../../api/expo';
 import './AdminApplications.css';
 
 const EXPO_STATUS_LABEL = {
@@ -66,6 +66,12 @@ function AdminExpoList() {
               onKeyDown={(e) => e.key === 'Enter' && navigate(`/admin/applications/${expo.expoId}`)}
             >
               <div className="admin-expo-card__accent" />
+              {expo.bannerImageUrl && (
+                <div
+                  className="admin-expo-card__thumb"
+                  style={{ backgroundImage: `url(${toAssetUrl(expo.bannerImageUrl)})` }}
+                />
+              )}
               <div className="admin-expo-card__body">
                 <div className="admin-expo-card__header">
                   <span className={`admin-badge ${expo.status === 'OPEN' ? 'admin-badge--approved' : 'admin-badge--pending'}`}>

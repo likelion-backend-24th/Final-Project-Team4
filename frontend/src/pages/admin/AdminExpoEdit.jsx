@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getAdminExpo, updateExpo, deleteExpo, closeExpo, openExpo } from '../../api/expo';
+import { getAdminExpo, updateExpo, deleteExpo, closeExpo, openExpo, uploadExpoBannerImage, toAssetUrl } from '../../api/expo';
 import './AdminExpoCreate.css';
 
 // 서버가 내려주는 "YYYY-MM-DDTHH:mm:ss" 를 datetime-local 입력이 요구하는 "YYYY-MM-DDTHH:mm"로 자름
@@ -19,11 +19,17 @@ function AdminExpoEdit() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  const [bannerImageUrl, setBannerImageUrl] = useState(null);
+  const bannerInputRef = useRef(null);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+
+  const loadExpo = () =>
     getAdminExpo(expoId)
       .then((res) => {
         setStatus(res.status);
         setHasApplications(res.hasApplications);
+        setBannerImageUrl(res.bannerImageUrl);
         setForm({
           title: res.title,
           venue: res.venue,
@@ -35,9 +41,20 @@ function AdminExpoEdit() {
         });
       })
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.'));
+
+  useEffect(() => {
+    loadExpo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [expoId]);
 
   const setField = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleBannerFileChange = (e) => {
+    const file = e.target.files?.[0] ?? null;
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerFile(file);
+    setBannerPreview(file ? URL.createObjectURL(file) : null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +68,9 @@ function AdminExpoEdit() {
     setSubmitting(true);
     try {
       await updateExpo(expoId, { ...form, admissionFee: Number(form.admissionFee) });
+      if (bannerFile) {
+        await uploadExpoBannerImage(expoId, bannerFile);
+      }
       alert('박람회 정보를 수정했습니다.');
       navigate('/admin/applications');
     } catch (err) {
@@ -169,6 +189,25 @@ function AdminExpoEdit() {
           {hasApplications && (
             <p className="admin-expo-create__hint">부스 신청이 있어 일정 필드는 수정할 수 없습니다.</p>
           )}
+
+          <div className="admin-expo-create__banner-field">
+            <label>
+              배너 이미지 (PNG/JPEG/WEBP, 5MB 이하)
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleBannerFileChange}
+              />
+            </label>
+            {(bannerPreview ?? toAssetUrl(bannerImageUrl)) && (
+              <img
+                src={bannerPreview ?? toAssetUrl(bannerImageUrl)}
+                alt="배너 미리보기"
+                className="admin-expo-create__banner-preview"
+              />
+            )}
+          </div>
         </section>
 
         {error && <p className="admin-expo-create__error">{error}</p>}

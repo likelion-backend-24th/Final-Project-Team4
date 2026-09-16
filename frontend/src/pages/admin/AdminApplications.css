@@ -387,6 +387,14 @@
   background: #94a3b8;
 }
 
+.admin-expo-card__thumb {
+  width: 120px;
+  flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
+  background-color: #e2e8f0;
+}
+
 .admin-expo-card__body {
   padding: 24px 28px 28px;
   flex: 1;

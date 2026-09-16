@@ -8,7 +8,7 @@ dist/
 .gradle/
 !gradle/wrapper/gradle-wrapper.jar
 HELP.md
-backend/*/uploads/
+backend/**/uploads/
 CLAUDE.md
 overview.md
 features.md

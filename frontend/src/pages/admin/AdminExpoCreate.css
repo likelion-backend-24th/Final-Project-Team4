@@ -95,6 +95,33 @@
   font-family: inherit;
 }
 
+.admin-expo-create__banner-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.admin-expo-create__banner-field label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-expo-create__banner-preview {
+  display: block;
+  width: 320px;
+  max-width: 100%;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
 .admin-expo-create__hint {
   margin: 12px 0 0;
   font-size: 12px;

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerExpo, openExpo } from '../../api/expo';
+import { registerExpo, openExpo, uploadExpoBannerImage } from '../../api/expo';
 import { getBoothHall, isFoodBooth } from '../../utils/boothType';
 import './AdminExpoCreate.css';
 
@@ -36,6 +36,18 @@ function AdminExpoCreate() {
   });
   const [booths, setBooths] = useState([]);
   const [autoOpen, setAutoOpen] = useState(true);
+
+  const bannerInputRef = useRef(null);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+
+  const handleBannerFileChange = (e) => {
+    const file = e.target.files?.[0] ?? null;
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerFile(file);
+    setBannerPreview(file ? URL.createObjectURL(file) : null);
+  };
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [genError, setGenError] = useState(null);
@@ -145,6 +157,9 @@ function AdminExpoCreate() {
         booths: booths.map((b) => ({ boothNo: b.boothNo.trim(), type: b.type.trim(), fee: Number(b.fee) })),
       };
       const res = await registerExpo(payload);
+      if (bannerFile) {
+        await uploadExpoBannerImage(res.expoId, bannerFile);
+      }
       if (autoOpen) {
         await openExpo(res.expoId);
       }
@@ -200,6 +215,21 @@ function AdminExpoCreate() {
           </div>
           <p className="admin-expo-create__hint">규칙: 신청 시작 &lt; 신청 마감 ≤ 개최 시작 &lt; 개최 종료</p>
           <p className="admin-expo-create__hint">당일 입장료: 무료 QR 입장권이 없는 방문객이 개최 당일 결제하는 입장료. 0이면 당일에도 무료.</p>
+
+          <div className="admin-expo-create__banner-field">
+            <label>
+              배너 이미지 (선택, PNG/JPEG/WEBP, 5MB 이하)
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleBannerFileChange}
+              />
+            </label>
+            {bannerPreview && (
+              <img src={bannerPreview} alt="배너 미리보기" className="admin-expo-create__banner-preview" />
+            )}
+          </div>
         </section>
 
         <section className="admin-expo-create__panel">

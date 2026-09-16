@@ -280,6 +280,8 @@
 
 .c-expo-card__thumb {
   height: 180px;
+  background-size: cover;
+  background-position: center;
 }
 
 .c-expo-card__body {
