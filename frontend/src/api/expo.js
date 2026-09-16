@@ -210,6 +210,16 @@ export const updateConsultation = (consultationId, payload) =>
 export const cancelConsultation = (consultationId) =>
   apiClient.post(`/api/customer/consultations/${consultationId}/cancel`).then((res) => res.data.data);
 
+// GET /api/customer/consultations/{consultationId}/review-context — 후기 작성 화면의 "상담내용" 패널
+// 응답: { interestedVehicle, wantsPurchase, wantsTestDrive, customerMessage, exhibitorNote }
+export const getConsultationReviewContext = (consultationId) =>
+  apiClient.get(`/api/customer/consultations/${consultationId}/review-context`).then((res) => res.data.data);
+
+// POST /api/customer/consultations/{consultationId}/review-draft — AI 후기 초안 생성
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName? } / 응답: { draft: string | null }
+export const draftConsultationReview = (consultationId, payload) =>
+  apiClient.post(`/api/customer/consultations/${consultationId}/review-draft`, payload).then((res) => res.data.data);
+
 // GET /api/exhibitor/consultations — 참가업체: 본인 부스로 들어온 상담 신청 목록
 export const getExhibitorConsultations = () =>
   apiClient.get('/api/exhibitor/consultations').then((res) => res.data.data);
@@ -237,6 +247,27 @@ export const completeConsultation = (consultationId) =>
 // POST /api/exhibitor/consultations/{consultationId}/no-show — 방문 예정일 다음날부터: 승인된 상담 미방문 처리
 export const markConsultationNoShow = (consultationId) =>
   apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);
+
+// GET /api/customer/booths/{boothId}/reviews — 부스 후기(상담후기/부스후기) 목록 (비회원 조회 가능)
+// 응답: { totalCount, consultReviews: ReviewResponse[], boothReviews: ReviewResponse[] }
+export const getBoothReviews = (boothId) =>
+  apiClient.get(`/api/customer/booths/${boothId}/reviews`).then((res) => res.data.data);
+
+// POST /api/customer/booths/{boothId}/reviews — 후기 작성 (해당 부스 상담을 완료 후 5일 이내인 고객만 가능, 로그인 필요)
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName?, content }
+export const createBoothReview = (boothId, payload) =>
+  apiClient.post(`/api/customer/booths/${boothId}/reviews`, payload).then((res) => res.data.data);
+
+// POST /api/customer/booths/{boothId}/reviews/{reviewId}/images — 후기 사진 추가 (최대 5장, 선택, 본인 후기만)
+export const addBoothReviewImage = (boothId, reviewId, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiClient
+    .post(`/api/customer/booths/${boothId}/reviews/${reviewId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((res) => res.data.data);
+};
 
 // GET /api/customer/vehicles/search — 자연어 질의로 전시 차량 AI 검색 (전체 공개 박람회 대상)
 // 응답: { interpretedSummary, results: [{ expoId, expoTitle, boothId, boothNo, companyName, vehicle }] }

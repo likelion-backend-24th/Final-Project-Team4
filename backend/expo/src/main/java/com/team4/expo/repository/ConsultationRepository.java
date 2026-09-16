@@ -22,12 +22,17 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
             + "WHERE c.booth.id IN :boothIds ORDER BY c.createdAt DESC")
     List<Consultation> findByBooth_IdInOrderByCreatedAtDesc(@Param("boothIds") List<Long> boothIds);
 
-    // 같은 고객이 같은 참가업체(부스)에 같은 날짜로 이미 처리 중(REQUESTED/APPROVED)인 신청이 있는지 - 중복 신청 방지.
-    // REJECTED는 제외해서 반려 후 재신청은 허용한다.
+    // 같은 고객이 같은 참가업체(부스)에 같은 날짜로 이미 신청한 적이 있는지 - 중복 신청 방지.
+    // 호출부(ConsultationService.DUPLICATE_BLOCKING_STATUSES)가 CANCELED/REJECTED만 빼고 넘겨서,
+    // 취소·반려된 건만 재신청 허용하고 REQUESTED/APPROVED/COMPLETED/NO_SHOW는 전부 막는다(2026-09-16 확정).
     boolean existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
             Long customerId, Long boothId, LocalDate preferredDate, List<ConsultationStatus> statuses);
 
     // QR 스캔 리드 생성 시 - 같은 고객+부스+방문일(visitDate=preferredDate)의 승인된 신청을 찾아 리드에 연결(TASK 11-2)
     Optional<Consultation> findByCustomerIdAndBooth_IdAndPreferredDateAndStatus(
             Long customerId, Long boothId, LocalDate preferredDate, ConsultationStatus status);
+
+    // 후기 작성 자격 검증 - 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기를 남길 수 있다.
+    // 완료 후 5일 이내인지는 서비스 레이어에서 Consultation.isReviewable()로 판단(updatedAt 기준).
+    List<Consultation> findByCustomerIdAndBooth_IdAndStatus(Long customerId, Long boothId, ConsultationStatus status);
 }

@@ -52,7 +52,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        service: [gateway, identity, expo, payment, reservation]
+        service: [gateway, identity, expo, payment, reservation, review]
     steps:
       - uses: actions/checkout@v4
 

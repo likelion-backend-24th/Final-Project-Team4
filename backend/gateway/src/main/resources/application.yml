@@ -25,6 +25,10 @@ spring:
           uri: http://localhost:8082
           predicates:
               - Path=/api/customer/expos/**,/api/customer/consultations/**,/api/customer/vehicles/**
+        - id: review
+          uri: http://localhost:8085
+          predicates:
+              - Path=/api/customer/booths/**
         # expo의 "/api/admin/**"보다 먼저 와야 함 - 안 그러면 이 경로가 expo로 잘못 라우팅됨
         - id: reservation
           uri: http://localhost:8084
@@ -34,6 +38,11 @@ spring:
           uri: http://localhost:8082
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
+        # 후기 사진. expo-uploads(/uploads/**)보다 먼저 와야 review로 라우팅된다.
+        - id: review-uploads
+          uri: http://localhost:8085
+          predicates:
+            - Path=/uploads/review/**
         # 부스 배너/차량 이미지 등 업로드 파일. <img> 태그는 Authorization 헤더를 못 실어서 화이트리스트 처리됨
         - id: expo-uploads
           uri: http://localhost:8082
@@ -64,6 +73,12 @@ spring:
             - Path=/v3/api-docs/reservation
           filters:
             - SetPath=/v3/api-docs
+        - id: openapi-review
+          uri: http://localhost:8085
+          predicates:
+            - Path=/v3/api-docs/review
+          filters:
+            - SetPath=/v3/api-docs
       globalcors: # gateway CORS 설정
         cors-configurations:
           '[/**]':
@@ -86,6 +101,8 @@ springdoc:
         url: /v3/api-docs/payment
       - name: reservation
         url: /v3/api-docs/reservation
+      - name: review
+        url: /v3/api-docs/review
 
 jwt:
   access-key: ${ACCESS_KEY}

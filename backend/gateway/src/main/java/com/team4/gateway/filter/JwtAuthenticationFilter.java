@@ -40,6 +40,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             parse("/api/customer/expos/{id}/booths"),
             parse("/api/customer/expos/{id}/vehicles"),
             parse("/api/customer/vehicles/search"),
+            parse("/api/customer/booths/{id}/reviews"), // GET(목록)은 비회원 조회 가능. POST(작성)는 뒤 expo-service SecurityConfig가 USER 롤로 별도 차단.
             parse("/uploads/**"), // <img> 태그는 Authorization 헤더를 실을 수 없어 화이트리스트 처리
             parse("/swagger-ui/**"),
             parse("/swagger-ui.html"),

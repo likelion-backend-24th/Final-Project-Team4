@@ -310,6 +310,68 @@ class ConsultationApplyAcceptanceTest {
     }
 
     @Test
+    @DisplayName("취소한 신청은 같은 날짜로 재신청할 수 있다")
+    void 취소후_같은날짜_재신청_가능() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, "A-101");
+
+        Consultation canceled = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
+                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다", false);
+        canceled.cancel();
+        consultationRepository.save(canceled);
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth.getId()), true, false)))
+                .andExpect(status().isCreated());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    @DisplayName("완료(COMPLETED)된 상담이 있으면 같은 날짜 재신청은 409 - 2026-09-16 확정")
+    void 완료건_같은날짜_재신청_409() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, "A-101");
+
+        Consultation completed = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
+                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다", false);
+        completed.approve();
+        completed.complete();
+        consultationRepository.save(completed);
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth.getId()), true, false)))
+                .andExpect(status().isConflict());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("미방문(NO_SHOW) 처리된 상담이 있으면 같은 날짜 재신청은 409 - 2026-09-16 확정")
+    void 미방문건_같은날짜_재신청_409() throws Exception {
+        Expo expo = openExpo();
+        Booth booth = assignedBooth(expo, "A-101");
+
+        Consultation noShow = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
+                LocalDate.now().plusDays(1), java.time.LocalTime.of(14, 0), "상담 부탁드립니다", false);
+        noShow.approve();
+        noShow.markNoShow();
+        consultationRepository.save(noShow);
+
+        mockMvc.perform(post("/api/customer/consultations").with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(List.of(booth.getId()), true, false)))
+                .andExpect(status().isConflict());
+
+        org.assertj.core.api.Assertions.assertThat(consultationRepository.findAll()).hasSize(1);
+    }
+
+    @Test
     @DisplayName("신청 날짜에 입장권이 없으면 409")
     void 입장권_없음_409() throws Exception {
         when(reservationClient.hasTicket(anyLong(), anyLong(), any(LocalDate.class))).thenReturn(false);

@@ -12,12 +12,17 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
+import com.team4.expo.domain.Lead;
+import com.team4.expo.dto.BoothReviewEligibilityResponse;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
+import com.team4.expo.dto.ConsultationReviewContextResponse;
+import com.team4.expo.dto.ConsultationReviewDraftResponse;
 import com.team4.expo.dto.ConsultationUpdateRequest;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
+import com.team4.expo.repository.LeadRepository;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,17 +37,25 @@ public class ConsultationService {
     private final BoothRepository boothRepository;
     private final ConsultationRepository consultationRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final LeadRepository leadRepository;
     private final ReservationClient reservationClient;
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
 
+    // 같은 참가업체·같은 날짜 중복 신청 차단 대상 상태 - CANCELED/REJECTED만 재신청 허용(2026-09-16 확정).
+    // COMPLETED/NO_SHOW도 막아야 함: 완료·미방문 처리된 건은 이미 그 날짜의 상담 "결과"가 난 것이라 같은 날짜로 또 신청하면 안 됨.
+    private static final List<ConsultationStatus> DUPLICATE_BLOCKING_STATUSES = List.of(
+            ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED,
+            ConsultationStatus.COMPLETED, ConsultationStatus.NO_SHOW);
+
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
-                                BoothApplicationRepository boothApplicationRepository,
+                                BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
                                 IdentityClient identityClient) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.leadRepository = leadRepository;
         this.reservationClient = reservationClient;
         this.aiSummaryClient = aiSummaryClient;
         this.identityClient = identityClient;
@@ -69,8 +82,7 @@ public class ConsultationService {
 
         for (Booth booth : booths) {
             boolean alreadyApplied = consultationRepository.existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
-                    customerId, booth.getId(), request.getPreferredDate(),
-                    List.of(ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED));
+                    customerId, booth.getId(), request.getPreferredDate(), DUPLICATE_BLOCKING_STATUSES);
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
@@ -128,8 +140,7 @@ public class ConsultationService {
                 throw new CustomException(ErrorCode.INVALID_STATE, "신청 날짜의 박람회 입장권을 보유하고 있어야 합니다.");
             }
             boolean alreadyApplied = consultationRepository.existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
-                    customerId, booth.getId(), request.getPreferredDate(),
-                    List.of(ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED));
+                    customerId, booth.getId(), request.getPreferredDate(), DUPLICATE_BLOCKING_STATUSES);
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
@@ -154,6 +165,54 @@ public class ConsultationService {
         }
         consultation.cancel();
         return ConsultationResponse.from(consultation);
+    }
+
+    // Review 서비스 -> Expo 내부 호출(TASK 후기). 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기 작성 가능.
+    @Transactional(readOnly = true)
+    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId) {
+        Booth booth = boothRepository.findById(boothId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+
+        boolean eligible = consultationRepository
+                .findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
+                .stream().anyMatch(Consultation::isReviewable);
+
+        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
+    }
+
+    // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모(있으면). 작성 가능한(reviewable) 상담만 허용.
+    @Transactional(readOnly = true)
+    public ConsultationReviewContextResponse getReviewContext(Long customerId, Long consultationId) {
+        Consultation consultation = findReviewableConsultation(customerId, consultationId);
+        String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
+                .map(Lead::getInterestNote)
+                .orElse(null);
+
+        return new ConsultationReviewContextResponse(consultation.getInterestedVehicle(),
+                consultation.isWantsPurchase(), consultation.isWantsTestDrive(),
+                consultation.getMessage(), exhibitorNote);
+    }
+
+    // AI 후기 초안 생성 - 같은 컨텍스트(요구사항+참가업체 메모)로 Gemini에 초안을 요청. 실패 시 draft=null(fail-open).
+    public ConsultationReviewDraftResponse draftReview(Long customerId, Long consultationId, String reviewType, String vehicleName) {
+        Consultation consultation = findReviewableConsultation(customerId, consultationId);
+        String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
+                .map(Lead::getInterestNote)
+                .orElse(null);
+
+        String draft = aiSummaryClient
+                .draftReview(reviewType, vehicleName, consultation.getMessage(), exhibitorNote)
+                .orElse(null);
+
+        return new ConsultationReviewDraftResponse(draft);
+    }
+
+    private Consultation findReviewableConsultation(Long customerId, Long consultationId) {
+        Consultation consultation = findOwnedConsultation(customerId, consultationId);
+        if (!consultation.isReviewable()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "후기를 작성할 수 있는 상담이 아닙니다.");
+        }
+        return consultation;
     }
 
     private Consultation findOwnedConsultation(Long customerId, Long consultationId) {

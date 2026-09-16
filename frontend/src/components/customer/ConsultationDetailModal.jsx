@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
 import { cancelConsultation, updateConsultation } from '../../api/expo';
@@ -19,8 +20,15 @@ const STATUS_LABEL = {
 
 // 고객 마이페이지 - 신청한 상담 1건 상세 조회 + (대기 중일 때만) 수정/취소.
 function ConsultationDetailModal({ consultation, onClose, onChanged }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState('view'); // 'view' | 'edit'
   const editable = consultation.status === 'REQUESTED';
+
+  const goWriteReview = () => {
+    const params = new URLSearchParams({ writeReview: 'CONSULT', consultationId: consultation.consultationId });
+    if (consultation.interestedVehicle) params.set('vehicleName', consultation.interestedVehicle);
+    navigate(`/customer/expos/${consultation.expoId}/booths/${consultation.boothId}?${params.toString()}`);
+  };
 
   const initialDate = new Date(`${consultation.preferredDate}T00:00:00`);
   const [wantsPurchase, setWantsPurchase] = useState(consultation.wantsPurchase);
@@ -177,6 +185,12 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
 
             {consultation.status === 'NO_SHOW' && (
               <p className="c-consult-detail__notice">참가업체가 미방문으로 처리한 상담입니다.</p>
+            )}
+
+            {consultation.reviewable && (
+              <button type="button" className="c-consult-detail__review-btn" onClick={goWriteReview}>
+                후기 작성하러 가기
+              </button>
             )}
 
             {editable ? (

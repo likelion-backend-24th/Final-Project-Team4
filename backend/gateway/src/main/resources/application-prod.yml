@@ -18,6 +18,10 @@ spring:
           uri: http://expo:8082
           predicates:
               - Path=/api/customer/expos/**,/api/customer/consultations/**,/api/customer/vehicles/**
+        - id: review
+          uri: http://review:8085
+          predicates:
+              - Path=/api/customer/booths/**
         - id: reservation
           uri: http://reservation:8084
           predicates:
@@ -26,6 +30,10 @@ spring:
           uri: http://expo:8082
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
+        - id: review-uploads
+          uri: http://review:8085
+          predicates:
+            - Path=/uploads/review/**
         - id: expo-uploads
           uri: http://expo:8082
           predicates:

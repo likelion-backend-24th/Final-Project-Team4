@@ -11,4 +11,8 @@ public interface AiSummaryClient {
     // 참가업체가 현장에서 적은 상담 메모(consultationNote)를 고객에게 보낼 정중한 이메일 본문으로 정리(TASK 11-3).
     // 부가 기능이라 실패해도 리드 자체는 막지 않는다(구현체는 예외를 삼키고 Optional.empty() 반환 - fail-open).
     Optional<String> summarizeForEmail(String customerName, String consultationNote);
+
+    // 고객이 후기 작성 시 자기 상담 요구사항 + 참가업체 상담 메모를 바탕으로 후기 초안을 생성(TASK 후기).
+    // 부가 기능이라 실패해도 후기 작성 자체는 막지 않는다(구현체는 예외를 삼키고 Optional.empty() 반환 - fail-open).
+    Optional<String> draftReview(String reviewType, String vehicleName, String customerMessage, String exhibitorNote);
 }

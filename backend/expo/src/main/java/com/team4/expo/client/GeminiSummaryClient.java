@@ -52,6 +52,12 @@ public class GeminiSummaryClient implements AiSummaryClient {
         return callGemini(prompt);
     }
 
+    @Override
+    public Optional<String> draftReview(String reviewType, String vehicleName, String customerMessage, String exhibitorNote) {
+        String prompt = buildReviewPrompt(reviewType, vehicleName, customerMessage, exhibitorNote);
+        return callGemini(prompt);
+    }
+
     private Optional<String> callGemini(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
             return Optional.empty();
@@ -137,5 +143,18 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "감사합니다.\n\n"
                 + "다른 설명 없이 위 형식의 이메일 본문만 출력해.\n\n"
                 + "상담 메모: " + (consultationNote == null || consultationNote.isBlank() ? "없음" : consultationNote);
+    }
+
+    // 고객 시점 후기 초안 - 1인칭으로, 실제 방문객이 남긴 후기처럼 자연스럽게(불릿 아님, 3~5문장 정도).
+    private String buildReviewPrompt(String reviewType, String vehicleName, String customerMessage, String exhibitorNote) {
+        String focus = "CONSULT".equals(reviewType)
+                ? "차량 " + (vehicleName == null || vehicleName.isBlank() ? "" : vehicleName) + "에 대한 상담 경험 위주로"
+                : "부스 방문 경험 전반 위주로";
+
+        return "다음은 모빌리티 박람회에서 고객이 신청했던 상담 요구사항과, 그 상담 현장에서 참가업체 담당자가 남긴 메모다. "
+                + "이 둘을 참고해서 그 고객이 직접 쓴 것처럼 1인칭 방문 후기를 " + focus + " 3~4문장으로 자연스럽게 작성해줘. "
+                + "과장된 광고 문구 없이 실제 방문 후기 톤으로, 다른 설명 없이 후기 본문만 출력해.\n\n"
+                + "고객이 신청 시 남긴 요구사항: " + (customerMessage == null || customerMessage.isBlank() ? "없음" : customerMessage) + "\n"
+                + "참가업체 담당자의 현장 상담 메모: " + (exhibitorNote == null || exhibitorNote.isBlank() ? "없음" : exhibitorNote);
     }
 }

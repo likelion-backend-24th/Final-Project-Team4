@@ -23,18 +23,21 @@ public class UserInternalController {
     @Value("${service.token.expo}")
     private String expoServiceToken;
 
+    @Value("${service.token.review}")
+    private String reviewServiceToken;
+
     public UserInternalController(UserRepository userRepository, MailSender mailSender) {
         this.userRepository = userRepository;
         this.mailSender = mailSender;
     }
 
-    // Expo -> Identity. 부스에 배정된 참가업체의 회사명/업종 표시용.
+    // Expo -> Identity(참가업체 회사명/업종 표시용), Review -> Identity(후기 작성자 이름 표시용).
     @GetMapping("/users/{userId}")
     public ResponseEntity<ApiResponse<InternalUserResponse>> getUser(
             @RequestHeader("Authorization") String authorization,
             @PathVariable Long userId) {
 
-        requireExpoService(authorization);
+        requireKnownService(authorization);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다. userId=" + userId));
@@ -58,6 +61,13 @@ public class UserInternalController {
     private void requireExpoService(String authorization) {
         String expected = "Bearer " + expoServiceToken;
         if (authorization == null || !authorization.equals(expected)) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
+        }
+    }
+
+    private void requireKnownService(String authorization) {
+        if (authorization == null
+                || (!authorization.equals("Bearer " + expoServiceToken) && !authorization.equals("Bearer " + reviewServiceToken))) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
         }
     }
