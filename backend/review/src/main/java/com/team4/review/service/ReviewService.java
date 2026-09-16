@@ -8,6 +8,7 @@ import com.team4.review.client.IdentityClient;
 import com.team4.review.domain.Review;
 import com.team4.review.domain.ReviewImage;
 import com.team4.review.domain.ReviewType;
+import com.team4.review.dto.ExhibitorReviewResponse;
 import com.team4.review.dto.ReviewImageResponse;
 import com.team4.review.dto.ReviewListResponse;
 import com.team4.review.dto.ReviewRequest;
@@ -70,6 +71,26 @@ public class ReviewService {
                 consultReviews.stream().map(r -> ReviewResponse.from(r, imagesByReviewId.getOrDefault(r.getId(), List.of()))).collect(Collectors.toList()),
                 boothReviews.stream().map(r -> ReviewResponse.from(r, imagesByReviewId.getOrDefault(r.getId(), List.of()))).collect(Collectors.toList())
         );
+    }
+
+    // 참가업체가 본인 부스로 들어온 후기를 실명으로 조회(2026-09-16 확정) - 소유권은 Expo 내부 API로 확인.
+    @Transactional(readOnly = true)
+    public List<ExhibitorReviewResponse> listForExhibitor(Long exhibitorId, Long boothId) {
+        if (!expoClient.isBoothOwnedByExhibitor(boothId, exhibitorId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 부스의 후기만 조회할 수 있습니다.");
+        }
+
+        List<Review> reviews = reviewRepository.findByBoothIdOrderByCreatedAtDesc(boothId);
+        List<Long> reviewIds = reviews.stream().map(Review::getId).collect(Collectors.toList());
+        Map<Long, List<ReviewImageResponse>> imagesByReviewId = reviewIds.isEmpty()
+                ? Map.of()
+                : reviewImageRepository.findByReview_IdInOrderByReview_IdAscSortOrderAsc(reviewIds).stream()
+                        .collect(Collectors.groupingBy(img -> img.getReview().getId(),
+                                Collectors.mapping(ReviewImageResponse::from, Collectors.toList())));
+
+        return reviews.stream()
+                .map(r -> ExhibitorReviewResponse.from(r, imagesByReviewId.getOrDefault(r.getId(), List.of())))
+                .collect(Collectors.toList());
     }
 
     public ReviewResponse createReview(Long customerId, Long boothId, ReviewRequest request) {

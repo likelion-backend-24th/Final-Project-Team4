@@ -3,8 +3,10 @@ package com.team4.expo.controller;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
+import com.team4.expo.dto.BoothOwnershipResponse;
 import com.team4.expo.dto.BoothReviewEligibilityResponse;
 import com.team4.expo.service.ConsultationService;
+import com.team4.expo.service.LeadService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,12 +22,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class ExpoInternalReviewController {
 
     private final ConsultationService consultationService;
+    private final LeadService leadService;
 
     @Value("${service.token.review}")
     private String reviewServiceToken;
 
-    public ExpoInternalReviewController(ConsultationService consultationService) {
+    public ExpoInternalReviewController(ConsultationService consultationService, LeadService leadService) {
         this.consultationService = consultationService;
+        this.leadService = leadService;
     }
 
     // Review -> Expo. 후기 작성 전 자격 확인 + 표시용 boothNo 조회.
@@ -41,6 +45,19 @@ public class ExpoInternalReviewController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 consultationService.getBoothReviewEligibility(boothId, customerId, reviewType)));
+    }
+
+    // Review -> Expo. 참가업체가 본인 부스 후기를 조회하기 전에 그 부스 소유(참가 확정) 여부 확인.
+    @GetMapping("/{boothId}/owned-by")
+    public ResponseEntity<ApiResponse<BoothOwnershipResponse>> getBoothOwnership(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long boothId,
+            @RequestParam Long exhibitorId) {
+
+        requireReviewService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                new BoothOwnershipResponse(leadService.isOwnedByExhibitor(exhibitorId, boothId))));
     }
 
     private void requireReviewService(String authorization) {

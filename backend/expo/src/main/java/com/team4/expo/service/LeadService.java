@@ -200,6 +200,12 @@ public class LeadService {
     }
 
     private boolean ownsBooth(Long exhibitorId, Long boothId) {
+        return isOwnedByExhibitor(exhibitorId, boothId);
+    }
+
+    // Review 서비스 -> Expo 내부 호출(TASK 참가업체 후기 조회) - 이 부스가 그 참가업체 소유(참가 확정)인지 확인.
+    @Transactional(readOnly = true)
+    public boolean isOwnedByExhibitor(Long exhibitorId, Long boothId) {
         return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
                 .anyMatch(application -> application.getBooth().getId().equals(boothId));
     }

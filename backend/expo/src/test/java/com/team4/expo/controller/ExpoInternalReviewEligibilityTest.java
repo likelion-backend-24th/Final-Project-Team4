@@ -144,4 +144,20 @@ class ExpoInternalReviewEligibilityTest {
                         .param("reviewType", "BOOTH"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("owned-by: 참가 확정된 본인 부스면 owned=true, 다른 참가업체면 owned=false")
+    void 부스소유여부_확인() throws Exception {
+        mockMvc.perform(get("/internal/expo/booths/{boothId}/owned-by", booth.getId())
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN)
+                        .param("exhibitorId", String.valueOf(EXHIBITOR_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.owned").value(true));
+
+        mockMvc.perform(get("/internal/expo/booths/{boothId}/owned-by", booth.getId())
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN)
+                        .param("exhibitorId", String.valueOf(EXHIBITOR_ID + 999)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.owned").value(false));
+    }
 }

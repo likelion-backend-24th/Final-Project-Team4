@@ -61,4 +61,28 @@ public class ExpoHttpClient implements ExpoClient {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Expo 서버 통신 중 오류: " + e.getMessage());
         }
     }
+
+    @Override
+    public boolean isBoothOwnedByExhibitor(Long boothId, Long exhibitorId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(expoBaseUrl + "/internal/expo/booths/" + boothId
+                            + "/owned-by?exhibitorId=" + exhibitorId))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "Expo 서버 조회 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+
+            JsonNode data = objectMapper.readTree(response.body()).path("data");
+            return data.path("owned").asBoolean(false);
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Expo 서버 통신 중 오류: " + e.getMessage());
+        }
+    }
 }
