@@ -180,12 +180,14 @@ public class ConsultationService {
         return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
     }
 
-    // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모(있으면). 작성 가능한(reviewable) 상담만 허용.
+    // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모의 AI 요약본(있으면).
+    // Lead.interestNote는 참가업체가 현장에서 직접 적은 원문(고객 후기에 노출하면 안 됨) - 반드시
+    // emailSummary(Gemini가 정리한 버전)만 보여준다. 작성 가능한(reviewable) 상담만 허용.
     @Transactional(readOnly = true)
     public ConsultationReviewContextResponse getReviewContext(Long customerId, Long consultationId) {
         Consultation consultation = findReviewableConsultation(customerId, consultationId);
         String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
-                .map(Lead::getInterestNote)
+                .map(Lead::getEmailSummary)
                 .orElse(null);
 
         return new ConsultationReviewContextResponse(consultation.getInterestedVehicle(),
@@ -193,11 +195,11 @@ public class ConsultationService {
                 consultation.getMessage(), exhibitorNote);
     }
 
-    // AI 후기 초안 생성 - 같은 컨텍스트(요구사항+참가업체 메모)로 Gemini에 초안을 요청. 실패 시 draft=null(fail-open).
+    // AI 후기 초안 생성 - 같은 컨텍스트(요구사항+참가업체 메모의 AI 요약본)로 Gemini에 초안을 요청. 실패 시 draft=null(fail-open).
     public ConsultationReviewDraftResponse draftReview(Long customerId, Long consultationId, String reviewType, String vehicleName) {
         Consultation consultation = findReviewableConsultation(customerId, consultationId);
         String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
-                .map(Lead::getInterestNote)
+                .map(Lead::getEmailSummary)
                 .orElse(null);
 
         String draft = aiSummaryClient

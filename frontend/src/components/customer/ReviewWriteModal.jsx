@@ -192,8 +192,8 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
                   <p>{context.customerMessage || '작성한 요청사항이 없습니다.'}</p>
                 </div>
                 <div className="c-review-write__panel-block">
-                  <span className="c-review-write__panel-label">참가업체 상담 메모</span>
-                  <p>{context.exhibitorNote || '참가업체가 남긴 메모가 아직 없습니다.'}</p>
+                  <span className="c-review-write__panel-label">참가업체 상담 메모 (AI 요약)</span>
+                  <p>{context.exhibitorNote || '아직 정리된 상담 메모가 없습니다.'}</p>
                 </div>
               </>
             ) : null}
