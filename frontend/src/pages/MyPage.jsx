@@ -1,10 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
-import { getMyPayments } from "../api/payment";
+import { getMyPayments, refundBoothPayment } from "../api/payment";
 import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
 import { clearAuth, notifyProfileUpdated } from "../api/auth";
 import { isFoodBooth } from "../utils/boothType";
+import { REFUND_REASONS } from "../mock/customerData";
 import "../components/customer/Modal.css";
 import "../components/customer/EntryFlowModal.css";
 import "./MyPage.css";
@@ -64,7 +65,7 @@ function MyPage() {
   const [payments, setPayments] = useState([]);
   const [paymentsError, setPaymentsError] = useState(null);
 
-  useEffect(() => {
+  const loadApplications = () =>
     getMyBoothApplications()
       .then((res) => {
         const rows = res.content.flatMap((group) => {
@@ -102,6 +103,10 @@ function MyPage() {
             "신청 내역을 불러오지 못했습니다.",
         ),
       );
+
+  useEffect(() => {
+    loadApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -115,7 +120,7 @@ function MyPage() {
       );
   }, []);
 
-  useEffect(() => {
+  const loadPayments = () =>
     getMyPayments()
       .then(setPayments)
       .catch((err) =>
@@ -124,7 +129,53 @@ function MyPage() {
             "결제 내역을 불러오지 못했습니다.",
         ),
       );
+
+  useEffect(() => {
+    loadPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 부스 참가 취소(전액 환불) 모달 - "참가 확정" 상태 그룹에서만 열림
+  const [refundTarget, setRefundTarget] = useState(null); // { groupId, expoTitle, amount } | null
+  const [refundReason, setRefundReason] = useState(REFUND_REASONS[0].value);
+  const [refundCustomReason, setRefundCustomReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
+  const [refundError, setRefundError] = useState(null);
+
+  const openRefundModal = (group) => {
+    const payment = payments.find((p) => p.bookingId === group.groupId);
+    setRefundTarget({
+      groupId: group.groupId,
+      expoTitle: group.expoTitle,
+      amount: payment?.amount ?? group.applications
+        .filter((a) => a.status === "CONFIRMED")
+        .reduce((sum, a) => sum + a.fee, 0),
+    });
+    setRefundReason(REFUND_REASONS[0].value);
+    setRefundCustomReason("");
+    setRefundError(null);
+  };
+
+  const handleRefund = async () => {
+    const isOther = refundReason === "기타";
+    if (isOther && !refundCustomReason.trim()) {
+      setRefundError("취소 사유를 입력해 주세요.");
+      return;
+    }
+    setRefunding(true);
+    setRefundError(null);
+    try {
+      const reason = isOther ? refundCustomReason.trim() : refundReason;
+      await refundBoothPayment({ bookingId: refundTarget.groupId, reason });
+      setRefundTarget(null);
+      await Promise.all([loadApplications(), loadPayments()]);
+      alert("부스 참가가 취소되고 환불 처리되었습니다.");
+    } catch (err) {
+      setRefundError(err.response?.data?.error?.message ?? "환불 처리 중 오류가 발생했습니다.");
+    } finally {
+      setRefunding(false);
+    }
+  };
 
   // "부스 참가 신청 현황"과 "참가비 결제 내역"을 신청 그룹(groupId = bookingId) 기준으로 합쳐서
   // 결제 내역 표에 보여줄 한 줄씩을 만듦.
@@ -451,6 +502,19 @@ function MyPage() {
                           <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
                         </button>
                       )}
+                      {payableApps.length === 0 && confirmedApps.length > 0 && (
+                        <button
+                          type="button"
+                          className="mypage__action-btn mypage__action-btn--secondary"
+                          onClick={() => openRefundModal(group)}
+                        >
+                          <span className="mypage__action-btn-label">
+                            <span aria-hidden="true">↩️</span>
+                            부스 참가 취소(환불)
+                          </span>
+                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
+                        </button>
+                      )}
                       {payableApps.length > 0 && !reviewComplete && (
                         <button type="button" className="mypage__action-btn mypage__action-btn--disabled" disabled>
                           <span className="mypage__action-btn-label">
@@ -660,6 +724,79 @@ function MyPage() {
               disabled={saving}
             >
               취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {refundTarget && (
+        <div className="c-modal__backdrop" onClick={() => !refunding && setRefundTarget(null)}>
+          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="c-modal__close"
+              onClick={() => setRefundTarget(null)}
+              disabled={refunding}
+              aria-label="닫기"
+            >
+              ✕
+            </button>
+            <h2>부스 참가 취소</h2>
+            <p className="c-modal__desc" style={{ marginBottom: 16 }}>
+              {refundTarget.expoTitle}
+              <br /><br />
+              참가비 전액이 환불되고 <br />배정된 부스 자리가 반납됩니다.
+            </p>
+
+            <dl className="c-modal__info">
+              <div className="c-modal__info-row">
+                <dt>환불 금액</dt>
+                <dd>{refundTarget.amount.toLocaleString()}원</dd>
+              </div>
+            </dl>
+
+            <label className="ef-field">
+              <span>취소 사유 *</span>
+              <select value={refundReason} onChange={(e) => setRefundReason(e.target.value)}>
+                {REFUND_REASONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {refundReason === "기타" && (
+              <label className="ef-field" style={{ marginTop: 8 }}>
+                <span>사유 입력 *</span>
+                <input
+                  type="text"
+                  value={refundCustomReason}
+                  onChange={(e) => setRefundCustomReason(e.target.value)}
+                  placeholder="취소 사유를 입력해 주세요"
+                  maxLength={200}
+                />
+              </label>
+            )}
+
+            {refundError && <p className="c-modal__error">{refundError}</p>}
+
+            <button
+              type="button"
+              className="c-modal__primary c-modal__primary--danger"
+              style={{ marginTop: 16 }}
+              onClick={handleRefund}
+              disabled={refunding}
+            >
+              {refunding ? "처리 중..." : "취소 및 환불 신청"}
+            </button>
+            <button
+              type="button"
+              className="c-modal__secondary"
+              onClick={() => setRefundTarget(null)}
+              disabled={refunding}
+            >
+              닫기
             </button>
           </div>
         </div>
