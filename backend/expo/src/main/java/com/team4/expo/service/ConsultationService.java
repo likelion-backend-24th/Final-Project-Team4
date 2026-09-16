@@ -42,6 +42,12 @@ public class ConsultationService {
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
 
+    // 같은 참가업체·같은 날짜 중복 신청 차단 대상 상태 - CANCELED/REJECTED만 재신청 허용(2026-09-16 확정).
+    // COMPLETED/NO_SHOW도 막아야 함: 완료·미방문 처리된 건은 이미 그 날짜의 상담 "결과"가 난 것이라 같은 날짜로 또 신청하면 안 됨.
+    private static final List<ConsultationStatus> DUPLICATE_BLOCKING_STATUSES = List.of(
+            ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED,
+            ConsultationStatus.COMPLETED, ConsultationStatus.NO_SHOW);
+
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
                                 BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
@@ -76,8 +82,7 @@ public class ConsultationService {
 
         for (Booth booth : booths) {
             boolean alreadyApplied = consultationRepository.existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
-                    customerId, booth.getId(), request.getPreferredDate(),
-                    List.of(ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED));
+                    customerId, booth.getId(), request.getPreferredDate(), DUPLICATE_BLOCKING_STATUSES);
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
@@ -135,8 +140,7 @@ public class ConsultationService {
                 throw new CustomException(ErrorCode.INVALID_STATE, "신청 날짜의 박람회 입장권을 보유하고 있어야 합니다.");
             }
             boolean alreadyApplied = consultationRepository.existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
-                    customerId, booth.getId(), request.getPreferredDate(),
-                    List.of(ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED));
+                    customerId, booth.getId(), request.getPreferredDate(), DUPLICATE_BLOCKING_STATUSES);
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }

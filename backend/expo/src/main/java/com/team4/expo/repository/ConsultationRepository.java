@@ -22,8 +22,9 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
             + "WHERE c.booth.id IN :boothIds ORDER BY c.createdAt DESC")
     List<Consultation> findByBooth_IdInOrderByCreatedAtDesc(@Param("boothIds") List<Long> boothIds);
 
-    // 같은 고객이 같은 참가업체(부스)에 같은 날짜로 이미 처리 중(REQUESTED/APPROVED)인 신청이 있는지 - 중복 신청 방지.
-    // REJECTED는 제외해서 반려 후 재신청은 허용한다.
+    // 같은 고객이 같은 참가업체(부스)에 같은 날짜로 이미 신청한 적이 있는지 - 중복 신청 방지.
+    // 호출부(ConsultationService.DUPLICATE_BLOCKING_STATUSES)가 CANCELED/REJECTED만 빼고 넘겨서,
+    // 취소·반려된 건만 재신청 허용하고 REQUESTED/APPROVED/COMPLETED/NO_SHOW는 전부 막는다(2026-09-16 확정).
     boolean existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
             Long customerId, Long boothId, LocalDate preferredDate, List<ConsultationStatus> statuses);
 
