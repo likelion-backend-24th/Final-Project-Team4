@@ -102,7 +102,7 @@ class LeadEmailSummaryTest {
         consultation.approve();
         consultationRepository.save(consultation);
 
-        lead = leadRepository.save(new Lead(booth, CUSTOMER_ID, consultation, "홍길동", "hong@example.com", null));
+        lead = leadRepository.save(new Lead(booth, CUSTOMER_ID, visitDate, consultation, "홍길동", "hong@example.com", null));
     }
 
     private String body(String consultationNote) {

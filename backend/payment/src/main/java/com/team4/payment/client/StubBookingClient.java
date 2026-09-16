@@ -40,4 +40,9 @@ public class StubBookingClient implements BookingClient {
     public void release(String bookingId, String reason) {
         log.info("[STUB] 예약 해제 처리 (실제로는 아무 일도 안 일어남) bookingId={}, reason={}", bookingId, reason);
     }
+
+    @Override
+    public void cancel(String bookingId, String reason) {
+        log.info("[STUB] 예약 취소 처리 (실제로는 아무 일도 안 일어남) bookingId={}, reason={}", bookingId, reason);
+    }
 }

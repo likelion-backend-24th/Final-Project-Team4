@@ -2,7 +2,9 @@ package com.team4.payment.controller;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.payment.dto.BoothRefundResponse;
 import com.team4.payment.dto.PaymentListItemResponse;
+import com.team4.payment.dto.RefundRequest;
 import com.team4.payment.entity.Payment;
 import com.team4.payment.entity.PaymentStatus;
 import com.team4.payment.service.PaymentService;
@@ -43,6 +45,15 @@ public class PaymentController {
         return paymentService.findByUserId(userId).stream()
                 .map(PaymentListItemResponse::from)
                 .toList();
+    }
+
+    // 부스 신청 환불
+    @PostMapping("/{bookingId}/refund")
+    public BoothRefundResponse refund(@RequestHeader("X-User-Id") Long userId,
+                                      @PathVariable String bookingId,
+                                      @RequestBody RefundRequest refundRequest){
+
+        return paymentService.refund(bookingId, userId, refundRequest.getReason());
     }
 
     public record PaymentRequest(String bookingId, Long amount, String payMethod, String paymentId) {}

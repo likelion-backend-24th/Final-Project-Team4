@@ -6,12 +6,16 @@ import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
+import com.team4.expo.dto.VisitedBoothResponse;
+import com.team4.expo.security.GatewayUser;
 import com.team4.expo.service.CustomerVehicleService;
 import com.team4.expo.service.ExpoService;
+import com.team4.expo.service.LeadService;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,10 +29,13 @@ public class ExpoCustomerController {
 
     private final ExpoService expoService;
     private final CustomerVehicleService customerVehicleService;
+    private final LeadService leadService;
 
-    public ExpoCustomerController(ExpoService expoService, CustomerVehicleService customerVehicleService) {
+    public ExpoCustomerController(ExpoService expoService, CustomerVehicleService customerVehicleService,
+                                   LeadService leadService) {
         this.expoService = expoService;
         this.customerVehicleService = customerVehicleService;
+        this.leadService = leadService;
     }
 
     // 공개 박람회 목록 (OPEN만)
@@ -57,5 +64,14 @@ public class ExpoCustomerController {
     public ResponseEntity<ApiResponse<List<CustomerBoothVehiclesResponse>>> getPublicExpoVehicles(@PathVariable Long expoId) {
 
         return ResponseEntity.ok(ApiResponse.success(customerVehicleService.getExpoVehicles(expoId)));
+    }
+
+    // 로그인 고객이 이 박람회에서 QR 스캔으로 방문 기록을 남긴 부스 목록(TASK 7-1) - 후기 작성 대상 선택용. USER 롤만(SecurityConfig).
+    @GetMapping("/{expoId}/visited-booths")
+    public ResponseEntity<ApiResponse<List<VisitedBoothResponse>>> getVisitedBooths(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long expoId) {
+
+        return ResponseEntity.ok(ApiResponse.success(leadService.listVisitedBooths(customer.getId(), expoId)));
     }
 }

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { addBoothReviewImage, createBoothReview, draftConsultationReview, getConsultationReviewContext } from '../../api/expo';
+import { addBoothReviewImage, createBoothReview, draftConsultationReview } from '../../api/expo';
 import './Modal.css';
 import './ReviewWriteModal.css';
 
 // 후기 작성 모달 - 예약한 상담(마이페이지)에서 "후기 작성하러 가기"로 진입하거나,
 // 부스 상세 화면에서 직접 열림. 작성 자격(상담 완료 후 5일 이내)은 서버가 최종 검증한다.
-// consultationId가 있을 때만(=상담에서 진입) "상담내용" 패널·AI 초안 생성을 쓸 수 있다 - 둘 다
-// 본인 상담 요구사항 + 참가업체 현장 메모를 근거로 하기 때문에 어느 상담에서 왔는지 알아야 한다.
+// consultationId가 있을 때만(=상담에서 진입) AI 초안 생성을 쓸 수 있다 - 본인 상담 요구사항 +
+// 참가업체 현장 메모를 근거로 하기 때문에 어느 상담에서 왔는지 알아야 한다.
 const TYPE_LABEL = { CONSULT: '상담후기', BOOTH: '부스후기' };
 const MAX_IMAGES = 5;
 
@@ -26,27 +26,8 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
 
   const removeImage = (idx) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
-  const [showContext, setShowContext] = useState(false);
-  const [context, setContext] = useState(null);
-  const [contextError, setContextError] = useState(null);
-  const [contextLoading, setContextLoading] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState(null);
-
-  const toggleContext = () => {
-    if (showContext) {
-      setShowContext(false);
-      return;
-    }
-    setShowContext(true);
-    if (context || contextLoading) return;
-    setContextLoading(true);
-    setContextError(null);
-    getConsultationReviewContext(consultationId)
-      .then(setContext)
-      .catch((err) => setContextError(err.response?.data?.error?.message ?? '상담 내용을 불러오지 못했습니다.'))
-      .finally(() => setContextLoading(false));
-  };
 
   const handleAiDraft = () => {
     setDrafting(true);
@@ -95,10 +76,7 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
 
   return (
     <div className="c-modal__backdrop" onClick={() => !submitting && onClose()}>
-      <div
-        className={`c-modal c-review-write ${showContext ? 'has-panel' : ''}`}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="c-modal c-review-write" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="c-modal__close" onClick={onClose} disabled={submitting} aria-label="닫기">
           ✕
         </button>
@@ -128,9 +106,6 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
 
           {consultationId && (
             <div className="c-review-write__tools">
-              <button type="button" className="c-review-write__tool-btn" onClick={toggleContext}>
-                {showContext ? '상담내용 닫기' : '상담내용 보기'}
-              </button>
               <button type="button" className="c-review-write__tool-btn c-review-write__tool-btn--ai" onClick={handleAiDraft} disabled={drafting}>
                 {drafting ? 'AI 작성 중...' : 'AI로 후기 작성하기'}
               </button>
@@ -177,28 +152,6 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
             취소
           </button>
         </div>
-
-        {showContext && (
-          <div className="c-review-write__panel">
-            <h3>상담내용</h3>
-            {contextLoading ? (
-              <p className="c-review-write__panel-empty">불러오는 중...</p>
-            ) : contextError ? (
-              <p className="c-review-write__panel-empty">{contextError}</p>
-            ) : context ? (
-              <>
-                <div className="c-review-write__panel-block">
-                  <span className="c-review-write__panel-label">내가 신청한 요구사항</span>
-                  <p>{context.customerMessage || '작성한 요청사항이 없습니다.'}</p>
-                </div>
-                <div className="c-review-write__panel-block">
-                  <span className="c-review-write__panel-label">참가업체 상담 메모 (AI 요약)</span>
-                  <p>{context.exhibitorNote || '아직 정리된 상담 메모가 없습니다.'}</p>
-                </div>
-              </>
-            ) : null}
-          </div>
-        )}
       </div>
     </div>
   );

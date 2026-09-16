@@ -186,15 +186,19 @@ public class ConsultationService {
         return ConsultationResponse.from(consultation);
     }
 
-    // Review 서비스 -> Expo 내부 호출(TASK 후기). 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기 작성 가능.
+    // Review 서비스 -> Expo 내부 호출(TASK 8-3, TASK 7-2). 상담후기(CONSULT)는 그 부스 상담을 완료(COMPLETED) 후
+    // 5일 이내여야 하고, 부스후기(BOOTH)는 상담과 무관하게 방문 기록(Lead)이 있고 방문 후 5일 이내면 된다
+    // (워크인 방문객도 부스후기는 쓸 수 있게 하기 위함, 2026-09-16 확정).
     @Transactional(readOnly = true)
-    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId) {
+    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId, String reviewType) {
         Booth booth = boothRepository.findById(boothId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
 
-        boolean eligible = consultationRepository
-                .findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
-                .stream().anyMatch(Consultation::isReviewable);
+        boolean eligible = "BOOTH".equals(reviewType)
+                ? leadRepository.findByBooth_IdAndCustomerId(boothId, customerId)
+                        .map(Lead::isReviewable).orElse(false)
+                : consultationRepository.findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
+                        .stream().anyMatch(Consultation::isReviewable);
 
         return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
     }

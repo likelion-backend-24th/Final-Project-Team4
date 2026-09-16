@@ -2,6 +2,7 @@ package com.team4.payment.controller;
 
 import com.team4.payment.dto.AdmissionPaymentTicketDetailResponse;
 import com.team4.payment.dto.AdmissionRefundResponse;
+import com.team4.payment.dto.RefundRequest;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.service.AdmissionPaymentService;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +46,7 @@ public class AdmissionPaymentController {
     public AdmissionRefundResponse refundTicket(@RequestHeader("X-User-Id") Long customerId,
                                                 @PathVariable Long ticketId,
                                                 @RequestBody RefundRequest request) {
-        return admissionPaymentService.refundTicket(customerId, ticketId, request.reason());
+        return admissionPaymentService.refundTicket(customerId, ticketId, request.getReason());
     }
 
     public record AdmissionPaymentRequest(
@@ -55,6 +56,4 @@ public class AdmissionPaymentController {
             String payMethod,
             String paymentId
     ) {}
-
-    public record RefundRequest(String reason){}
 }

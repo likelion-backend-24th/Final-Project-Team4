@@ -15,6 +15,7 @@ import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Lead;
 import com.team4.expo.dto.LeadResponse;
 import com.team4.expo.dto.MyBoothResponse;
+import com.team4.expo.dto.VisitedBoothResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
@@ -68,19 +69,26 @@ public class LeadService {
             return LeadResponse.from(existing);
         }
 
-        // 사전 상담 신청(APPROVED + leadConsent 동의) 없이는 워크인 QR 스캔으로 리드를 만들 수 없음(2026-09-14 확정)
-        Consultation consultation = consultationRepository
+        // 매칭되는 승인된 상담 신청이 있으면 기존대로 - 그 상담은 leadConsent(연락처 제공 동의)가 있어야만 리드가 된다
+        // (이메일 발송까지 이어지는 흐름이라 동의 필수, 2026-09-14 확정). 매칭되는 상담이 아예 없으면 상담과 무관한
+        // 워크인 방문으로 보고 동의 없이도 리드(방문 기록)를 만든다(TASK 7-1, 2026-09-16 확정) - 후기 자격 판단에만 쓰이고
+        // 이메일 발송 대상은 아니므로 leadConsent를 요구할 이유가 없다.
+        Consultation matched = consultationRepository
                 .findByCustomerIdAndBooth_IdAndPreferredDateAndStatus(
                         ticket.customerId(), boothId, ticket.visitDate(), ConsultationStatus.APPROVED)
-                .filter(Consultation::isLeadConsent)
-                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_STATE,
-                        "리드 확보에 동의한 승인된 상담 신청이 없습니다."));
+                .orElse(null);
+
+        if (matched != null && !matched.isLeadConsent()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "리드 확보에 동의한 승인된 상담만 QR 스캔이 가능합니다.");
+        }
 
         CustomerContact contact = identityClient.getCustomerContact(ticket.customerId())
-                .orElse(new CustomerContact(consultation.getCustomerName(), consultation.getCustomerEmail()));
+                .orElseGet(() -> matched != null
+                        ? new CustomerContact(matched.getCustomerName(), matched.getCustomerEmail())
+                        : new CustomerContact(null, null));
 
         // interestNote는 현장 상담 내용(자유 텍스트) - TASK 11-3(POST .../leads/{leadId}/summary)에서 채움. 생성 시점엔 비워둠.
-        Lead lead = new Lead(booth, ticket.customerId(), consultation,
+        Lead lead = new Lead(booth, ticket.customerId(), ticket.visitDate(), matched,
                 contact.name(), contact.email(), null);
         return LeadResponse.from(leadRepository.save(lead));
     }
@@ -102,6 +110,23 @@ public class LeadService {
         return leadRepository.findByBooth_IdOrderByCreatedAtDesc(boothId).stream()
                 .map(LeadResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    // 고객이 해당 박람회에서 방문 기록(Lead)을 남긴 부스 목록(TASK 7-1) - 후기 작성 대상 선택 화면에서 씀.
+    @Transactional(readOnly = true)
+    public List<VisitedBoothResponse> listVisitedBooths(Long customerId, Long expoId) {
+        return leadRepository.findByCustomerIdAndBooth_Expo_IdOrderByCreatedAtDesc(customerId, expoId).stream()
+                .map(lead -> VisitedBoothResponse.of(lead.getBooth(), companyNameOf(lead.getBooth())))
+                .collect(Collectors.toList());
+    }
+
+    // ConsultationService.companyNameOf와 같은 패턴 - 부스 소개 콘텐츠가 없는 업체를 위한 표시명 조회, 실패 시 null.
+    private String companyNameOf(Booth booth) {
+        return boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED)
+                .map(com.team4.expo.domain.BoothApplication::getExhibitorId)
+                .flatMap(identityClient::getExhibitorProfile)
+                .map(ExhibitorProfile::companyName)
+                .orElse(null);
     }
 
     // 현장 상담 메모를 입력받아 Gemini로 고객용 이메일 본문 초안을 생성(TASK 11-3). 이 시점엔 발송하지 않음(미리보기).
@@ -175,6 +200,12 @@ public class LeadService {
     }
 
     private boolean ownsBooth(Long exhibitorId, Long boothId) {
+        return isOwnedByExhibitor(exhibitorId, boothId);
+    }
+
+    // Review 서비스 -> Expo 내부 호출(TASK 참가업체 후기 조회) - 이 부스가 그 참가업체 소유(참가 확정)인지 확인.
+    @Transactional(readOnly = true)
+    public boolean isOwnedByExhibitor(Long exhibitorId, Long boothId) {
         return boothApplicationRepository.findByExhibitorIdAndStatus(exhibitorId, ApplicationStatus.CONFIRMED).stream()
                 .anyMatch(application -> application.getBooth().getId().equals(boothId));
     }

@@ -74,6 +74,22 @@ export function isTicketRefundable(ticket) {
   return visit.getTime() >= today.getTime();
 }
 
+// 후기 작성 버튼 노출 조건(TASK 7-3) - 방문일이 지났고(사용완료/만료) 그로부터 5일 이내. 실제 작성 가능 여부는
+// 방문 기록(Lead) 존재 여부까지 서버가 최종 판단하고, 여기서는 화면단 노출 타이밍만 계산한다.
+export const REVIEW_WINDOW_DAYS = 5;
+
+export function isReviewWindowOpen(ticket) {
+  const status = getTicketStatus(ticket);
+  if (status !== '사용완료' && status !== '만료') return false;
+  if (!ticket.visitDate) return false;
+
+  const deadline = new Date(ticket.visitDate);
+  deadline.setHours(0, 0, 0, 0);
+  deadline.setDate(deadline.getDate() + REVIEW_WINDOW_DAYS);
+
+  return new Date().getTime() <= deadline.getTime();
+}
+
 export function isTicketCheckableToday(ticket) {
   if (!ticket.visitDate) return false;
   const today = new Date();

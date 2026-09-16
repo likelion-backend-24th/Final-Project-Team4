@@ -7,6 +7,7 @@ import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothApplicationGroup;
 import com.team4.expo.domain.BoothStatus;
+import com.team4.expo.dto.BoothApplicationGroupCancelResponse;
 import com.team4.expo.dto.BoothApplicationGroupConfirmResponse;
 import com.team4.expo.dto.BoothApplicationGroupPaymentContextResponse;
 import com.team4.expo.dto.BoothApplicationGroupReleaseResponse;
@@ -108,5 +109,26 @@ public class BoothApplicationPaymentService {
         }
 
         return new BoothApplicationGroupReleaseResponse(groupId, results);
+    }
+
+    // Payment의 환불 처리 완료 후 호출. 참가 확정됐던 신청 취소하고 배정됐던 부스 자리를 반납 (ASSIGNED -> AVAILABLE)
+    public BoothApplicationGroupCancelResponse cancelConfirmedBoothApplicationGroup(String groupId, String reason) {
+        boothApplicationGroupRepository.findById(groupId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
+
+        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+
+        for (BoothApplication application : applications) {
+            if (application.getStatus() != ApplicationStatus.CONFIRMED) {
+                continue;
+            }
+
+            Booth booth = application.getBooth();
+            if (booth.getStatus() == BoothStatus.ASSIGNED) {
+                booth.release();
+            }
+            application.cancel();
+        }
+
+        return new BoothApplicationGroupCancelResponse(groupId, ApplicationStatus.CANCELLED.name());
     }
 }
