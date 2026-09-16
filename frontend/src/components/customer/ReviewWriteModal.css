@@ -1,3 +1,14 @@
+.c-review-write {
+  width: 640px;
+}
+
+.c-review-write__locked-type {
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2f6fed;
+}
+
 .c-review-write__field {
   display: flex;
   flex-direction: column;

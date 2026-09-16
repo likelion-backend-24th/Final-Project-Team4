@@ -184,6 +184,7 @@ function ExhibitorVehicleList() {
           boothId={boothId}
           defaultType={writeReviewType}
           defaultVehicleName={searchParams.get('vehicleName') ?? ''}
+          lockType
           onClose={closeWriteReview}
           onCreated={() => {
             closeWriteReview();

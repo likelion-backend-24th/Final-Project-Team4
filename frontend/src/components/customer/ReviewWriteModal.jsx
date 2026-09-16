@@ -5,7 +5,9 @@ import './ReviewWriteModal.css';
 
 // 후기 작성 모달 - 예약한 상담(마이페이지)에서 "후기 작성하러 가기"로 진입하거나,
 // 부스 상세 화면에서 직접 열림. 작성 자격(상담 완료 후 5일 이내)은 서버가 최종 검증한다.
-function ReviewWriteModal({ boothId, defaultType = 'CONSULT', defaultVehicleName = '', onClose, onCreated }) {
+const TYPE_LABEL = { CONSULT: '상담후기', BOOTH: '부스후기' };
+
+function ReviewWriteModal({ boothId, defaultType = 'CONSULT', defaultVehicleName = '', lockType = false, onClose, onCreated }) {
   const [reviewType, setReviewType] = useState(defaultType);
   const [vehicleName, setVehicleName] = useState(defaultVehicleName);
   const [content, setContent] = useState('');
@@ -38,20 +40,24 @@ function ReviewWriteModal({ boothId, defaultType = 'CONSULT', defaultVehicleName
 
   return (
     <div className="c-modal__backdrop" onClick={() => !submitting && onClose()}>
-      <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="c-modal c-review-write" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="c-modal__close" onClick={onClose} disabled={submitting} aria-label="닫기">
           ✕
         </button>
         <h2>후기 작성</h2>
 
-        <div className="c-review-write__type">
-          <button type="button" className={reviewType === 'CONSULT' ? 'is-selected' : ''} onClick={() => setReviewType('CONSULT')}>
-            상담후기
-          </button>
-          <button type="button" className={reviewType === 'BOOTH' ? 'is-selected' : ''} onClick={() => setReviewType('BOOTH')}>
-            부스후기
-          </button>
-        </div>
+        {lockType ? (
+          <p className="c-review-write__locked-type">{TYPE_LABEL[reviewType]}</p>
+        ) : (
+          <div className="c-review-write__type">
+            <button type="button" className={reviewType === 'CONSULT' ? 'is-selected' : ''} onClick={() => setReviewType('CONSULT')}>
+              상담후기
+            </button>
+            <button type="button" className={reviewType === 'BOOTH' ? 'is-selected' : ''} onClick={() => setReviewType('BOOTH')}>
+              부스후기
+            </button>
+          </div>
+        )}
 
         {reviewType === 'CONSULT' && (
           <label className="c-review-write__field">
