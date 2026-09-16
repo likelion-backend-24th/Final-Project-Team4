@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.BoothApplication;
+import com.team4.expo.domain.NotificationType;
 import com.team4.expo.dto.BoothApplicationDecisionResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
 import java.util.List;
@@ -19,9 +20,12 @@ public class BoothApplicationReviewService {
             List.of(ApplicationStatus.PAYMENT_PENDING, ApplicationStatus.CONFIRMED);
 
     private final BoothApplicationRepository boothApplicationRepository;
+    private final NotificationService notificationService;
 
-    public BoothApplicationReviewService(BoothApplicationRepository boothApplicationRepository) {
+    public BoothApplicationReviewService(BoothApplicationRepository boothApplicationRepository,
+                                          NotificationService notificationService) {
         this.boothApplicationRepository = boothApplicationRepository;
+        this.notificationService = notificationService;
     }
 
     // 부스 참가 신청 승인 (SUBMITTED -> PAYMENT_PENDING).
@@ -43,6 +47,14 @@ public class BoothApplicationReviewService {
         application.approve();
         // 부스도 같이 잠가서(RESERVED) 결제 대기 중에 다른 업체가 신청하지 못하게 함
         application.getBooth().reserve();
+
+        notificationService.notify(
+                application.getExhibitorId(),
+                NotificationType.BOOTH_APPROVED,
+                "부스 신청이 승인되었습니다",
+                application.getBooth().getBoothNo() + " 부스 참가 신청이 승인되어 결제 대기 상태로 전환되었습니다.",
+                application.getId());
+
         return BoothApplicationDecisionResponse.from(application);
     }
 
@@ -56,6 +68,14 @@ public class BoothApplicationReviewService {
         }
 
         application.reject(reason);
+
+        notificationService.notify(
+                application.getExhibitorId(),
+                NotificationType.BOOTH_REJECTED,
+                "부스 신청이 반려되었습니다",
+                application.getBooth().getBoothNo() + " 부스 참가 신청이 반려되었습니다. 사유: " + reason,
+                application.getId());
+
         return BoothApplicationDecisionResponse.from(application);
     }
 }
