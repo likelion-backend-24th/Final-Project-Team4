@@ -88,7 +88,7 @@ public class LeadService {
                         : new CustomerContact(null, null));
 
         // interestNote는 현장 상담 내용(자유 텍스트) - TASK 11-3(POST .../leads/{leadId}/summary)에서 채움. 생성 시점엔 비워둠.
-        Lead lead = new Lead(booth, ticket.customerId(), matched,
+        Lead lead = new Lead(booth, ticket.customerId(), ticket.visitDate(), matched,
                 contact.name(), contact.email(), null);
         return LeadResponse.from(leadRepository.save(lead));
     }

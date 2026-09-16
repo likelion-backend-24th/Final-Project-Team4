@@ -101,17 +101,25 @@ class ExpoInternalReviewEligibilityTest {
     @Test
     @DisplayName("CONSULT: 완료된 상담이 없으면 eligible=false (방문 기록만 있어도 상담후기는 불가)")
     void 상담후기_상담없음_ineligible() throws Exception {
-        leadRepository.save(new Lead(booth, CUSTOMER_ID, null, "홍길동", "hong@example.com", null));
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, LocalDate.now().minusDays(1), null, "홍길동", "hong@example.com", null));
 
         perform("CONSULT", false);
     }
 
     @Test
-    @DisplayName("BOOTH: 방문 기록(Lead)이 있으면 상담 없이도 eligible=true")
+    @DisplayName("BOOTH: 방문 예정일이 지난 방문 기록(Lead)이 있으면 상담 없이도 eligible=true")
     void 부스후기_방문기록_eligible() throws Exception {
-        leadRepository.save(new Lead(booth, CUSTOMER_ID, null, "홍길동", "hong@example.com", null));
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, LocalDate.now().minusDays(1), null, "홍길동", "hong@example.com", null));
 
         perform("BOOTH", true);
+    }
+
+    @Test
+    @DisplayName("BOOTH: 방문 예정일이 아직 지나지 않았으면(QR만 미리 스캔) eligible=false - 2026-09-16 확정")
+    void 부스후기_방문일_미도래_ineligible() throws Exception {
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, LocalDate.now(), null, "홍길동", "hong@example.com", null));
+
+        perform("BOOTH", false);
     }
 
     @Test

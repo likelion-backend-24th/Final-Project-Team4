@@ -111,7 +111,7 @@ class LeadSendInfoAcceptanceTest {
         consultation.approve();
         consultation = consultationRepository.save(consultation);
 
-        lead = leadRepository.save(new Lead(booth, CUSTOMER_ID, consultation, "홍길동", "hong@example.com", "EV6 관심"));
+        lead = leadRepository.save(new Lead(booth, CUSTOMER_ID, visitDate, consultation, "홍길동", "hong@example.com", "EV6 관심"));
     }
 
     private String body(String emailBody) {
