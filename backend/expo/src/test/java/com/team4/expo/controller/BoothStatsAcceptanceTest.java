@@ -110,8 +110,9 @@ class BoothStatsAcceptanceTest {
         rejected.reject("일정상 어려움");
         consultationRepository.save(rejected);
 
-        leadRepository.save(new Lead(booth, CUSTOMER_ID, requested, "홍길동", "hong@example.com", null));
-        leadRepository.save(new Lead(booth, CUSTOMER_ID + 1, null, "김철수", "kim@example.com", null));
+        LocalDate visitDate = LocalDate.now().minusDays(1);
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, visitDate, requested, "홍길동", "hong@example.com", null));
+        leadRepository.save(new Lead(booth, CUSTOMER_ID + 1, visitDate, null, "김철수", "kim@example.com", null));
 
         mockMvc.perform(get("/api/exhibitor/booths/{boothId}/stats", booth.getId()).with(exhibitor()))
                 .andExpect(status().isOk())
