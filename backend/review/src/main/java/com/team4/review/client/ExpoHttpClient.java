@@ -35,11 +35,11 @@ public class ExpoHttpClient implements ExpoClient {
     }
 
     @Override
-    public BoothReviewEligibility checkReviewEligibility(Long boothId, Long customerId) {
+    public BoothReviewEligibility checkReviewEligibility(Long boothId, Long customerId, String reviewType) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(expoBaseUrl + "/internal/expo/booths/" + boothId
-                            + "/review-eligibility?customerId=" + customerId))
+                            + "/review-eligibility?customerId=" + customerId + "&reviewType=" + reviewType))
                     .header("Authorization", "Bearer " + serviceToken)
                     .timeout(Duration.ofSeconds(5))
                     .GET()

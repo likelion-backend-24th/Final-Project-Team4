@@ -28,16 +28,19 @@ public class ExpoInternalReviewController {
         this.consultationService = consultationService;
     }
 
-    // Review -> Expo. 후기 작성 전 자격(해당 부스 상담 COMPLETED) 확인 + 표시용 boothNo 조회.
+    // Review -> Expo. 후기 작성 전 자격 확인 + 표시용 boothNo 조회.
+    // reviewType=CONSULT: 상담 COMPLETED+5일 / BOOTH: 방문 기록(Lead)+방문 후 5일(TASK 7-2).
     @GetMapping("/{boothId}/review-eligibility")
     public ResponseEntity<ApiResponse<BoothReviewEligibilityResponse>> getReviewEligibility(
             @RequestHeader("Authorization") String authorization,
             @PathVariable Long boothId,
-            @RequestParam Long customerId) {
+            @RequestParam Long customerId,
+            @RequestParam String reviewType) {
 
         requireReviewService(authorization);
 
-        return ResponseEntity.ok(ApiResponse.success(consultationService.getBoothReviewEligibility(boothId, customerId)));
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationService.getBoothReviewEligibility(boothId, customerId, reviewType)));
     }
 
     private void requireReviewService(String authorization) {

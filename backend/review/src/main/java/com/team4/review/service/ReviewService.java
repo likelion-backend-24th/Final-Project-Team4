@@ -78,7 +78,7 @@ public class ReviewService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 차량명을 입력해야 합니다.");
         }
 
-        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId);
+        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name());
         if (!eligibility.eligible()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "상담이 완료된 참가업체에만 후기를 작성할 수 있습니다.");
         }

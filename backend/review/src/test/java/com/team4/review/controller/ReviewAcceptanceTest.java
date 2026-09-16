@@ -23,6 +23,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -68,7 +70,7 @@ class ReviewAcceptanceTest {
         reviewRepository.deleteAllInBatch();
 
         when(identityClient.getCustomerName(anyLong())).thenReturn(Optional.of("홍길동"));
-        when(expoClient.checkReviewEligibility(BOOTH_ID, CUSTOMER_ID))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
                 .thenReturn(new BoothReviewEligibility(true, BOOTH_NO));
     }
 
@@ -124,7 +126,7 @@ class ReviewAcceptanceTest {
     @Test
     @DisplayName("작성 자격이 없으면(Expo가 eligible=false) 409")
     void 자격없음_409() throws Exception {
-        when(expoClient.checkReviewEligibility(BOOTH_ID, CUSTOMER_ID))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
                 .thenReturn(new BoothReviewEligibility(false, BOOTH_NO));
 
         mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
