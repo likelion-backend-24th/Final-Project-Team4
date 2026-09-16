@@ -13,25 +13,33 @@ import com.team4.expo.dto.ExpoSummaryResponse;
 import com.team4.expo.dto.ExpoUpdateRequest;
 import com.team4.expo.service.BoothApplicationReviewService;
 import com.team4.expo.service.BoothApplicationService;
+import com.team4.expo.service.ExpoContentService;
 import com.team4.expo.service.ExpoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 // 관리자 전용 API.
 @RestController
 public class ExpoAdminController {
 
     private final ExpoService expoService;
+    private final ExpoContentService expoContentService;
     private final BoothApplicationService boothApplicationService;
     private final BoothApplicationReviewService boothApplicationReviewService;
 
-    public ExpoAdminController(ExpoService expoService, BoothApplicationService boothApplicationService,
+    public ExpoAdminController(ExpoService expoService, ExpoContentService expoContentService,
+                                BoothApplicationService boothApplicationService,
                                 BoothApplicationReviewService boothApplicationReviewService) {
         this.expoService = expoService;
+        this.expoContentService = expoContentService;
         this.boothApplicationService = boothApplicationService;
         this.boothApplicationReviewService = boothApplicationReviewService;
     }
@@ -66,6 +74,13 @@ public class ExpoAdminController {
                                                                 @Valid @RequestBody ExpoUpdateRequest request) {
         ExpoResponse response = expoService.updateExpo(expoId, request);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PutMapping(value = "/api/admin/expos/{expoId}/banner-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<Map<String, String>>> updateBannerImage(@PathVariable Long expoId,
+                                                                              @RequestParam("image") MultipartFile image) {
+        String bannerImageUrl = expoContentService.updateBannerImage(expoId, image);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("bannerImageUrl", bannerImageUrl)));
     }
 
     @DeleteMapping("/api/admin/expos/{expoId}")

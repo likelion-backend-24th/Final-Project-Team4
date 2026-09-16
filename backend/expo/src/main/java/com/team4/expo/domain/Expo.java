@@ -33,6 +33,9 @@ public class Expo {
     @Column(nullable = false)
     private Long admissionFee;
 
+    // 박람회 배너 이미지 경로(/uploads/expo/...), updateBannerImage()로만 갱신됨
+    private String bannerImageUrl;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -79,6 +82,12 @@ public class Expo {
         this.applyStartsAt = applyStartsAt;
         this.applyEndsAt = applyEndsAt;
         this.admissionFee = admissionFee;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    // 관리자가 박람회 배너 이미지를 등록/교체
+    public void updateBannerImage(String bannerImageUrl) {
+        this.bannerImageUrl = bannerImageUrl;
         this.updatedAt = LocalDateTime.now();
     }
 }
