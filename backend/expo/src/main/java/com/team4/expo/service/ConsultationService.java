@@ -12,6 +12,7 @@ import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
+import com.team4.expo.dto.BoothReviewEligibilityResponse;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.dto.ConsultationUpdateRequest;
@@ -154,6 +155,18 @@ public class ConsultationService {
         }
         consultation.cancel();
         return ConsultationResponse.from(consultation);
+    }
+
+    // Review 서비스 -> Expo 내부 호출(TASK 후기). 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기 작성 가능.
+    @Transactional(readOnly = true)
+    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId) {
+        Booth booth = boothRepository.findById(boothId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+
+        boolean eligible = consultationRepository
+                .existsByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED);
+
+        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
     }
 
     private Consultation findOwnedConsultation(Long customerId, Long consultationId) {

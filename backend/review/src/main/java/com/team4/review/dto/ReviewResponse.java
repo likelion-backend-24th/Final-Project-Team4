@@ -1,6 +1,6 @@
-package com.team4.expo.dto;
+package com.team4.review.dto;
 
-import com.team4.expo.domain.Review;
+import com.team4.review.domain.Review;
 import java.time.LocalDateTime;
 import lombok.Getter;
 
@@ -27,7 +27,7 @@ public class ReviewResponse {
     public static ReviewResponse from(Review review) {
         return new ReviewResponse(
                 review.getId(),
-                review.getBooth().getBoothNo(),
+                review.getBoothNo(),
                 review.getVehicleName(),
                 mask(review.getCustomerName()),
                 review.getContent(),
@@ -35,7 +35,7 @@ public class ReviewResponse {
         );
     }
 
-    // 마이페이지 등 다른 화면과 동일하게 실명은 저장만 하고 화면에는 "김○○" 식으로 앞 글자만 노출
+    // 실명은 저장만 하고 화면에는 "김○○" 식으로 앞 글자만 노출
     private static String mask(String name) {
         if (name == null || name.isBlank()) {
             return "익명";

@@ -1,11 +1,12 @@
-package com.team4.expo.config;
+package com.team4.review.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ObjectMapperWriter;
-import com.team4.expo.security.GatewayAuthenticationFilter;
+import com.team4.review.security.GatewayAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -13,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 public class SecurityConfig {
+
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         http
@@ -21,9 +23,8 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/exhibitor/**").hasRole("EXHIBITOR")
-                        .requestMatchers("/api/customer/consultations/**").hasRole("USER")
+                        // 후기 목록 조회는 비회원도 가능(게이트웨이 화이트리스트), 작성은 USER 롤만.
+                        .requestMatchers(HttpMethod.POST, "/api/customer/booths/*/reviews").hasRole("USER")
                         .anyRequest().permitAll())
                 .addFilterBefore(new GatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e

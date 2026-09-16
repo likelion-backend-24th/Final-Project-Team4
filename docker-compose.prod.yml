@@ -120,6 +120,25 @@ services:
       mysql:
         condition: service_healthy
 
+  review:
+    image: ghcr.io/likelion-backend-24th/team4-review:${IMAGE_TAG:-latest}
+    container_name: car-expo-review
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: app
+      EXPO_BASE_URL: http://expo:8082
+      IDENTITY_BASE_URL: http://identity:8081
+      SPRING_JPA_SHOW_SQL: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - backend
+
   gateway:
     image: ghcr.io/likelion-backend-24th/team4-gateway:${IMAGE_TAG:-latest}
     container_name: car-expo-gateway
@@ -133,6 +152,7 @@ services:
       - expo
       - payment
       - reservation
+      - review
     networks:
       - backend
 

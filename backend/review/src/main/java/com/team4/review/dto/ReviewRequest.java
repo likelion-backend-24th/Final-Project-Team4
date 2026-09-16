@@ -1,6 +1,6 @@
-package com.team4.expo.dto;
+package com.team4.review.dto;
 
-import com.team4.expo.domain.ReviewType;
+import com.team4.review.domain.ReviewType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

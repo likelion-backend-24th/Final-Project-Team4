@@ -1,4 +1,4 @@
-package com.team4.expo.dto;
+package com.team4.review.dto;
 
 import java.util.List;
 import lombok.Getter;

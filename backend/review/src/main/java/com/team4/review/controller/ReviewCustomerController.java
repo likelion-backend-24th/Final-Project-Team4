@@ -1,11 +1,11 @@
-package com.team4.expo.controller;
+package com.team4.review.controller;
 
 import com.team4.common.response.ApiResponse;
-import com.team4.expo.dto.ReviewListResponse;
-import com.team4.expo.dto.ReviewRequest;
-import com.team4.expo.dto.ReviewResponse;
-import com.team4.expo.security.GatewayUser;
-import com.team4.expo.service.ReviewService;
+import com.team4.review.dto.ReviewListResponse;
+import com.team4.review.dto.ReviewRequest;
+import com.team4.review.dto.ReviewResponse;
+import com.team4.review.security.GatewayUser;
+import com.team4.review.service.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

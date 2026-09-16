@@ -1,0 +1,36 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: review
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/review?serverTimezone=Asia%2FSeoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    username: ${DB_USER:app}
+    password: ${DB_PASSWORD:app_local_only}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+
+# 후기 작성 자격(해당 부스 상담 COMPLETED) 확인 + boothNo 조회 (Review -> Expo)
+expo:
+  base-url: ${EXPO_BASE_URL:http://localhost:8082}
+  service-token: ${SVC_TOKEN_REVIEW:local_dev_review_token}
+
+# 후기 작성자 이름 조회 (Review -> Identity)
+identity:
+  base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
+  service-token: ${SVC_TOKEN_REVIEW:local_dev_review_token}
+
+springdoc:
+  paths-to-exclude: /internal/** # 서비스 간 내부 호출 - 외부 API 문서에서 제외

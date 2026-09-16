@@ -6,6 +6,8 @@ CREATE DATABASE IF NOT EXISTS payment       CHARACTER SET utf8mb4 COLLATE utf8mb
 CREATE DATABASE IF NOT EXISTS payment_test  CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE DATABASE IF NOT EXISTS reservation      CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE DATABASE IF NOT EXISTS reservation_test CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS review        CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS review_test   CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 GRANT ALL PRIVILEGES ON identity.*      TO 'app'@'%';
 GRANT ALL PRIVILEGES ON identity_test.* TO 'app'@'%';
@@ -15,4 +17,6 @@ GRANT ALL PRIVILEGES ON payment.*       TO 'app'@'%';
 GRANT ALL PRIVILEGES ON payment_test.*  TO 'app'@'%';
 GRANT ALL PRIVILEGES ON reservation.*      TO 'app'@'%';
 GRANT ALL PRIVILEGES ON reservation_test.* TO 'app'@'%';
+GRANT ALL PRIVILEGES ON review.*        TO 'app'@'%';
+GRANT ALL PRIVILEGES ON review_test.*   TO 'app'@'%';
 FLUSH PRIVILEGES;
