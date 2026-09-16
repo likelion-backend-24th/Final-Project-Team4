@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.payment.client.BookingClient;
 import com.team4.payment.client.BookingInfoResponse;
+import com.team4.payment.dto.BoothRefundResponse;
 import com.team4.payment.entity.Payment;
 import com.team4.payment.entity.PaymentStatus;
 import com.team4.payment.gateway.PaymentGateway;
@@ -110,6 +111,36 @@ public class PaymentService {
         return saved;
     }
 
-    // 결제 내역 조회 매서드
+    // 부스 참가비 환불
+    @Transactional
+    public BoothRefundResponse refund(String bookingId, Long userId, String reason) {
+        Payment payment = paymentRepository.findByBookingId(bookingId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "결제 내역을 찾을 수 없습니다."));
 
+        // 1) 본인 소유, 결제 완료 상태 확인
+        if (!userId.equals(payment.getUserId())) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인의 결제 건만 환불할 수 있습니다.");
+        }
+        if (payment.getStatus() != PaymentStatus.PAID) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "결제 완료 상태인 건만 환불할 수 있습니다.");
+        }
+
+        // 2) 포트원 결제 취소(환불)
+        PaymentGateway.RefundResult result = paymentGateway.cancelPayment(payment.getPortonePaymentId(), payment.getAmount(), reason);
+        if (!result.success()) {
+            throw new CustomException(ErrorCode.INTERNAL_ERROR, "환불 처리 중 오류가 발생했습니다: " + result.failureReason());
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        // 3) 상태(CANCELLED) 기록
+        payment.cancel(reason, now);
+
+        try {
+            // 4) Expo에 취소 통보
+            bookingClient.cancel(bookingId, reason);
+        } catch (Exception e) {
+            log.error("Expo 부스 반납 통보 실패 bookingId={}", bookingId, e);
+        }
+
+        return new BoothRefundResponse(bookingId, payment.getAmount(), payment.getStatus().name(), now);
+    }
 }
