@@ -15,4 +15,10 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 
     // 고객이 후기 작성 시 참가업체가 현장에서 남긴 상담 메모(interestNote)를 보여주기 위한 조회.
     Optional<Lead> findByConsultation_Id(Long consultationId);
+
+    // 고객이 특정 박람회에서 방문 기록(QR 스캔으로 생성된 Lead)을 남긴 부스 목록(TASK 7-1) - 후기 작성 대상 선택용.
+    List<Lead> findByCustomerIdAndBooth_Expo_IdOrderByCreatedAtDesc(Long customerId, Long expoId);
+
+    // 부스 통계(방문자 수) - 참가업체 대시보드용.
+    long countByBooth_Id(Long boothId);
 }

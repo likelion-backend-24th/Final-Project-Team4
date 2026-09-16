@@ -117,6 +117,10 @@ export const getCustomerExpo = (expoId) =>
 export const getCustomerExpoVehicles = (expoId) =>
   apiClient.get(`/api/customer/expos/${expoId}/vehicles`).then((res) => res.data.data);
 
+// GET /api/customer/expos/{expoId}/visited-booths - 로그인 고객이 QR 스캔으로 방문 기록을 남긴 부스 목록 (로그인 필요)
+export const getVisitedBooths = (expoId) =>
+  apiClient.get(`/api/customer/expos/${expoId}/visited-booths`).then((res) => res.data.data);
+
 // GET /api/exhibitor/booths/{boothId} — 참가 확정 부스 관리 정보(부스 정보 + 콘텐츠 + 배너) 조회
 export const getBoothManageDetail = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}`).then((res) => res.data.data);
@@ -139,6 +143,14 @@ export const uploadBoothBannerImage = (boothId, file) => {
 // GET /api/exhibitor/booths/{boothId}/vehicles — 부스에 등록된 전시 차량 목록
 export const getBoothVehicles = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}/vehicles`).then((res) => res.data.data);
+
+// GET /api/exhibitor/booths/{boothId}/stats — 부스 상담 상태별 건수 + 방문자(Lead) 수
+export const getBoothStats = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/stats`).then((res) => res.data.data);
+
+// GET /api/exhibitor/booths/{boothId}/reviews — 본인 부스로 들어온 후기(상담후기+부스후기) 실명 조회
+export const getExhibitorBoothReviews = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/reviews`).then((res) => res.data.data);
 
 // POST /api/exhibitor/booths/{boothId}/vehicles — 전시 차량 등록
 // payload: { name, tags: string[], startPrice, summary, description, features, colors, range, battery, power }

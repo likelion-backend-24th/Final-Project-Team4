@@ -5,7 +5,8 @@ import ConsultationDetailModal from '../../components/customer/ConsultationDetai
 import TicketActionsMenu from '../../components/customer/TicketActionsMenu';
 import PaymentDetailModal from '../../components/customer/PaymentDetailModal';
 import RefundRequestModal from '../../components/customer/RefundRequestModal';
-import { getTicketStatus, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
+import VisitedBoothsModal from '../../components/customer/VisitedBoothsModal';
+import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
@@ -80,6 +81,7 @@ function CustomerMyPage() {
   const [consultLoading, setConsultLoading] = useState(true);
   const [consultError, setConsultError] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const [reviewExpoId, setReviewExpoId] = useState(null);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
@@ -424,6 +426,11 @@ function CustomerMyPage() {
                                     onRequestRefund={() => setRefundTicket(t)}
                                   />
                                 )}
+                                {isReviewWindowOpen(t) && (
+                                  <button type="button" onClick={() => setReviewExpoId(t.expoId)}>
+                                    후기 작성하러 가기
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
@@ -632,6 +639,9 @@ function CustomerMyPage() {
           onClose={() => setSelectedConsultation(null)}
           onChanged={loadConsultations}
         />
+      )}
+      {reviewExpoId && (
+        <VisitedBoothsModal expoId={reviewExpoId} onClose={() => setReviewExpoId(null)} />
       )}
     </div>
   );

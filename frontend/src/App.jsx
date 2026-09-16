@@ -15,6 +15,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import MyPage from './pages/MyPage';
 import BoothManage from './pages/BoothManage';
+import BoothInsights from './pages/BoothInsights';
 import BoothVehicleRegister from './pages/BoothVehicleRegister';
 import Payment from './pages/Payment';
 import CustomerExpoList from './pages/customer/CustomerExpoList';
@@ -82,6 +83,7 @@ function App() {
       <Route path="/expos/:expoId/apply" element={<ExhibitorLayout><BoothApplication /></ExhibitorLayout>} />
       <Route path="/mypage" element={<ExhibitorLayout><MyPage /></ExhibitorLayout>} />
       <Route path="/mypage/booths/:boothId" element={<ExhibitorLayout><BoothManage /></ExhibitorLayout>} />
+      <Route path="/mypage/booths/:boothId/insights" element={<ExhibitorLayout><BoothInsights /></ExhibitorLayout>} />
       <Route
         path="/mypage/booths/:boothId/vehicles/new"
         element={<ExhibitorLayout><BoothVehicleRegister /></ExhibitorLayout>}

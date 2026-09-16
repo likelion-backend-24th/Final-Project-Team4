@@ -8,6 +8,7 @@ import com.team4.review.client.IdentityClient;
 import com.team4.review.domain.Review;
 import com.team4.review.domain.ReviewImage;
 import com.team4.review.domain.ReviewType;
+import com.team4.review.dto.ExhibitorReviewResponse;
 import com.team4.review.dto.ReviewImageResponse;
 import com.team4.review.dto.ReviewListResponse;
 import com.team4.review.dto.ReviewRequest;
@@ -72,13 +73,33 @@ public class ReviewService {
         );
     }
 
+    // 참가업체가 본인 부스로 들어온 후기를 실명으로 조회(2026-09-16 확정) - 소유권은 Expo 내부 API로 확인.
+    @Transactional(readOnly = true)
+    public List<ExhibitorReviewResponse> listForExhibitor(Long exhibitorId, Long boothId) {
+        if (!expoClient.isBoothOwnedByExhibitor(boothId, exhibitorId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 부스의 후기만 조회할 수 있습니다.");
+        }
+
+        List<Review> reviews = reviewRepository.findByBoothIdOrderByCreatedAtDesc(boothId);
+        List<Long> reviewIds = reviews.stream().map(Review::getId).collect(Collectors.toList());
+        Map<Long, List<ReviewImageResponse>> imagesByReviewId = reviewIds.isEmpty()
+                ? Map.of()
+                : reviewImageRepository.findByReview_IdInOrderByReview_IdAscSortOrderAsc(reviewIds).stream()
+                        .collect(Collectors.groupingBy(img -> img.getReview().getId(),
+                                Collectors.mapping(ReviewImageResponse::from, Collectors.toList())));
+
+        return reviews.stream()
+                .map(r -> ExhibitorReviewResponse.from(r, imagesByReviewId.getOrDefault(r.getId(), List.of())))
+                .collect(Collectors.toList());
+    }
+
     public ReviewResponse createReview(Long customerId, Long boothId, ReviewRequest request) {
         if (request.getReviewType() == ReviewType.CONSULT
                 && (request.getVehicleName() == null || request.getVehicleName().isBlank())) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 차량명을 입력해야 합니다.");
         }
 
-        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId);
+        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name());
         if (!eligibility.eligible()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "상담이 완료된 참가업체에만 후기를 작성할 수 있습니다.");
         }

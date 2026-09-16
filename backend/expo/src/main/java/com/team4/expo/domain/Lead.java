@@ -73,4 +73,10 @@ public class Lead {
     public void markSent() {
         this.status = LeadStatus.SENT;
     }
+
+    // 부스후기(BOOTH) 작성 가능 여부(TASK 7-2) - 방문(QR 스캔) 후 5일 이내. 상담과 무관하게 방문 기록 자체가 자격 증거이므로
+    // 상태 조건 없음 - Consultation.isReviewable()의 방문판(REVIEWABLE_DAYS 상수를 그대로 재사용).
+    public boolean isReviewable() {
+        return LocalDateTime.now().isBefore(createdAt.plusDays(Consultation.REVIEWABLE_DAYS));
+    }
 }

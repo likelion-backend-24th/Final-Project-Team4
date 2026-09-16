@@ -4,13 +4,18 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.client.AiSummaryClient;
 import com.team4.expo.domain.ApplicationStatus;
+import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
+import com.team4.expo.dto.BoothStatsResponse;
 import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
+import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
+import com.team4.expo.repository.LeadRepository;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,13 +27,18 @@ public class ConsultationReviewService {
 
     private final ConsultationRepository consultationRepository;
     private final BoothApplicationRepository boothApplicationRepository;
+    private final BoothRepository boothRepository;
+    private final LeadRepository leadRepository;
     private final AiSummaryClient aiSummaryClient;
 
     public ConsultationReviewService(ConsultationRepository consultationRepository,
                                       BoothApplicationRepository boothApplicationRepository,
+                                      BoothRepository boothRepository, LeadRepository leadRepository,
                                       AiSummaryClient aiSummaryClient) {
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
+        this.boothRepository = boothRepository;
+        this.leadRepository = leadRepository;
         this.aiSummaryClient = aiSummaryClient;
     }
 
@@ -110,6 +120,30 @@ public class ConsultationReviewService {
                 .ifPresent(consultation::attachAiSummary);
 
         return ConsultationResponse.from(consultation);
+    }
+
+    // 부스 단위 상담 상태별 건수 + 방문자(Lead) 수 - 참가업체 대시보드용(건수만, 2026-09-16 확정).
+    @Transactional(readOnly = true)
+    public BoothStatsResponse getBoothStats(Long exhibitorId, Long boothId) {
+        if (!confirmedBoothIds(exhibitorId).contains(boothId)) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인 부스의 통계만 조회할 수 있습니다.");
+        }
+        Booth booth = boothRepository.findById(boothId)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+
+        Map<ConsultationStatus, Long> counts = consultationRepository.findByBooth_IdInOrderByCreatedAtDesc(List.of(boothId))
+                .stream()
+                .collect(Collectors.groupingBy(Consultation::getStatus, Collectors.counting()));
+
+        return new BoothStatsResponse(
+                boothId, booth.getBoothNo(),
+                counts.getOrDefault(ConsultationStatus.REQUESTED, 0L),
+                counts.getOrDefault(ConsultationStatus.APPROVED, 0L),
+                counts.getOrDefault(ConsultationStatus.REJECTED, 0L),
+                counts.getOrDefault(ConsultationStatus.COMPLETED, 0L),
+                counts.getOrDefault(ConsultationStatus.NO_SHOW, 0L),
+                counts.getOrDefault(ConsultationStatus.CANCELED, 0L),
+                leadRepository.countByBooth_Id(boothId));
     }
 
     private Consultation findOwnedConsultation(Long exhibitorId, Long consultationId) {

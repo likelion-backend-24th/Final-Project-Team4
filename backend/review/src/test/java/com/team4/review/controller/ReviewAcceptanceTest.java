@@ -23,6 +23,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -68,7 +70,7 @@ class ReviewAcceptanceTest {
         reviewRepository.deleteAllInBatch();
 
         when(identityClient.getCustomerName(anyLong())).thenReturn(Optional.of("홍길동"));
-        when(expoClient.checkReviewEligibility(BOOTH_ID, CUSTOMER_ID))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
                 .thenReturn(new BoothReviewEligibility(true, BOOTH_NO));
     }
 
@@ -124,7 +126,7 @@ class ReviewAcceptanceTest {
     @Test
     @DisplayName("작성 자격이 없으면(Expo가 eligible=false) 409")
     void 자격없음_409() throws Exception {
-        when(expoClient.checkReviewEligibility(BOOTH_ID, CUSTOMER_ID))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
                 .thenReturn(new BoothReviewEligibility(false, BOOTH_NO));
 
         mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
@@ -205,6 +207,45 @@ class ReviewAcceptanceTest {
 
         mockMvc.perform(multipart("/api/customer/booths/{boothId}/reviews/{reviewId}/images", BOOTH_ID, reviewId)
                         .file(image).with(customer(OTHER_CUSTOMER_ID)))
+                .andExpect(status().isForbidden());
+    }
+
+    private static final long EXHIBITOR_ID = 700L;
+
+    private static RequestPostProcessor exhibitor() {
+        return request -> {
+            request.addHeader("X-User-Id", String.valueOf(EXHIBITOR_ID));
+            request.addHeader("X-User-Role", "EXHIBITOR");
+            return request;
+        };
+    }
+
+    @Test
+    @DisplayName("참가업체는 본인 부스 후기를 실명으로 조회할 수 있다 - 2026-09-16 확정")
+    void 참가업체_실명조회() throws Exception {
+        when(expoClient.isBoothOwnedByExhibitor(BOOTH_ID, EXHIBITOR_ID)).thenReturn(true);
+        createReviewAndGetId();
+
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}/reviews", BOOTH_ID).with(exhibitor()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].customerName").value("홍길동"))
+                .andExpect(jsonPath("$.data[0].reviewType").value("BOOTH"));
+    }
+
+    @Test
+    @DisplayName("본인 부스가 아니면 참가업체 후기 조회는 403")
+    void 참가업체_타부스조회_403() throws Exception {
+        when(expoClient.isBoothOwnedByExhibitor(BOOTH_ID, EXHIBITOR_ID)).thenReturn(false);
+
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}/reviews", BOOTH_ID).with(exhibitor()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("고객(USER) 토큰으로 참가업체 후기 API를 호출하면 403")
+    void 고객이_참가업체API_호출_403() throws Exception {
+        mockMvc.perform(get("/api/exhibitor/booths/{boothId}/reviews", BOOTH_ID).with(customer()))
                 .andExpect(status().isForbidden());
     }
 }
