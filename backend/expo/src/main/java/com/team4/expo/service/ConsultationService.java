@@ -13,6 +13,7 @@ import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Lead;
+import com.team4.expo.domain.NotificationType;
 import com.team4.expo.dto.BoothReviewEligibilityResponse;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
@@ -25,6 +26,7 @@ import com.team4.expo.repository.ConsultationRepository;
 import com.team4.expo.repository.LeadRepository;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,7 @@ public class ConsultationService {
     private final ReservationClient reservationClient;
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
+    private final NotificationService notificationService;
 
     // 같은 참가업체·같은 날짜 중복 신청 차단 대상 상태 - CANCELED/REJECTED만 재신청 허용(2026-09-16 확정).
     // COMPLETED/NO_SHOW도 막아야 함: 완료·미방문 처리된 건은 이미 그 날짜의 상담 "결과"가 난 것이라 같은 날짜로 또 신청하면 안 됨.
@@ -51,7 +54,7 @@ public class ConsultationService {
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
                                 BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
-                                IdentityClient identityClient) {
+                                IdentityClient identityClient, NotificationService notificationService) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
@@ -59,6 +62,7 @@ public class ConsultationService {
         this.reservationClient = reservationClient;
         this.aiSummaryClient = aiSummaryClient;
         this.identityClient = identityClient;
+        this.notificationService = notificationService;
     }
 
     public List<ConsultationResponse> applyConsultation(Long customerId, ConsultationRequest request) {
@@ -103,6 +107,15 @@ public class ConsultationService {
 
         consultationRepository.saveAll(consultations);
 
+        consultations.forEach(consultation -> exhibitorIdOf(consultation.getBooth()).ifPresent(exhibitorId ->
+                notificationService.notify(
+                        exhibitorId,
+                        NotificationType.CONSULTATION_RECEIVED,
+                        "새로운 상담 신청이 접수되었습니다",
+                        request.getCustomerName() + "님이 " + consultation.getBooth().getBoothNo()
+                                + " 부스에 상담을 신청했습니다.",
+                        consultation.getId())));
+
         return consultations.stream().map(ConsultationResponse::from).collect(Collectors.toList());
     }
 
@@ -120,6 +133,12 @@ public class ConsultationService {
                 .flatMap(identityClient::getExhibitorProfile)
                 .map(ExhibitorProfile::companyName)
                 .orElse(null);
+    }
+
+    // 이 부스를 확정 배정받은 참가업체 id (알림 수신자 결정용). 없으면(데이터 이상) 알림을 건너뛴다.
+    private Optional<Long> exhibitorIdOf(Booth booth) {
+        return boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED)
+                .map(BoothApplication::getExhibitorId);
     }
 
     // 대기 중(REQUESTED)인 본인 상담 신청 내용 수정. 방문 날짜를 바꾸면 그 날짜 입장권 보유·중복 신청 여부를 다시 검증한다.
