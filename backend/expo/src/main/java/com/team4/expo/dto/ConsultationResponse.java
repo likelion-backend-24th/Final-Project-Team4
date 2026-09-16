@@ -15,6 +15,7 @@ public class ConsultationResponse {
     private final String boothNo;
     private final Long expoId;
     private final String expoTitle;
+    private final String companyName;
     private final Long customerId;
     private final String customerName;
     private final String customerPhone;
@@ -34,6 +35,7 @@ public class ConsultationResponse {
     private final LocalDateTime createdAt;
 
     private ConsultationResponse(Long consultationId, Long boothId, String boothNo, Long expoId, String expoTitle,
+                                  String companyName,
                                   Long customerId, String customerName, String customerPhone, String customerEmail,
                                   boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,
                                   boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
@@ -45,6 +47,7 @@ public class ConsultationResponse {
         this.boothNo = boothNo;
         this.expoId = expoId;
         this.expoTitle = expoTitle;
+        this.companyName = companyName;
         this.customerId = customerId;
         this.customerName = customerName;
         this.customerPhone = customerPhone;
@@ -65,12 +68,17 @@ public class ConsultationResponse {
     }
 
     public static ConsultationResponse from(Consultation consultation) {
+        return from(consultation, null);
+    }
+
+    public static ConsultationResponse from(Consultation consultation, String companyName) {
         return new ConsultationResponse(
                 consultation.getId(),
                 consultation.getBooth().getId(),
                 consultation.getBooth().getBoothNo(),
                 consultation.getBooth().getExpo().getId(),
                 consultation.getBooth().getExpo().getTitle(),
+                companyName,
                 consultation.getCustomerId(),
                 consultation.getCustomerName(),
                 consultation.getCustomerPhone(),
