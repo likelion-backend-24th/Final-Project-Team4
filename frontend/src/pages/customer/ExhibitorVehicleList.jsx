@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 
@@ -8,12 +9,25 @@ const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 // 참가업체 1곳의 전시 차량 목록 - ExhibitorList.jsx에서 업체 카드를 클릭하면 들어온다.
 function ExhibitorVehicleList() {
   const { expoId, boothId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [expo, setExpo] = useState(null);
   const [group, setGroup] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [keyword, setKeyword] = useState('');
   const [reviews, setReviews] = useState(null);
   const [reviewTab, setReviewTab] = useState('CONSULT');
+  const writeReviewType = searchParams.get('writeReview'); // 마이페이지(예약한 상담)에서 넘어오면 바로 작성 모달을 연다
+  const closeWriteReview = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('writeReview');
+    next.delete('vehicleName');
+    setSearchParams(next, { replace: true });
+  };
+
+  const loadReviews = () =>
+    getBoothReviews(boothId)
+      .then(setReviews)
+      .catch(() => setReviews({ totalCount: 0, consultReviews: [], boothReviews: [] }));
 
   useEffect(() => {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
@@ -32,9 +46,7 @@ function ExhibitorVehicleList() {
   }, [expoId, boothId]);
 
   useEffect(() => {
-    getBoothReviews(boothId)
-      .then(setReviews)
-      .catch(() => setReviews({ totalCount: 0, consultReviews: [], boothReviews: [] }));
+    loadReviews();
   }, [boothId]);
 
   const filteredVehicles = useMemo(
@@ -166,6 +178,19 @@ function ExhibitorVehicleList() {
           </div>
         </section>
       </div>
+
+      {writeReviewType && (
+        <ReviewWriteModal
+          boothId={boothId}
+          defaultType={writeReviewType}
+          defaultVehicleName={searchParams.get('vehicleName') ?? ''}
+          onClose={closeWriteReview}
+          onCreated={() => {
+            closeWriteReview();
+            loadReviews();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -127,6 +127,14 @@ public class Consultation {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public static final int REVIEWABLE_DAYS = 5;
+
+    // 후기(TASK 부스 후기) 작성 가능 여부 - 상담 완료 후 5일 이내(2026-09-16 확정). 완료 시각은 별도 필드 없이
+    // complete()가 갱신하는 updatedAt을 그대로 쓴다(다른 상태 전이도 전부 이 필드 하나로 "마지막 전이 시각"을 표현).
+    public boolean isReviewable() {
+        return status == ConsultationStatus.COMPLETED && LocalDateTime.now().isBefore(updatedAt.plusDays(REVIEWABLE_DAYS));
+    }
+
     // ConsultationService.updateConsultation()에서 호출. REQUESTED 상태에서만 내용 수정 가능(서비스 레이어에서 검증).
     // 수정 후에는 기존 AI 요약이 더 이상 내용과 맞지 않으므로 서비스가 다시 붙여준다.
     public void updateDetails(boolean wantsPurchase, boolean wantsTestDrive, String interestedVehicle,

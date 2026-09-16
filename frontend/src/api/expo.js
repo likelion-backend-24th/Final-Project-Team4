@@ -232,6 +232,11 @@ export const markConsultationNoShow = (consultationId) =>
 export const getBoothReviews = (boothId) =>
   apiClient.get(`/api/customer/booths/${boothId}/reviews`).then((res) => res.data.data);
 
+// POST /api/customer/booths/{boothId}/reviews — 후기 작성 (해당 부스 상담을 완료 후 5일 이내인 고객만 가능, 로그인 필요)
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName?, content }
+export const createBoothReview = (boothId, payload) =>
+  apiClient.post(`/api/customer/booths/${boothId}/reviews`, payload).then((res) => res.data.data);
+
 // GET /api/customer/vehicles/search — 자연어 질의로 전시 차량 AI 검색 (전체 공개 박람회 대상)
 // 응답: { interpretedSummary, results: [{ expoId, expoTitle, boothId, boothNo, companyName, vehicle }] }
 export const searchVehicles = (query) =>

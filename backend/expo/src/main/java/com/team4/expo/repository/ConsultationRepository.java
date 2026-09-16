@@ -32,5 +32,6 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
             Long customerId, Long boothId, LocalDate preferredDate, ConsultationStatus status);
 
     // 후기 작성 자격 검증 - 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기를 남길 수 있다.
-    boolean existsByCustomerIdAndBooth_IdAndStatus(Long customerId, Long boothId, ConsultationStatus status);
+    // 완료 후 5일 이내인지는 서비스 레이어에서 Consultation.isReviewable()로 판단(updatedAt 기준).
+    List<Consultation> findByCustomerIdAndBooth_IdAndStatus(Long customerId, Long boothId, ConsultationStatus status);
 }

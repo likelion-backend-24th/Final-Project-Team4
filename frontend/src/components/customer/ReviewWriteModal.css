@@ -1,0 +1,44 @@
+.c-review-write__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172033;
+}
+
+.c-review-write__field input,
+.c-review-write__field textarea {
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #dfe5ed;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  resize: vertical;
+}
+
+.c-review-write__type {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.c-review-write__type button {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #dfe5ed;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #607087;
+  cursor: pointer;
+}
+
+.c-review-write__type button.is-selected {
+  border-color: #2f6fed;
+  background: #eff5ff;
+  color: #2f6fed;
+}

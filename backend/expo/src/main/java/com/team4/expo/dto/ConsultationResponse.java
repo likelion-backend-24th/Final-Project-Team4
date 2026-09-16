@@ -33,6 +33,7 @@ public class ConsultationResponse {
     private final ConsultationStatus status;
     private final String rejectReason;
     private final LocalDateTime createdAt;
+    private final boolean reviewable;
 
     private ConsultationResponse(Long consultationId, Long boothId, String boothNo, Long expoId, String expoTitle,
                                   String companyName,
@@ -41,7 +42,7 @@ public class ConsultationResponse {
                                   boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
                                   String message, String aiSummary, boolean aiSummaryRetryable, boolean leadConsent,
                                   ConsultationStatus status, String rejectReason,
-                                  LocalDateTime createdAt) {
+                                  LocalDateTime createdAt, boolean reviewable) {
         this.consultationId = consultationId;
         this.boothId = boothId;
         this.boothNo = boothNo;
@@ -65,6 +66,7 @@ public class ConsultationResponse {
         this.status = status;
         this.rejectReason = rejectReason;
         this.createdAt = createdAt;
+        this.reviewable = reviewable;
     }
 
     public static ConsultationResponse from(Consultation consultation) {
@@ -95,7 +97,8 @@ public class ConsultationResponse {
                 consultation.isLeadConsent(),
                 consultation.getStatus(),
                 consultation.getRejectReason(),
-                consultation.getCreatedAt()
+                consultation.getCreatedAt(),
+                consultation.isReviewable()
         );
     }
 }

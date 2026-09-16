@@ -164,7 +164,8 @@ public class ConsultationService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
 
         boolean eligible = consultationRepository
-                .existsByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED);
+                .findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
+                .stream().anyMatch(Consultation::isReviewable);
 
         return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
     }
