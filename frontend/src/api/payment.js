@@ -21,6 +21,13 @@ export const getMyPayments = () =>
     .get("/api/exhibitor/payments")
     .then((res) => res.data);
 
+// POST /api/exhibitor/payments/{bookingId}/refund - 부스 참가비 전액 환불 신청
+// 참가 확정(CONFIRMED, 결제완료)된 신청 그룹만 대상. 성공 시 부스 자리도 반납됨(ASSIGNED -> AVAILABLE)
+export const refundBoothPayment = ({ bookingId, reason }) =>
+  apiClient
+    .post(`/api/exhibitor/payments/${bookingId}/refund`, { reason })
+    .then((res) => res.data);
+
 // POST /api/customer/admission-payments - 유료 입장권 결제 (무료 QR이 없는 날짜를 방문할 때).
 // 무료 방문예약처럼 날짜를 여러 개 골라 한 번에 결제하면 그 수만큼 티켓이 각각 발급됨.
 // 결제 대상 고객은 Gateway가 JWT에서 꺼내 X-User-Id로 주입 - body로 customerId를 보내지 않음(서버가 안 받음)
