@@ -165,7 +165,8 @@ public class CustomerVehicleService {
     private VehicleSearchCandidate toCandidate(Vehicle v) {
         return new VehicleSearchCandidate(v.getId(), v.getName(), v.getTags(), v.getStartPrice(),
                 v.getSummary(), v.getDescription(), v.getFeatures(), v.getColors(),
-                v.getRange(), v.getBattery(), v.getPower());
+                v.getRange(), v.getBattery(), v.getPower(),
+                v.getBrand(), v.getCategory(), v.getDrivetrain(), v.getSeatingCapacity());
     }
 
     // AI 미설정/호출 실패 시 폴백 - 원문을 차량의 텍스트 필드 전체에 대해 단순 포함검색

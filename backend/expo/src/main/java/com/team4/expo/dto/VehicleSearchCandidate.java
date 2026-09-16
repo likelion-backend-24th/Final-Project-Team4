@@ -19,4 +19,8 @@ public class VehicleSearchCandidate {
     private final String range;
     private final String battery;
     private final String power;
+    private final String brand;
+    private final String category;
+    private final String drivetrain;
+    private final Integer seatingCapacity;
 }

@@ -118,11 +118,13 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
 
     private record PromptCandidate(Long vehicleId, String name, String tags, Long startPrice, String summary,
                                     String description, String features, String colors,
-                                    String range, String battery, String power) {
+                                    String range, String battery, String power,
+                                    String brand, String category, String drivetrain, Integer seatingCapacity) {
         static PromptCandidate from(VehicleSearchCandidate c) {
             return new PromptCandidate(c.getVehicleId(), c.getName(), c.getTags(), c.getStartPrice(), c.getSummary(),
                     truncate(c.getDescription()), truncate(c.getFeatures()), truncate(c.getColors()),
-                    c.getRange(), c.getBattery(), c.getPower());
+                    c.getRange(), c.getBattery(), c.getPower(),
+                    c.getBrand(), c.getCategory(), c.getDrivetrain(), c.getSeatingCapacity());
         }
     }
 
@@ -135,7 +137,8 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
         }
 
         return "다음은 모빌리티 박람회에 전시된 차량 목록이다(JSON). 각 항목의 vehicleId, name, tags, startPrice(원), "
-                + "summary, description, features, colors, range(주행거리), battery, power를 참고해서, "
+                + "summary, description, features, colors, range(주행거리), battery, power, brand(제조사), "
+                + "category(차종), drivetrain(구동방식), seatingCapacity(승차인원)를 참고해서, "
                 + "사용자 질문에 맞는 차량만 골라줘.\n\n"
                 + "규칙:\n"
                 + "- 가격 질문(\"300만원대\" 등)은 startPrice(원 단위 숫자)를 보고 직접 판단해.\n"
