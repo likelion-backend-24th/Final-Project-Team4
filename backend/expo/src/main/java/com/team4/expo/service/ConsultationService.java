@@ -3,14 +3,19 @@ package com.team4.expo.service;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.client.AiSummaryClient;
+import com.team4.expo.client.ExhibitorProfile;
+import com.team4.expo.client.IdentityClient;
 import com.team4.expo.client.ReservationClient;
+import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
+import com.team4.expo.domain.BoothApplication;
 import com.team4.expo.domain.BoothStatus;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.dto.ConsultationRequest;
 import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.dto.ConsultationUpdateRequest;
+import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
 import java.util.LinkedHashSet;
@@ -26,15 +31,21 @@ public class ConsultationService {
 
     private final BoothRepository boothRepository;
     private final ConsultationRepository consultationRepository;
+    private final BoothApplicationRepository boothApplicationRepository;
     private final ReservationClient reservationClient;
     private final AiSummaryClient aiSummaryClient;
+    private final IdentityClient identityClient;
 
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
-                                ReservationClient reservationClient, AiSummaryClient aiSummaryClient) {
+                                BoothApplicationRepository boothApplicationRepository,
+                                ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
+                                IdentityClient identityClient) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
+        this.boothApplicationRepository = boothApplicationRepository;
         this.reservationClient = reservationClient;
         this.aiSummaryClient = aiSummaryClient;
+        this.identityClient = identityClient;
     }
 
     public List<ConsultationResponse> applyConsultation(Long customerId, ConsultationRequest request) {
@@ -86,8 +97,17 @@ public class ConsultationService {
     @Transactional(readOnly = true)
     public List<ConsultationResponse> listMyConsultations(Long customerId) {
         return consultationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
-                .map(ConsultationResponse::from)
+                .map(c -> ConsultationResponse.from(c, companyNameOf(c.getBooth())))
                 .collect(Collectors.toList());
+    }
+
+    // post(부스 소개 콘텐츠)와 동일한 방식으로 업체명 조회, 실패 시 null(화면에서 부스 번호로 폴백)
+    private String companyNameOf(Booth booth) {
+        return boothApplicationRepository.findByBooth_IdAndStatus(booth.getId(), ApplicationStatus.CONFIRMED)
+                .map(BoothApplication::getExhibitorId)
+                .flatMap(identityClient::getExhibitorProfile)
+                .map(ExhibitorProfile::companyName)
+                .orElse(null);
     }
 
     // 대기 중(REQUESTED)인 본인 상담 신청 내용 수정. 방문 날짜를 바꾸면 그 날짜 입장권 보유·중복 신청 여부를 다시 검증한다.

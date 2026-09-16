@@ -470,10 +470,10 @@ function CustomerMyPage() {
                   >
                     <div className="c-ticket-card__head">
                       <div>
-                        <h3>{c.interestedVehicle || '차량 정보 없음'}</h3>
+                        <h3>{c.expoTitle}</h3>
                         <p className="c-ticket-card__submeta">
-                          {c.expoTitle}
-                          {c.boothNo && ` · ${c.boothNo} 부스`}
+                          {c.companyName || (c.boothNo ? `${c.boothNo} 부스` : '참가업체 정보 없음')}
+                          {c.companyName && c.boothNo && ` · ${c.boothNo} 부스`}
                         </p>
                       </div>
                       <span className={`c-ticket-card__badge ${CONSULTATION_STATUS_BADGE[c.status] ?? ''}`}>
