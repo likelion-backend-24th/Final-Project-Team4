@@ -180,12 +180,16 @@ class LeadScanAcceptanceTest {
     }
 
     @Test
-    @DisplayName("사전 상담 신청 자체가 없는 워크인 QR 스캔은 409로 막힌다")
-    void 워크인_스캔_409() throws Exception {
+    @DisplayName("사전 상담 신청 자체가 없는 워크인 QR 스캔은 동의 없이도 방문 기록(Lead)이 생성된다 - TASK 7-1(2026-09-16 확정)")
+    void 워크인_스캔_리드생성() throws Exception {
         mockMvc.perform(post("/api/exhibitor/booths/{boothId}/leads", booth.getId()).with(exhibitor())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(scanBody()))
-                .andExpect(status().isConflict());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.customerId").value(CUSTOMER_ID))
+                .andExpect(jsonPath("$.data.consultationId").value(org.hamcrest.Matchers.nullValue()));
+
+        assertThat(leadRepository.findAll()).hasSize(1);
     }
 
     @Test
@@ -255,5 +259,43 @@ class LeadScanAcceptanceTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].customerId").value(CUSTOMER_ID));
+    }
+
+    private static RequestPostProcessor customer() {
+        return request -> {
+            request.addHeader("X-User-Id", String.valueOf(CUSTOMER_ID));
+            request.addHeader("X-User-Role", "USER");
+            return request;
+        };
+    }
+
+    @Test
+    @DisplayName("고객은 본인이 방문 기록을 남긴 부스 목록을 조회할 수 있다 - TASK 7-1")
+    void 방문부스_목록조회() throws Exception {
+        mockMvc.perform(post("/api/exhibitor/booths/{boothId}/leads", booth.getId()).with(exhibitor())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(scanBody()))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/customer/expos/{expoId}/visited-booths", expo.getId()).with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].boothId").value(booth.getId()))
+                .andExpect(jsonPath("$.data[0].boothNo").value(booth.getBoothNo()));
+    }
+
+    @Test
+    @DisplayName("방문 기록이 없으면 방문 부스 목록은 빈 배열이다")
+    void 방문부스_없음_빈목록() throws Exception {
+        mockMvc.perform(get("/api/customer/expos/{expoId}/visited-booths", expo.getId()).with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("로그인하지 않으면 방문 부스 목록 조회는 401")
+    void 방문부스_비로그인_401() throws Exception {
+        mockMvc.perform(get("/api/customer/expos/{expoId}/visited-booths", expo.getId()))
+                .andExpect(status().isUnauthorized());
     }
 }
