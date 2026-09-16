@@ -5,54 +5,9 @@
   align-items: flex-start;
 }
 
-.c-review-write.has-panel {
-  width: 920px;
-}
-
 .c-review-write__body {
   flex: 1;
   min-width: 0;
-}
-
-.c-review-write__panel {
-  flex: 1;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 16px;
-  background: #f7f9fc;
-  border: 1px solid #e0e6ee;
-  border-radius: 8px;
-  max-height: 480px;
-  overflow-y: auto;
-}
-
-.c-review-write__panel h3 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #172033;
-}
-
-.c-review-write__panel-block {
-  margin-bottom: 14px;
-}
-
-.c-review-write__panel-block p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #4e5b70;
-  white-space: pre-wrap;
-}
-
-.c-review-write__panel-label {
-  font-size: 11px;
-  font-weight: 700;
-  color: #52709c;
-}
-
-.c-review-write__panel-empty {
-  font-size: 13px;
-  color: #9ba5b4;
 }
 
 .c-review-write__tools {
