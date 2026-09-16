@@ -706,6 +706,105 @@
   color: #1e293b;
 }
 
+.booth-manage__status {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.booth-manage__stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+.booth-manage__stat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.booth-manage__stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.booth-manage__stat-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.booth-manage__review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.booth-manage__review-row {
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.booth-manage__review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.booth-manage__review-type {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.booth-manage__review-author {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.booth-manage__review-vehicle {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.booth-manage__review-date {
+  margin-left: auto;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.booth-manage__review-content {
+  font-size: 13px;
+  color: #334155;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.booth-manage__review-images {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.booth-manage__review-images img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 @media (max-width: 900px) {
   .booth-manage__main {
     padding: 24px 20px 40px;

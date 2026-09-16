@@ -3,7 +3,9 @@ import { Link, useParams } from 'react-router-dom';
 import {
   deleteVehicle,
   getBoothManageDetail,
+  getBoothStats,
   getBoothVehicles,
+  getExhibitorBoothReviews,
   toAssetUrl,
   updateBoothContent,
   uploadBoothBannerImage,
@@ -39,6 +41,11 @@ function BoothManage() {
   const [vehicles, setVehicles] = useState([]);
   const [vehiclesError, setVehiclesError] = useState(null);
 
+  const [stats, setStats] = useState(null);
+  const [statsError, setStatsError] = useState(null);
+  const [reviews, setReviews] = useState(null);
+  const [reviewsError, setReviewsError] = useState(null);
+
   const loadDetail = () => {
     getBoothManageDetail(boothId)
       .then((res) => {
@@ -64,6 +71,12 @@ function BoothManage() {
     loadDetail();
     loadVehicles();
     getMyProfile().then(setProfile).catch(() => setProfile(null));
+    getBoothStats(boothId)
+      .then(setStats)
+      .catch((err) => setStatsError(err.response?.data?.error?.message ?? '통계를 불러오지 못했습니다.'));
+    getExhibitorBoothReviews(boothId)
+      .then(setReviews)
+      .catch((err) => setReviewsError(err.response?.data?.error?.message ?? '후기를 불러오지 못했습니다.'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boothId]);
 
@@ -417,6 +430,96 @@ function BoothManage() {
           </div>
         </section>
         )}
+
+        <section className="booth-manage__card">
+          <div className="booth-manage__section-header">
+            <span className="booth-manage__badge">{showVehicleSection ? 5 : 4}</span>
+            <div>
+              <h2>방문 통계</h2>
+              <p className="booth-manage__section-desc">상담 신청 현황과 방문자 수를 확인할 수 있습니다.</p>
+            </div>
+          </div>
+
+          {statsError ? (
+            <p className="booth-manage__error">{statsError}</p>
+          ) : !stats ? (
+            <p className="booth-manage__status">불러오는 중...</p>
+          ) : (
+            <div className="booth-manage__stats-grid">
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.visitCount}</span>
+                <span className="booth-manage__stat-label">방문자</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.requestedCount}</span>
+                <span className="booth-manage__stat-label">대기</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.approvedCount}</span>
+                <span className="booth-manage__stat-label">승인</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.completedCount}</span>
+                <span className="booth-manage__stat-label">완료</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.rejectedCount}</span>
+                <span className="booth-manage__stat-label">반려</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.noShowCount}</span>
+                <span className="booth-manage__stat-label">미방문</span>
+              </div>
+              <div className="booth-manage__stat-tile">
+                <span className="booth-manage__stat-value">{stats.canceledCount}</span>
+                <span className="booth-manage__stat-label">취소</span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="booth-manage__card">
+          <div className="booth-manage__section-header">
+            <span className="booth-manage__badge">{showVehicleSection ? 6 : 5}</span>
+            <div>
+              <h2>후기</h2>
+              <p className="booth-manage__section-desc">고객이 남긴 상담후기/부스후기입니다.</p>
+            </div>
+          </div>
+
+          {reviewsError ? (
+            <p className="booth-manage__error">{reviewsError}</p>
+          ) : !reviews ? (
+            <p className="booth-manage__status">불러오는 중...</p>
+          ) : reviews.length === 0 ? (
+            <p className="booth-manage__empty">아직 등록된 후기가 없습니다.</p>
+          ) : (
+            <div className="booth-manage__review-list">
+              {reviews.map((r) => (
+                <div key={r.reviewId} className="booth-manage__review-row">
+                  <div className="booth-manage__review-head">
+                    <span className="booth-manage__review-type">
+                      {r.reviewType === 'CONSULT' ? '상담후기' : '부스후기'}
+                    </span>
+                    <span className="booth-manage__review-author">{r.customerName}</span>
+                    {r.vehicleName && <span className="booth-manage__review-vehicle">{r.vehicleName}</span>}
+                    <span className="booth-manage__review-date">
+                      {r.createdAt ? r.createdAt.slice(0, 10).replace(/-/g, '.') : ''}
+                    </span>
+                  </div>
+                  <p className="booth-manage__review-content">{r.content}</p>
+                  {r.images?.length > 0 && (
+                    <div className="booth-manage__review-images">
+                      {r.images.map((img) => (
+                        <img key={img.imageId} src={toAssetUrl(img.imageUrl)} alt="후기 사진" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

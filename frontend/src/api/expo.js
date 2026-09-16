@@ -144,6 +144,14 @@ export const uploadBoothBannerImage = (boothId, file) => {
 export const getBoothVehicles = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}/vehicles`).then((res) => res.data.data);
 
+// GET /api/exhibitor/booths/{boothId}/stats — 부스 상담 상태별 건수 + 방문자(Lead) 수
+export const getBoothStats = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/stats`).then((res) => res.data.data);
+
+// GET /api/exhibitor/booths/{boothId}/reviews — 본인 부스로 들어온 후기(상담후기+부스후기) 실명 조회
+export const getExhibitorBoothReviews = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/reviews`).then((res) => res.data.data);
+
 // POST /api/exhibitor/booths/{boothId}/vehicles — 전시 차량 등록
 // payload: { name, tags: string[], startPrice, summary, description, features, colors, range, battery, power }
 export const registerVehicle = (boothId, payload) =>
