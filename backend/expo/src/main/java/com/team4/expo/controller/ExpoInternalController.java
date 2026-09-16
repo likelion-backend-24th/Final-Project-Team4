@@ -3,6 +3,7 @@ package com.team4.expo.controller;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
+import com.team4.expo.dto.BoothApplicationGroupCancelResponse;
 import com.team4.expo.dto.BoothApplicationGroupConfirmRequest;
 import com.team4.expo.dto.BoothApplicationGroupConfirmResponse;
 import com.team4.expo.dto.BoothApplicationGroupPaymentContextResponse;
@@ -63,6 +64,18 @@ public class ExpoInternalController {
 
         String reason = request != null ? request.getReason() : null;
         return ResponseEntity.ok(ApiResponse.success(boothApplicationPaymentService.releaseBoothApplicationGroup(groupId, reason)));
+    }
+
+    // Payment -> Expo. 부스 참가비 환불 완료 후 호출 - 참가 확정됐던 신청을 취소하고 부스 자리 반납.
+    @PostMapping("/{groupId}/cancel")
+    public ResponseEntity<ApiResponse<BoothApplicationGroupCancelResponse>> cancel(@RequestHeader("Authorization") String authorization,
+                                                                                   @PathVariable String groupId,
+                                                                                   @RequestBody(required = false) BoothApplicationGroupReleaseRequest request) {
+        requirePaymentService(authorization);
+
+        String reason = request != null ? request.getReason() : null;
+
+        return ResponseEntity.ok(ApiResponse.success(boothApplicationPaymentService.cancelConfirmedBoothApplicationGroup(groupId, reason)));
     }
 
     private void requirePaymentService(String authorization) {
