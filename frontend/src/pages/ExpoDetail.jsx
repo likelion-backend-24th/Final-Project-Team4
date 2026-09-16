@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getExpoBooths, getExpoList } from '../api/expo';
+import { getExpoBooths, getExpoList, toAssetUrl } from '../api/expo';
 import HallMap, { HallPlaza } from '../components/HallMap';
 import { getBoothHall } from '../utils/boothType';
 import './ExpoDetail.css';
@@ -129,7 +129,18 @@ function ExpoDetail() {
 
   return (
     <div className="expo-detail">
-      <section className="expo-detail__hero">
+      <section
+        className="expo-detail__hero"
+        style={
+          summary?.bannerImageUrl
+            ? {
+                backgroundImage: `linear-gradient(120deg, rgba(11,18,32,0.85) 0%, rgba(28,42,74,0.75) 100%), url(${toAssetUrl(summary.bannerImageUrl)})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+              }
+            : undefined
+        }
+      >
         <div className="expo-detail__hero-main">
           <div className="expo-detail__hero-badges">
             <span className="expo-detail__badge">{notYetOpen ? '모집예정' : '모집중'}</span>

@@ -187,7 +187,7 @@ public class ExpoService {
             int rejected = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.REJECTED).count();
 
             return new ExpoAdminSummaryResponse(
-                    expo.getId(), expo.getTitle(), expo.getStatus(),
+                    expo.getId(), expo.getTitle(), expo.getBannerImageUrl(), expo.getStatus(),
                     expo.getApplyStartsAt(), expo.getApplyEndsAt(),
                     booths.size(), availableBooths,
                     applications.size(), pending, approved, rejected

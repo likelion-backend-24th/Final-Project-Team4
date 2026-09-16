@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getExpoList } from "../api/expo";
+import { getExpoList, toAssetUrl } from "../api/expo";
 import "./ExpoList.css";
 
 // 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
@@ -55,6 +55,7 @@ const toRealCard = (e) => ({
   startsAt: e.startsAt,
   endsAt: e.endsAt,
   applyEndsAt: e.applyEndsAt,
+  bannerImageUrl: e.bannerImageUrl,
 });
 
 function ExpoList() {
@@ -112,7 +113,11 @@ function ExpoList() {
       {/* 카드 상단 썸네일 영역 (그라데이션 배경) */}
       <div
         className="expo-card__thumb"
-        style={{ background: GRADIENTS[i % GRADIENTS.length] }}
+        style={
+          c.bannerImageUrl
+            ? { backgroundImage: `url(${toAssetUrl(c.bannerImageUrl)})` }
+            : { background: GRADIENTS[i % GRADIENTS.length] }
+        }
       />
       <div className="expo-card__body">
         <div className="expo-card__meta">

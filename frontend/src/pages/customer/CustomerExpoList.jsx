@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
-import { getCustomerExpoList, searchVehicles } from '../../api/expo';
+import { getCustomerExpoList, searchVehicles, toAssetUrl } from '../../api/expo';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import './CustomerExpoList.css';
 
@@ -49,6 +49,7 @@ const toCard = (e) => ({
   applyEndsAt: e.applyEndsAt,
   admissionFee: e.admissionFee,
   boothCount: e.boothCount,
+  bannerImageUrl: e.bannerImageUrl,
   phase: phaseOf(e),
 });
 
@@ -231,7 +232,11 @@ function CustomerExpoList() {
                 <div key={e.expoId} className="c-expo-card">
                   <div
                     className="c-expo-card__thumb"
-                    style={{ background: CUSTOMER_EXPO_GRADIENTS[i % CUSTOMER_EXPO_GRADIENTS.length] }}
+                    style={
+                      e.bannerImageUrl
+                        ? { backgroundImage: `url(${toAssetUrl(e.bannerImageUrl)})` }
+                        : { background: CUSTOMER_EXPO_GRADIENTS[i % CUSTOMER_EXPO_GRADIENTS.length] }
+                    }
                   />
                   <div className="c-expo-card__body">
                     <div className="c-expo-card__meta">

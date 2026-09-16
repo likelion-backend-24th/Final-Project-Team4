@@ -70,6 +70,17 @@ export const getAdminExpo = (expoId) =>
 export const updateExpo = (expoId, payload) =>
   apiClient.put(`/api/admin/expos/${expoId}`, payload).then((res) => res.data.data);
 
+// PUT /api/admin/expos/{expoId}/banner-image — Admin: 박람회 배너 이미지 등록/교체
+export const uploadExpoBannerImage = (expoId, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiClient
+    .put(`/api/admin/expos/${expoId}/banner-image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((res) => res.data.data);
+};
+
 // DELETE /api/admin/expos/{expoId} — Admin: 박람회 삭제 (DRAFT + 신청 0건일 때만 가능)
 export const deleteExpo = (expoId) =>
   apiClient.delete(`/api/admin/expos/${expoId}`).then((res) => res.data.data);

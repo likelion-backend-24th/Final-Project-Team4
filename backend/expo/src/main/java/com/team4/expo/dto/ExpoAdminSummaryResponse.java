@@ -11,6 +11,7 @@ import lombok.Getter;
 public class ExpoAdminSummaryResponse {
     private final Long expoId;
     private final String title;
+    private final String bannerImageUrl;
     private final ExpoStatus status;
     private final LocalDateTime applyStartsAt;
     private final LocalDateTime applyEndsAt;
