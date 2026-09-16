@@ -1,0 +1,45 @@
+.c-visited-booths__status {
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.c-visited-booths__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.c-visited-booths__list button {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid #dfe5ed;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #172033;
+  cursor: pointer;
+  text-align: left;
+}
+
+.c-visited-booths__list button:hover {
+  border-color: #2f6fed;
+  background: #f7faff;
+}
+
+.c-visited-booths__booth-no {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
