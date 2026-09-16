@@ -247,6 +247,17 @@ export const getBoothReviews = (boothId) =>
 export const createBoothReview = (boothId, payload) =>
   apiClient.post(`/api/customer/booths/${boothId}/reviews`, payload).then((res) => res.data.data);
 
+// POST /api/customer/booths/{boothId}/reviews/{reviewId}/images — 후기 사진 추가 (최대 5장, 선택, 본인 후기만)
+export const addBoothReviewImage = (boothId, reviewId, file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return apiClient
+    .post(`/api/customer/booths/${boothId}/reviews/${reviewId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .then((res) => res.data.data);
+};
+
 // GET /api/customer/vehicles/search — 자연어 질의로 전시 차량 AI 검색 (전체 공개 박람회 대상)
 // 응답: { interpretedSummary, results: [{ expoId, expoTitle, boothId, boothNo, companyName, vehicle }] }
 export const searchVehicles = (query) =>

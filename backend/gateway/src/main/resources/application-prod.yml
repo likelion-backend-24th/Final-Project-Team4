@@ -30,6 +30,10 @@ spring:
           uri: http://expo:8082
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
+        - id: review-uploads
+          uri: http://review:8085
+          predicates:
+            - Path=/uploads/review/**
         - id: expo-uploads
           uri: http://expo:8082
           predicates:

@@ -1,6 +1,7 @@
 package com.team4.review.controller;
 
 import com.team4.common.response.ApiResponse;
+import com.team4.review.dto.ReviewImageResponse;
 import com.team4.review.dto.ReviewListResponse;
 import com.team4.review.dto.ReviewRequest;
 import com.team4.review.dto.ReviewResponse;
@@ -15,7 +16,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 // 부스 방문 후기(상담후기/부스후기). 조회는 비회원도 가능(게이트웨이 화이트리스트), 작성은 USER 역할만(SecurityConfig).
 @RestController
@@ -40,6 +43,18 @@ public class ReviewCustomerController {
             @Valid @RequestBody ReviewRequest request) {
 
         ReviewResponse response = reviewService.createReview(customer.getId(), boothId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    // 후기 사진 추가(최대 5장, 선택) - createReview로 후기를 먼저 만든 뒤 파일마다 호출.
+    @PostMapping("/{reviewId}/images")
+    public ResponseEntity<ApiResponse<ReviewImageResponse>> addReviewImage(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long boothId,
+            @PathVariable Long reviewId,
+            @RequestParam("image") MultipartFile image) {
+
+        ReviewImageResponse response = reviewService.addReviewImage(customer.getId(), boothId, reviewId, image);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
     }
 }

@@ -23,8 +23,8 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 후기 목록 조회는 비회원도 가능(게이트웨이 화이트리스트), 작성은 USER 롤만.
-                        .requestMatchers(HttpMethod.POST, "/api/customer/booths/*/reviews").hasRole("USER")
+                        // 후기 목록 조회(GET)는 비회원도 가능(게이트웨이 화이트리스트), 작성/사진 추가(POST)는 USER 롤만.
+                        .requestMatchers(HttpMethod.POST, "/api/customer/booths/*/reviews/**").hasRole("USER")
                         .anyRequest().permitAll())
                 .addFilterBefore(new GatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e

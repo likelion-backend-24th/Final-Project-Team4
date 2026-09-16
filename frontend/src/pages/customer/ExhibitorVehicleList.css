@@ -331,7 +331,31 @@
   min-height: 88px;
   gap: 20px;
   padding: 17px 22px;
+  border: none;
   border-bottom: 1px solid #edf0f4;
+  width: 100%;
+  background: #fff;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.c-review-item:hover {
+  background: #f8fafc;
+}
+
+.c-review-thumb {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.c-review-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .c-review-item:last-child {

@@ -133,6 +133,8 @@ services:
       EXPO_BASE_URL: http://expo:8082
       IDENTITY_BASE_URL: http://identity:8081
       SPRING_JPA_SHOW_SQL: "false"
+    volumes:
+      - review-uploads:/uploads
     depends_on:
       mysql:
         condition: service_healthy
@@ -176,6 +178,7 @@ volumes:
   mysql-data:
   redis-data:
   expo-uploads:
+  review-uploads:
 
 networks:
   backend:

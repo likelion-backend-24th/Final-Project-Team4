@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createBoothReview, draftConsultationReview, getConsultationReviewContext } from '../../api/expo';
+import { addBoothReviewImage, createBoothReview, draftConsultationReview, getConsultationReviewContext } from '../../api/expo';
 import './Modal.css';
 import './ReviewWriteModal.css';
 
@@ -8,13 +8,23 @@ import './ReviewWriteModal.css';
 // consultationId가 있을 때만(=상담에서 진입) "상담내용" 패널·AI 초안 생성을 쓸 수 있다 - 둘 다
 // 본인 상담 요구사항 + 참가업체 현장 메모를 근거로 하기 때문에 어느 상담에서 왔는지 알아야 한다.
 const TYPE_LABEL = { CONSULT: '상담후기', BOOTH: '부스후기' };
+const MAX_IMAGES = 5;
 
 function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', defaultVehicleName = '', lockType = false, onClose, onCreated }) {
   const [reviewType, setReviewType] = useState(defaultType);
   const [vehicleName, setVehicleName] = useState(defaultVehicleName);
   const [content, setContent] = useState('');
+  const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleAddImages = (e) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';
+    setImages((prev) => [...prev, ...files].slice(0, MAX_IMAGES));
+  };
+
+  const removeImage = (idx) => setImages((prev) => prev.filter((_, i) => i !== idx));
 
   const [showContext, setShowContext] = useState(false);
   const [context, setContext] = useState(null);
@@ -69,6 +79,12 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
       vehicleName: reviewType === 'CONSULT' ? vehicleName.trim() : null,
       content: content.trim(),
     })
+      .then((review) =>
+        // 사진 업로드는 부가 기능 - 한 장이 실패해도 이미 등록된 후기 자체는 그대로 둔다(best-effort).
+        images
+          .reduce((chain, file) => chain.then(() => addBoothReviewImage(boothId, review.reviewId, file).catch(() => {})), Promise.resolve())
+          .then(() => review)
+      )
       .then((review) => {
         onCreated?.(review);
         onClose();
@@ -131,6 +147,26 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
               placeholder="상담 또는 방문 경험을 자유롭게 남겨주세요."
             />
           </label>
+
+          <div className="c-review-write__field">
+            <span>사진 (선택, 최대 {MAX_IMAGES}장)</span>
+            <div className="c-review-write__images">
+              {images.map((file, i) => (
+                <div key={i} className="c-review-write__thumb">
+                  <img src={URL.createObjectURL(file)} alt={`첨부 이미지 ${i + 1}`} />
+                  <button type="button" onClick={() => removeImage(i)} aria-label="사진 삭제">
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {images.length < MAX_IMAGES && (
+                <label className="c-review-write__add-thumb">
+                  +
+                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={handleAddImages} />
+                </label>
+              )}
+            </div>
+          </div>
 
           {error && <p className="c-modal__error">{error}</p>}
 

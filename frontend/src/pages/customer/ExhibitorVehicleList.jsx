@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
+import ReviewDetailModal from '../../components/customer/ReviewDetailModal';
 import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 
@@ -16,6 +17,7 @@ function ExhibitorVehicleList() {
   const [keyword, setKeyword] = useState('');
   const [reviews, setReviews] = useState(null);
   const [reviewTab, setReviewTab] = useState('CONSULT');
+  const [selectedReview, setSelectedReview] = useState(null);
   const writeReviewType = searchParams.get('writeReview'); // 마이페이지(예약한 상담)에서 넘어오면 바로 작성 모달을 연다
   const closeWriteReview = () => {
     const next = new URLSearchParams(searchParams);
@@ -162,17 +164,27 @@ function ExhibitorVehicleList() {
                 return <p className="c-review-empty">아직 등록된 후기가 없습니다.</p>;
               }
               return list.map((r) => (
-                <div key={r.reviewId} className="c-review-item">
+                <button
+                  type="button"
+                  key={r.reviewId}
+                  className="c-review-item"
+                  onClick={() => setSelectedReview(r)}
+                >
                   <div className="c-review-user">
                     <div className="c-review-user-name">{r.customerName}</div>
                     <div className="c-review-date">{fmtDate(r.createdAt)}</div>
                   </div>
+                  {r.images?.[0] && (
+                    <div className="c-review-thumb">
+                      <img src={toAssetUrl(r.images[0].imageUrl)} alt="" />
+                    </div>
+                  )}
                   <div className="c-review-main">
                     <div className="c-review-tag">{r.vehicleName || `부스 ${r.boothNo}`}</div>
                     <div className="c-review-text">{r.content}</div>
                   </div>
                   <div className="c-review-arrow">›</div>
-                </div>
+                </button>
               ));
             })()}
           </div>
@@ -193,6 +205,8 @@ function ExhibitorVehicleList() {
           }}
         />
       )}
+
+      {selectedReview && <ReviewDetailModal review={selectedReview} onClose={() => setSelectedReview(null)} />}
     </div>
   );
 }
