@@ -398,6 +398,16 @@ function MyPage() {
                           <span className={`mypage__badge ${STATUS_BADGE[STATUS_LABEL[app.status]] ?? ""}`}>
                             {STATUS_LABEL[app.status] ?? app.status}
                           </span>
+                          {app.status === "CONFIRMED" && (
+                            <button
+                              type="button"
+                              className="mypage__booth-chip-insights"
+                              title="방문 통계·후기 보기"
+                              onClick={() => navigate(`/mypage/booths/${app.boothId}/insights`)}
+                            >
+                              📊
+                            </button>
+                          )}
                         </span>
                       ))}
                     </div>
