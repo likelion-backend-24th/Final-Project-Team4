@@ -20,6 +20,7 @@ public class ExpoSummaryResponse {
     private final LocalDateTime applyStartsAt; // 박람회 신청 시작일
     private final LocalDateTime applyEndsAt; // 박람회 신청 마감일
     private final Long admissionFee; // 당일 유료 입장료
+    private final String bannerImageUrl; // 박람회 배너 이미지 경로
     private final ExpoPhase phase; // 진행 단계 (모집예정/모집중/개최예정/진행중/진행종료)
     private final long boothCount; // 참여 확정(ASSIGNED) 부스 수
     private final ExpoStatus status; // DRAFT/OPEN - 고객·참가업체 조회는 항상 OPEN만 나가고, Admin 수정 화면의 공개/비공개 버튼 표시에 사용
@@ -41,6 +42,7 @@ public class ExpoSummaryResponse {
                 expo.getApplyStartsAt(),
                 expo.getApplyEndsAt(),
                 expo.getAdmissionFee(),
+                expo.getBannerImageUrl(),
                 phase,
                 boothCount,
                 expo.getStatus(),
