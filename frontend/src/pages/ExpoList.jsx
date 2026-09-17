@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getExpoList, toAssetUrl } from "../api/expo";
+import { phaseOf } from "../utils/expoPhase";
 import "./ExpoList.css";
 
 // 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
@@ -33,16 +34,12 @@ const GRADIENTS = [
 // ISO 날짜(2026-05-12T10:00:00) → 화면 표시용(2026.05.12)
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : "");
 
-// 신청/개최 기간과 현재 시각을 비교해서 진행 단계(모집예정/모집중/모집마감/진행중/종료)를 계산
-// 참고: 서버는 기본적으로 OPEN 상태인 박람회만 내려주지만, 화면에서는 날짜 기준으로 세분화해서 보여줌
-const phaseOf = (e) => {
-  const now = Date.now();
-  const at = (s) => new Date(s).getTime();
-  if (now < at(e.applyStartsAt)) return "모집예정";
-  if (now <= at(e.applyEndsAt)) return "모집중";
-  if (now < at(e.startsAt)) return "모집마감";
-  if (now <= at(e.endsAt)) return "진행중";
-  return "종료";
+// 신청 마감까지 남은 일수를 D-day 형태로 표시 (지난 경우 "마감")
+const dDayOf = (iso) => {
+  const diff = Math.ceil((new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  if (diff > 0) return `D-${diff}`;
+  if (diff === 0) return "D-DAY";
+  return "마감";
 };
 
 // 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환 (정렬에 쓸 원본 날짜는 그대로 둠)
@@ -54,6 +51,7 @@ const toRealCard = (e) => ({
   venue: e.venue,
   startsAt: e.startsAt,
   endsAt: e.endsAt,
+  applyStartsAt: e.applyStartsAt,
   applyEndsAt: e.applyEndsAt,
   bannerImageUrl: e.bannerImageUrl,
 });
@@ -130,10 +128,13 @@ function ExpoList() {
             {c.phase}
           </span>
           <span>
-            신청 마감 <strong>{fmtDate(c.applyEndsAt)}</strong>
+            신청마감 <strong className={dDayOf(c.applyEndsAt) === "마감" ? "is-zero" : undefined}>{dDayOf(c.applyEndsAt)}</strong>
           </span>
         </div>
         <h3>{c.title}</h3>
+        <p className="expo-card__apply-period">
+          신청기간 {fmtDate(c.applyStartsAt)} - {fmtDate(c.applyEndsAt)}
+        </p>
         <div className="expo-card__meta-list">
           <p>
             <span className="expo-card__icon expo-card__icon--calendar" />
