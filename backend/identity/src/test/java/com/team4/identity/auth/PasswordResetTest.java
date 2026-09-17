@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -117,13 +116,14 @@ class PasswordResetTest {
     }
 
     @Test
-    void 미가입_이메일로_요청해도_200이고_메일은_발송되지_않는다() throws Exception {
+    void 미가입_이메일로_요청해도_200이고_가입_여부_노출_없이_안내_메일만_발송된다() throws Exception {
         mockMvc.perform(post("/api/auth/password-reset")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"nobody@corp.com\"}"))
                 .andExpect(status().isOk());
 
-        verifyNoInteractions(mailSender);
+        // 응답 시간으로 가입 여부가 새지 않게 미가입 이메일에도 메일을 한 번 보낸다
+        verify(mailSender).send(eq("nobody@corp.com"), any(), any());
     }
 
     @Test
