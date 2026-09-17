@@ -55,3 +55,13 @@ export const refundAdmissionTicket = ({ ticketId, reason }) =>
   apiClient
     .post(`/api/customer/admission-payments/tickets/${ticketId}/refund`, { reason })
     .then((res) => res.data);
+
+// GET /api/admin/expos/{expoId}/revenue - 관리자: 박람회별 매출 현황(부스 참가비/당일 입장권 구분, 환불 차감 순매출)
+export const getExpoRevenue = (expoId) =>
+  apiClient.get(`/api/admin/expos/${expoId}/revenue`).then((res) => res.data);
+
+// GET /api/admin/stats/payments - 관리자: 박람회별 일별 결제, 환불 통계(source별)
+export const getPaymentStats = ({ expoId, from, to }) =>
+  apiClient
+    .get('/api/admin/stats/payments', { params: { expoId, from, to } })
+    .then((res) => res.data);

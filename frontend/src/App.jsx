@@ -28,6 +28,7 @@ import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
+import AdminRevenueStats from './pages/admin/AdminRevenueStats';
 
 function ExhibitorLayout({ children }) {
   return (
@@ -117,6 +118,7 @@ function App() {
       <Route path="/admin/expos/:expoId/edit" element={<AdminLayout><AdminExpoEdit /></AdminLayout>} />
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
+      <Route path="/admin/stats" element={<AdminLayout><AdminRevenueStats /></AdminLayout>} />
     </Routes>
   );
 }
