@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import bellIcon from '../assets/blueBell.svg';
 
 // 알림 종류별 배지 라벨/색상. 참가업체·고객 알림 타입을 모두 여기서 다룬다.
 const NOTIFICATION_META = {
@@ -85,8 +86,9 @@ function NotificationBell({ api, targetMap }) {
         type="button"
         className={`app-header__notifications-trigger${unreadCount > 0 ? ' has-unread' : ''}`}
         onClick={toggle}
+        aria-label="알림"
       >
-        알림
+        <img src={bellIcon} alt="" className="app-header__notifications-icon" />
       </button>
       {open && (
         <div className="app-header__notifications-panel">
