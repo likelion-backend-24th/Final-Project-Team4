@@ -4,11 +4,13 @@ import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.dto.NotificationResponse;
 import com.team4.expo.security.GatewayUser;
+import com.team4.expo.service.NotificationEmitterRegistry;
 import com.team4.expo.service.NotificationService;
 import java.util.Map;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,15 +19,24 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/exhibitor/notifications")
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final NotificationEmitterRegistry notificationEmitterRegistry;
 
-    public NotificationController(NotificationService notificationService) {
+    public NotificationController(NotificationService notificationService, NotificationEmitterRegistry notificationEmitterRegistry) {
         this.notificationService = notificationService;
+        this.notificationEmitterRegistry = notificationEmitterRegistry;
+    }
+
+    @GetMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream(@AuthenticationPrincipal GatewayUser exhibitor){
+
+        return notificationEmitterRegistry.subscribe(exhibitor.getId());
     }
 
     @GetMapping
