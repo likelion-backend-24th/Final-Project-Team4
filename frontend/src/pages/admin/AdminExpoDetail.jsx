@@ -241,7 +241,7 @@ function AdminExpoDetail() {
     }
   };
   const [filter, setFilter] = useState('전체');
-  const [view, setView] = useState('group'); // 'group' | 'booth'
+  const [view, setView] = useState('booth'); // 'group' | 'booth'
 
   const loadApplications = () => {
     getAdminBoothApplications({ size: 200 })
