@@ -17,7 +17,7 @@ spring:
         - id: expo-customer
           uri: http://expo:8082
           predicates:
-              - Path=/api/customer/expos/**,/api/customer/consultations/**,/api/customer/vehicles/**
+              - Path=/api/customer/expos/**,/api/customer/consultations/**,/api/customer/vehicles/**,/api/customer/notifications/**
         - id: review
           uri: http://review:8085
           predicates:
