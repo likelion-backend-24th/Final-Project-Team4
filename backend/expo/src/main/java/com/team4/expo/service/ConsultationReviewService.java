@@ -7,6 +7,7 @@ import com.team4.expo.domain.ApplicationStatus;
 import com.team4.expo.domain.Booth;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
+import com.team4.expo.domain.NotificationType;
 import com.team4.expo.dto.BoothStatsResponse;
 import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.repository.BoothApplicationRepository;
@@ -30,16 +31,18 @@ public class ConsultationReviewService {
     private final BoothRepository boothRepository;
     private final LeadRepository leadRepository;
     private final AiSummaryClient aiSummaryClient;
+    private final NotificationService notificationService;
 
     public ConsultationReviewService(ConsultationRepository consultationRepository,
                                       BoothApplicationRepository boothApplicationRepository,
                                       BoothRepository boothRepository, LeadRepository leadRepository,
-                                      AiSummaryClient aiSummaryClient) {
+                                      AiSummaryClient aiSummaryClient, NotificationService notificationService) {
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.boothRepository = boothRepository;
         this.leadRepository = leadRepository;
         this.aiSummaryClient = aiSummaryClient;
+        this.notificationService = notificationService;
     }
 
     @Transactional(readOnly = true)
@@ -62,6 +65,14 @@ public class ConsultationReviewService {
         }
 
         consultation.approve();
+
+        notificationService.notify(
+                consultation.getCustomerId(),
+                NotificationType.CONSULTATION_APPROVED,
+                "상담 신청이 확정되었습니다",
+                consultation.getBooth().getBoothNo() + " 부스와의 상담 신청이 확정되었습니다.",
+                consultation.getId());
+
         return ConsultationResponse.from(consultation);
     }
 

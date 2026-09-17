@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    Page<Notification> findByExhibitorId(Long exhibitorId, Pageable pageable);
+    Page<Notification> findByRecipientId(Long recipientId, Pageable pageable);
 
-    long countByExhibitorIdAndIsReadFalse(Long exhibitorId);
+    long countByRecipientIdAndIsReadFalse(Long recipientId);
 }
