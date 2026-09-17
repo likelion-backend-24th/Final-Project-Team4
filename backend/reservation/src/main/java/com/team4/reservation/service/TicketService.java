@@ -8,6 +8,8 @@ import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.domain.TicketStatus;
 import com.team4.reservation.domain.TicketType;
 import com.team4.reservation.dto.AdmissionContextResponse;
+import com.team4.reservation.dto.ScheduleChangeAffectedTicket;
+import com.team4.reservation.dto.ScheduleChangeResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
 import com.team4.reservation.dto.TicketResolveResponse;
 import com.team4.reservation.dto.TicketResponse;
@@ -206,5 +208,22 @@ public class TicketService {
             return true;
         }
         return ticketRepository.markCancelledIfIssued(ticketId) > 0;
+    }
+
+    // Expo -> Reservation. 박람회 개최 기간(startsAt~endsAt) 변경 시 호출.
+    // QR을 발급받은 고객 전체를 대상으로 새 기간 밖으로 벗어난 visitDate만 취소.
+    @Transactional
+    public ScheduleChangeResponse applyScheduleChange(Long expoId, LocalDate newStartsAt, LocalDate newEndsAt) {
+        List<ScheduleChangeAffectedTicket> affected = ticketRepository.findByExpoIdAndStatus(expoId, TicketStatus.ISSUED)
+                .stream()
+                .map(ticket -> new ScheduleChangeAffectedTicket(
+                        ticket.getCustomerId(),
+                        ticket.getVisitDate(),
+                        ticket.getVisitDate().isBefore(newStartsAt) || ticket.getVisitDate().isAfter(newEndsAt)))
+                .toList();
+
+        ticketRepository.cancelOutOfRangeByExpoId(expoId, newStartsAt, newEndsAt);
+
+        return new ScheduleChangeResponse(affected);
     }
 }

@@ -1,6 +1,7 @@
 package com.team4.reservation.repository;
 
 import com.team4.reservation.domain.Ticket;
+import com.team4.reservation.domain.TicketStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,4 +34,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.CANCELLED "
             + "WHERE t.id = :id AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED")
     int markCancelledIfIssued(@Param("id") Long id);
+
+    // 박람회 일정 변경(Expo -> Reservation)용 - 알림 발송 대상(전체) 추리려고 취소 전에 먼저 조회.
+    List<Ticket> findByExpoIdAndStatus(Long expoId, TicketStatus status);
+
+    // 위에서 조회한 것들 중 새 개최 기간([newStart, newEnd]) 밖으로 벗어난 것만 CANCELLED로 변경.
+    @Modifying
+    @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.CANCELLED "
+            + "WHERE t.expoId = :expoId AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED "
+            + "AND (t.visitDate < :newStart OR t.visitDate > :newEnd)")
+    int cancelOutOfRangeByExpoId(@Param("expoId") Long expoId, @Param("newStart") LocalDate newStart, @Param("newEnd") LocalDate newEnd);
 }
