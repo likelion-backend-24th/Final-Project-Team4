@@ -125,17 +125,18 @@ class ExhibitorSignupTest {
     }
 
     @Test
-    void 이미_가입된_이메일로는_인증코드_발송이_거부된다() throws Exception {
+    void 이미_가입된_이메일도_인증코드_발송은_가입_여부_노출_없이_200이다() throws Exception {
         verifyEmail("manager@corp.com");
         mockMvc.perform(post("/api/auth/exhibitors/signup")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(SIGNUP_BODY))
                 .andExpect(status().isCreated());
 
+        // 이메일 가입 여부가 응답으로 새면 안 되니 인증코드 발송 자체는 항상 200
         mockMvc.perform(post("/api/auth/email-verification/code")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"manager@corp.com\"}"))
-                .andExpect(status().isConflict());
+                .andExpect(status().isOk());
     }
 
     @Test
