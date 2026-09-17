@@ -8,6 +8,8 @@ const NOTIFICATION_META = {
   BOOTH_REJECTED: { label: '반려', tone: 'negative' },
   CONSULTATION_RECEIVED: { label: '상담', tone: 'info' },
   CONSULTATION_APPROVED: { label: '확정', tone: 'positive' },
+  EXPO_TICKET_CANCELLED: { label: '예약취소', tone: 'negative' },
+  EXPO_SCHEDULE_CHANGED: { label: '일정변경', tone: 'info' },
 };
 
 // "5분 전" 같은 상대 시간 표시. 하루 넘으면 날짜로.
