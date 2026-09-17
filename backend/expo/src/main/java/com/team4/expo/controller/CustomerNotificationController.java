@@ -4,11 +4,13 @@ import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.dto.NotificationResponse;
 import com.team4.expo.security.GatewayUser;
+import com.team4.expo.service.NotificationEmitterRegistry;
 import com.team4.expo.service.NotificationService;
 import java.util.Map;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 // 고객용 알림 API. NotificationController(참가업체용)와 동일한 구조, 같은 NotificationService를 공유한다.
 @RestController
@@ -24,9 +27,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerNotificationController {
 
     private final NotificationService notificationService;
+    private final NotificationEmitterRegistry notificationEmitterRegistry;
 
-    public CustomerNotificationController(NotificationService notificationService) {
+    public CustomerNotificationController(NotificationService notificationService, NotificationEmitterRegistry notificationEmitterRegistry) {
         this.notificationService = notificationService;
+        this.notificationEmitterRegistry =notificationEmitterRegistry;
+    }
+
+    @GetMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream(@AuthenticationPrincipal GatewayUser customer){
+
+        return notificationEmitterRegistry.subscribe(customer.getId());
     }
 
     @GetMapping

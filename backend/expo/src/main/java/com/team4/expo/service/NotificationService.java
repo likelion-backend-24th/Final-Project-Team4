@@ -21,15 +21,19 @@ public class NotificationService {
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
 
     private final NotificationRepository notificationRepository;
+    private final NotificationEmitterRegistry notificationEmitterRegistry;
 
-    public NotificationService(NotificationRepository notificationRepository) {
+    public NotificationService(NotificationRepository notificationRepository, NotificationEmitterRegistry notificationEmitterRegistry) {
         this.notificationRepository = notificationRepository;
+        this.notificationEmitterRegistry = notificationEmitterRegistry;
     }
 
     // 알림 생성은 부가 기능이라 실패해도 호출부(부스 신청 승인/반려, 상담 접수/승인 등)의 처리를 막지 않는다(fail-open).
     public void notify(Long recipientId, NotificationType type, String title, String message, Long relatedId) {
         try {
-            notificationRepository.save(new Notification(recipientId, type, title, message, relatedId));
+            Notification saved = notificationRepository.save(new Notification(recipientId, type, title, message, relatedId));
+            // notify()에서 알림 저장 후 push()로 흘려보내는 흐름
+            notificationEmitterRegistry.push(recipientId, NotificationResponse.from(saved));
         } catch (Exception e) {
             log.warn("알림 생성 실패 (recipientId={}, type={}): {}", recipientId, type, e.getMessage());
         }

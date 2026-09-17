@@ -76,6 +76,7 @@
 }
 
 .app-header__notifications-trigger {
+  position: relative;
   display: block;
   box-sizing: border-box;
   background: none;
@@ -84,7 +85,7 @@
   padding: 6px 10px;
   border-radius: 6px;
   color: #64748b;
-  font-size: 13px;
+  font-size: 18px;
   font-family: inherit;
   line-height: 1;
   cursor: pointer;
@@ -97,10 +98,28 @@
   color: #0f172a;
 }
 
+.app-header__notifications-icon {
+  display: block;
+  width: 20px;
+  height: 20px;
+  transform: scale(1.6);
+}
+
 .app-header__notifications-trigger.has-unread {
-  color: #2563eb;
-  font-weight: 700;
   background: #eff6ff;
+}
+
+/* 안 읽은 알림 있을 때 종 위에 뜨는 점 */
+.app-header__notifications-trigger.has-unread::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  border: 2px solid #fff;
 }
 
 .app-header__notifications-panel {

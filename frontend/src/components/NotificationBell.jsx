@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import bellIcon from '../assets/blueBell.svg';
 
 // 알림 종류별 배지 라벨/색상. 참가업체·고객 알림 타입을 모두 여기서 다룬다.
 const NOTIFICATION_META = {
@@ -30,12 +31,13 @@ function NotificationBell({ api, targetMap }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  // 안 읽은 알림 개수는 마운트 시 바로 조회하고, 이후 30초마다 새로고침(실시간 push는 범위 밖)
+  // 마운트 시 SSE 구독. 새 알림 오면 unreadCount 올리고, 드롭다운 열려있으면 목록 맨 위에 얹음
   useEffect(() => {
-    const refreshUnreadCount = () => api.getUnreadCount().then(setUnreadCount).catch(() => {});
-    refreshUnreadCount();
-    const interval = setInterval(refreshUnreadCount, 30000);
-    return () => clearInterval(interval);
+    const source = api.subscribe((notification) => {
+      setUnreadCount((c) => c + 1);
+      setNotifications((prev) => (open ? [notification, ...prev] : prev));
+    });
+    return () => source.close();
   }, [api]);
 
   // 알림함 바깥을 클릭하면 닫기
@@ -84,8 +86,9 @@ function NotificationBell({ api, targetMap }) {
         type="button"
         className={`app-header__notifications-trigger${unreadCount > 0 ? ' has-unread' : ''}`}
         onClick={toggle}
+        aria-label="알림"
       >
-        알림
+        <img src={bellIcon} alt="" className="app-header__notifications-icon" />
       </button>
       {open && (
         <div className="app-header__notifications-panel">
