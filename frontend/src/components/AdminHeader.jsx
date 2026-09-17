@@ -34,6 +34,9 @@ function AdminHeader() {
         <NavLink to="/admin/expos/new" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           박람회 등록
         </NavLink>
+        <NavLink to="/admin/stats" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          통계
+        </NavLink>
       </nav>
       <div className="app-header__account">
         <div className="app-header__user">
