@@ -25,6 +25,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/exhibitor/**").hasRole("EXHIBITOR")
                         .requestMatchers("/api/customer/consultations/**").hasRole("USER")
                         .requestMatchers("/api/customer/expos/*/visited-booths").hasRole("USER")
+                        .requestMatchers("/api/customer/notifications/**").hasRole("USER")
                         .anyRequest().permitAll())
                 .addFilterBefore(new GatewayAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(e -> e
