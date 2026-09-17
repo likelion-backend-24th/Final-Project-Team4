@@ -3,9 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { getExpoBooths, getExpoList, toAssetUrl } from '../api/expo';
 import HallMap, { HallPlaza } from '../components/HallMap';
 import { getBoothHall } from '../utils/boothType';
+import { phaseOf } from '../utils/expoPhase';
 import './ExpoDetail.css';
 
 const TABS = ['부스 배치도', '개요'];
+
+// 모집중이 아닌 단계에서 신청 버튼에 보여줄 안내 문구
+const CTA_BLOCKED_TEXT = {
+  모집예정: '모집 시작 전입니다',
+  모집마감: '모집이 마감되었습니다',
+  진행중: '모집이 마감되었습니다',
+  종료: '행사가 종료되었습니다',
+};
 
 // ISO(2026-05-12T10:00:00) → 2026.05.12
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-');
@@ -95,9 +104,9 @@ function ExpoDetail() {
         setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
       );
   }, [expoId]);
-
-  // 모집예정(신청 시작 전)이면 부스 배치도는 볼 수 있되 신청은 막음
-  const notYetOpen = summary ? new Date() < new Date(summary.applyStartsAt) : false;
+  
+  const phase = summary ? phaseOf(summary) : '모집예정';
+  const canApply = phase === '모집중';
 
   const booths = detail?.booths ?? [];
   const halls = useMemo(
@@ -122,7 +131,7 @@ function ExpoDetail() {
     );
 
   const goApply = () => {
-    if (notYetOpen) return;
+    if (!canApply) return;
     const query = selectedBoothIds.map((id) => `boothId=${id}`).join('&');
     navigate(`/expos/${expoId}/apply${query ? `?${query}` : ''}`);
   };
@@ -143,7 +152,7 @@ function ExpoDetail() {
       >
         <div className="expo-detail__hero-main">
           <div className="expo-detail__hero-badges">
-            <span className="expo-detail__badge">{notYetOpen ? '모집예정' : '모집중'}</span>
+            <span className="expo-detail__badge">{phase}</span>
             <span className="expo-detail__badge expo-detail__badge--soft">
               신청 가능 부스 {detail.availableCount}개
             </span>
@@ -322,8 +331,8 @@ function ExpoDetail() {
                   <p className="expo-detail__perk-label">임차료 합계</p>
                   <p className="expo-detail__perk-value">{totalFee.toLocaleString()} 원</p>
                 </div>
-                <button type="button" className="expo-detail__cta" onClick={goApply} disabled={notYetOpen}>
-                  {notYetOpen ? '모집 시작 전입니다' : `${selectedBooths.length}개 부스 선택 및 신청하기`}
+                <button type="button" className="expo-detail__cta" onClick={goApply} disabled={!canApply}>
+                  {canApply ? `${selectedBooths.length}개 부스 선택 및 신청하기` : CTA_BLOCKED_TEXT[phase]}
                 </button>
               </>
             ) : (
@@ -344,8 +353,8 @@ function ExpoDetail() {
                 <p className="expo-detail__perk-label">제공 혜택</p>
                 <p className="expo-detail__perk-value">무료 무선인터넷, 기본 전력 1kW 제공</p>
               </div>
-              <button type="button" className="expo-detail__cta" onClick={goApply} disabled={notYetOpen}>
-                {notYetOpen ? '모집 시작 전입니다' : '부스 선택 및 신청하기'}
+              <button type="button" className="expo-detail__cta" onClick={goApply} disabled={!canApply}>
+                {canApply ? '부스 선택 및 신청하기' : CTA_BLOCKED_TEXT[phase]}
               </button>
               <div className="expo-detail__contact">
                 <h4><IconHeadset /> 문의 안내</h4>
@@ -367,8 +376,8 @@ function ExpoDetail() {
             </span>
           )}
         </div>
-        <button type="button" onClick={goApply} disabled={notYetOpen}>
-          {notYetOpen ? '모집 시작 전입니다' : '참가 신청하기'}
+        <button type="button" onClick={goApply} disabled={!canApply}>
+          {canApply ? '참가 신청하기' : CTA_BLOCKED_TEXT[phase]}
         </button>
       </footer>
     </div>

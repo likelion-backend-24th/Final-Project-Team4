@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
 import { getCustomerExpoList, searchVehicles, toAssetUrl } from '../../api/expo';
+import { phaseOf } from '../../utils/expoPhase';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import './CustomerExpoList.css';
 
@@ -24,19 +25,6 @@ const SORTS = [
 const PAGE_SIZE = 8;
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
-
-// 신청/개최 기간과 현재 시각을 비교해서 진행 단계를 계산 (ExpoList.jsx와 동일한 규칙)
-// 참고: 서버 응답에도 phase(ExpoPhase) 필드가 새로 생겼지만, 그 값이 이 필터 버튼들과
-// 똑같은 한글 라벨로 내려오는지 확인되기 전까지는 안전하게 클라이언트 계산을 그대로 씀.
-const phaseOf = (e) => {
-  const now = Date.now();
-  const at = (s) => new Date(s).getTime();
-  if (now < at(e.applyStartsAt)) return '모집예정';
-  if (now <= at(e.applyEndsAt)) return '모집중';
-  if (now < at(e.startsAt)) return '모집마감';
-  if (now <= at(e.endsAt)) return '진행중';
-  return '종료';
-};
 
 // 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환
 const toCard = (e) => ({
