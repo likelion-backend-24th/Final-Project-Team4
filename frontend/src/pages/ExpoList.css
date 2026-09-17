@@ -231,6 +231,13 @@
   margin: 0;
 }
 
+.expo-card__apply-period {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #475569;
+}
+
 .expo-card__meta-list {
   display: flex;
   flex-direction: column;

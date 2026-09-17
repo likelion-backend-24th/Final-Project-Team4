@@ -34,6 +34,14 @@ const GRADIENTS = [
 // ISO 날짜(2026-05-12T10:00:00) → 화면 표시용(2026.05.12)
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : "");
 
+// 신청 마감까지 남은 일수를 D-day 형태로 표시 (지난 경우 "마감")
+const dDayOf = (iso) => {
+  const diff = Math.ceil((new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  if (diff > 0) return `D-${diff}`;
+  if (diff === 0) return "D-DAY";
+  return "마감";
+};
+
 // 서버에서 받은 실제 박람회 데이터를 카드에서 쓰기 편한 형태로 변환 (정렬에 쓸 원본 날짜는 그대로 둠)
 const toRealCard = (e) => ({
   key: `real-${e.expoId}`,
@@ -43,6 +51,7 @@ const toRealCard = (e) => ({
   venue: e.venue,
   startsAt: e.startsAt,
   endsAt: e.endsAt,
+  applyStartsAt: e.applyStartsAt,
   applyEndsAt: e.applyEndsAt,
   bannerImageUrl: e.bannerImageUrl,
 });
@@ -119,10 +128,13 @@ function ExpoList() {
             {c.phase}
           </span>
           <span>
-            신청 마감 <strong>{fmtDate(c.applyEndsAt)}</strong>
+            신청마감 <strong className={dDayOf(c.applyEndsAt) === "마감" ? "is-zero" : undefined}>{dDayOf(c.applyEndsAt)}</strong>
           </span>
         </div>
         <h3>{c.title}</h3>
+        <p className="expo-card__apply-period">
+          신청기간 {fmtDate(c.applyStartsAt)} - {fmtDate(c.applyEndsAt)}
+        </p>
         <div className="expo-card__meta-list">
           <p>
             <span className="expo-card__icon expo-card__icon--calendar" />
