@@ -1,4 +1,6 @@
-import apiClient from './client';
+import apiClient, {apiBaseUrl} from './client';
+import { EventSourcePolyfill } from 'event-source-polyfill';
+import {getToken} from './auth';
 
 // 참가업체(/api/exhibitor/notifications)·고객(/api/customer/notifications) 양쪽이 같은 모양의 API라
 // basePath만 다르게 받는 팩토리로 공유한다.
@@ -14,6 +16,16 @@ const createNotificationApi = (basePath) => ({
 
   // DELETE {basePath}/{id} - 읽은 알림 삭제 (안 읽은 알림은 서버에서 거부됨)
   deleteNotification: (notificationId) => apiClient.delete(`${basePath}/${notificationId}`).then((res) => res.data.data),
+
+  // SSE 구독. 새 알림 오면 onNotification(payload) 호출. 반환값의 close()로 구독 해제
+  subscribe: (onNotification) => {
+    const source = new EventSourcePolyfill(`${apiBaseUrl}${basePath}/stream`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+      heartbeatTimeout: 60000,
+    });
+    source.addEventListener('notification', (e) => onNotification(JSON.parse(e.data)));
+    return source;
+  },
 });
 
 export const exhibitorNotificationApi = createNotificationApi('/api/exhibitor/notifications');

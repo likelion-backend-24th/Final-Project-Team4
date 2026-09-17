@@ -30,12 +30,13 @@ function NotificationBell({ api, targetMap }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
-  // 안 읽은 알림 개수는 마운트 시 바로 조회하고, 이후 30초마다 새로고침(실시간 push는 범위 밖)
+  // 마운트 시 SSE 구독. 새 알림 오면 unreadCount 올리고, 드롭다운 열려있으면 목록 맨 위에 얹음
   useEffect(() => {
-    const refreshUnreadCount = () => api.getUnreadCount().then(setUnreadCount).catch(() => {});
-    refreshUnreadCount();
-    const interval = setInterval(refreshUnreadCount, 30000);
-    return () => clearInterval(interval);
+    const source = api.subscribe((notification) => {
+      setUnreadCount((c) => c + 1);
+      setNotifications((prev) => (open ? [notification, ...prev] : prev));
+    });
+    return () => source.close();
   }, [api]);
 
   // 알림함 바깥을 클릭하면 닫기
