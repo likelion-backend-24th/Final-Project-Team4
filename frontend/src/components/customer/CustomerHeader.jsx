@@ -4,7 +4,14 @@ import logoIcon from '../../assets/logo-icon.png';
 import apiClient from '../../api/client';
 import { clearAuth, useIsLoggedIn, useProfileVersion } from '../../api/auth';
 import { getMyProfile } from '../../api/identity';
+import { customerNotificationApi } from '../../api/notifications';
+import NotificationBell from '../NotificationBell';
 import '../Header.css';
+
+// 알림 종류별로 클릭 시 이동할 화면 (고객용) - 전부 마이페이지 "예약한 상담" 탭으로 모인다.
+const NOTIFICATION_TARGET = {
+  CONSULTATION_APPROVED: '/customer/mypage',
+};
 
 // 일반 사용자(방문객)용 상단 헤더. 참가업체용 Header와 레이아웃은 동일하되
 // 계정 표시가 "OOO(사용자)"로 나오고, 네비게이션 목적지가 고객 화면(/customer/*)을 가리킴.
@@ -49,6 +56,7 @@ function CustomerHeader() {
         )}
       </nav>
       <div className="app-header__account">
+        {loggedIn && <NotificationBell api={customerNotificationApi} targetMap={NOTIFICATION_TARGET} />}
         <Link to={loggedIn ? '/customer/mypage' : '/login'} className="app-header__user">
           <span className="app-header__avatar" />
           <span>{loggedIn ? (name ? `${name}(사용자)` : '내 정보') : '비회원'}</span>
