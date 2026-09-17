@@ -3,7 +3,6 @@ package com.team4.identity.auth.service;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.identity.auth.mail.MailSender;
-import com.team4.identity.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -23,14 +22,9 @@ public class EmailVerificationService {
 
     private final StringRedisTemplate redis;
     private final MailSender mailSender;
-    private final UserRepository userRepository;
 
-    // 인증 코드 발송
+    // 인증 코드 발송 - 이메일 가입 여부와 무관하게 항상 같은 응답,시간으로 발송한다(가입 여부 노출 방지, OWASP)
     public void sendCode(String email) {
-        if (userRepository.existsByEmail(email)) {
-            throw new CustomException(ErrorCode.DUPLICATE, "이미 사용 중인 이메일입니다.");
-        }
-
         String code = String.format("%06d", RANDOM.nextInt(1_000_000));
         redis.opsForValue().set(CODE_KEY_PREFIX + email, code, CODE_TTL);
         mailSender.send(email, "[모빌리티 엑스포] 이메일 인증 코드", "아래 인증 코드를 회원가입 화면에 입력해주세요. 코드는 10분간 유효합니다.\n\n" + code);

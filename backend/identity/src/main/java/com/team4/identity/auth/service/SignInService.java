@@ -10,7 +10,6 @@ import com.team4.identity.user.domain.UserStatus;
 import com.team4.identity.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 
 @Service
-@RequiredArgsConstructor
 public class SignInService {
 
     private final UserRepository userRepository;
@@ -28,12 +26,27 @@ public class SignInService {
     private final JwtProvider jwtProvider;
     private final RefreshTokenStore refreshTokenStore;
     private final CookieProvider cookieProvider;
+    private final String dummyPasswordHash; // 타이밍 공격 방지용 더미 해시 - 가입 안 된 이메일도 이 해시로 검증하여 로그인 실패 응답 속도를 존재하는 이메일이랑 맞춤
+
+    public SignInService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,
+                          RefreshTokenStore refreshTokenStore, CookieProvider cookieProvider) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtProvider = jwtProvider;
+        this.refreshTokenStore = refreshTokenStore;
+        this.cookieProvider = cookieProvider;
+        this.dummyPasswordHash = passwordEncoder.encode("dummy-password-for-timing-safety");
+    }
 
     // 이메일 로그인 - 일반회원,관리자,참가업체 공통
     @Transactional(readOnly = true)
     public TokenResponse signIn(String email, String rawPassword, boolean rememberMe, HttpServletResponse response) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다."));
-        verifyPassword(rawPassword, user, "이메일 또는 비밀번호가 올바르지 않습니다.");
+        User user = userRepository.findByEmail(email).orElse(null);
+        String hashToCheck = (user != null) ? user.getPasswordHash() : dummyPasswordHash;
+
+        if (!passwordEncoder.matches(rawPassword, hashToCheck) || user == null) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
 
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "탈퇴한 계정입니다.");
@@ -78,12 +91,6 @@ public class SignInService {
         user.withdraw();
         refreshTokenStore.delete(userId);
         addCookie(response, cookieProvider.clearCookie("refreshToken").toString());
-    }
-
-    private void verifyPassword(String rawPassword, User user, String message) {
-        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
-            throw new CustomException(ErrorCode.UNAUTHENTICATED, message);
-        }
     }
 
     private Long parseUserId(String refreshToken) {

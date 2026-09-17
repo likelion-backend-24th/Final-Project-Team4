@@ -115,11 +115,12 @@ class EmailVerificationTest {
     }
 
     @Test
-    void 이미_가입된_이메일은_인증코드_발송부터_거부된다() throws Exception {
+    void 이미_가입된_이메일도_인증코드_발송은_가입_여부_노출_없이_200이다() throws Exception {
         sendCode(200);
         confirmCode(captureLatestCode(), 200);
         signUp(201);
 
-        sendCode(409);
+        // 이메일 가입 여부가 응답으로 새면 안 되니 인증코드 발송 자체는 항상 200, 실제 가입 재시도는 다른 테스트처럼 차단됨
+        sendCode(200);
     }
 }
