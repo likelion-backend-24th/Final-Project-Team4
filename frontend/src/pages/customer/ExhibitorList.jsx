@@ -69,14 +69,24 @@ function ExhibitorList() {
   );
 
   const sortedExhibitors = useMemo(() => {
-    const arr = [...filteredExhibitors];
-    if (sortBy === 'name') {
+  const arr = [...filteredExhibitors];
+  switch (sortBy) {
+    case 'boothNoDesc':
+      arr.sort((a, b) => boothNoValue(b.boothNos[0]) - boothNoValue(a.boothNos[0]));
+      break;
+    case 'name':
       arr.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
-    } else {
+      break;
+    case 'nameDesc':
+      arr.sort((a, b) => b.title.localeCompare(a.title, 'ko'));
+      break;
+    case 'boothNo':
+    default:
       arr.sort((a, b) => boothNoValue(a.boothNos[0]) - boothNoValue(b.boothNos[0]));
-    }
-    return arr;
-  }, [filteredExhibitors, sortBy]);
+      break;
+  }
+  return arr;
+}, [filteredExhibitors, sortBy]);
 
   useEffect(() => {
     setPage(1);
@@ -125,13 +135,15 @@ function ExhibitorList() {
         <div className="c-exhibitor-list__sort-wrap">
           <span className="c-exhibitor-list__sort-label">정렬</span>
           <select
-            className="c-exhibitor-list__sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+          className="c-exhibitor-list__sort"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
           >
-            <option value="boothNo">부스 번호순</option>
-            <option value="name">가나다순</option>
-          </select>
+          <option value="boothNo">부스 번호 낮은순</option>
+          <option value="boothNoDesc">부스 번호 높은순</option>
+          <option value="name">업체명 가나다순</option>
+          <option value="nameDesc">업체명 가나다 역순</option>
+        </select>
         </div>
       </div>
 

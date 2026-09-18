@@ -420,17 +420,17 @@ function CustomerMyPage() {
                                 >
                                   이미지 저장
                                 </button>
+                                {isReviewWindowOpen(t) && (
+                                  <button type="button" onClick={() => setReviewExpoId(t.expoId)}>
+                                    후기 작성하러 가기
+                                  </button>
+                                )}
                                 {t.isPaid && (
                                   <TicketActionsMenu
                                     refundable={isTicketRefundable(t)}
                                     onViewPayment={() => setPaymentDetailTicket(t)}
                                     onRequestRefund={() => setRefundTicket(t)}
                                   />
-                                )}
-                                {isReviewWindowOpen(t) && (
-                                  <button type="button" onClick={() => setReviewExpoId(t.expoId)}>
-                                    후기 작성하러 가기
-                                  </button>
                                 )}
                               </div>
                             </div>
