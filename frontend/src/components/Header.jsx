@@ -6,6 +6,7 @@ import { clearAuth, useIsLoggedIn, useProfileVersion } from '../api/auth';
 import { getMyProfile } from '../api/identity';
 import { exhibitorNotificationApi } from '../api/notifications';
 import NotificationBell from './NotificationBell';
+import AccountMenu from './AccountMenu';
 import './Header.css';
 
 // 알림 종류별로 클릭 시 이동할 화면 (참가업체용)
@@ -46,28 +47,16 @@ function Header() {
         <span>MOBILITY EXPO</span>
       </Link>
       <nav className="app-header__nav">
-        <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          박람회 목록
-        </NavLink>
         <NavLink to="/consultations" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           상담 신청 관리
         </NavLink>
         <NavLink to="/leads" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           QR 리드 확보
         </NavLink>
-        <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          마이페이지
-        </NavLink>
       </nav>
       <div className="app-header__account">
         <NotificationBell api={exhibitorNotificationApi} targetMap={NOTIFICATION_TARGET} />
-        <Link to="/mypage" className="app-header__user">
-          <span className="app-header__avatar" />
-          <span>{companyName || '내 정보'}</span>
-        </Link>
-        <Link to="/login" className="app-header__logout" onClick={handleLogout}>
-          로그아웃
-        </Link>
+        <AccountMenu label={companyName} mypageTo="/mypage" onLogout={handleLogout} />
       </div>
     </header>
   );

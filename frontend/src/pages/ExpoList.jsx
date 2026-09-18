@@ -16,11 +16,14 @@ const FOOTER_TEXT = {
   종료: "신청 종료",
 };
 
-// 정렬 기준 - 상태 탭과 무관하게 동일한 3가지 옵션을 공용으로 씀 (CustomerExpoList.jsx와 동일)
+// 정렬 기준 - 상태 탭과 무관하게 동일한 6가지 옵션을 공용으로 씀 (CustomerExpoList.jsx와 동일)
 const SORTS = [
-  { value: "start", label: "시작일", key: "startsAt" },
-  { value: "deadline", label: "신청 마감", key: "applyEndsAt" },
-  { value: "end", label: "종료일", key: "endsAt" },
+  { value: "start-asc", label: "시작일 오름차순", key: "startsAt", dir: "asc" },
+  { value: "start-desc", label: "시작일 내림차순", key: "startsAt", dir: "desc" },
+  { value: "deadline-asc", label: "신청 마감 오름차순", key: "applyEndsAt", dir: "asc" },
+  { value: "deadline-desc", label: "신청 마감 내림차순", key: "applyEndsAt", dir: "desc" },
+  { value: "end-asc", label: "종료일 오름차순", key: "endsAt", dir: "asc" },
+  { value: "end-desc", label: "종료일 내림차순", key: "endsAt", dir: "desc" },
 ];
 
 // 카드 썸네일에 순서대로 돌려가며 입힐 그라데이션 색상들
@@ -61,8 +64,7 @@ function ExpoList() {
   const [cards, setCards] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("전체");
-  const [sortBy, setSortBy] = useState(SORTS[0].value);
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortOption, setSortOption] = useState(SORTS[0].value);
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
 
@@ -80,8 +82,8 @@ function ExpoList() {
 
   // 선택된 필터(상태 탭)와 검색어에 맞는 카드만 걸러내고 정렬함
   const filtered = useMemo(() => {
-    const sortKey = SORTS.find((s) => s.value === sortBy).key;
-    const dir = sortDir === "asc" ? 1 : -1;
+    const sort = SORTS.find((s) => s.value === sortOption);
+    const dir = sort.dir === "asc" ? 1 : -1;
     return cards
       .filter((c) => {
         const matchesFilter = filter === "전체" || c.phase === filter;
@@ -90,13 +92,13 @@ function ExpoList() {
           .includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       })
-      .sort((a, b) => dir * (new Date(a[sortKey]) - new Date(b[sortKey])));
-  }, [cards, filter, keyword, sortBy, sortDir]);
+        .sort((a, b) => dir * (new Date(a[sort.key]) - new Date(b[sort.key])));
+  }, [cards, filter, keyword, sortOption]);
 
     // 필터/정렬/검색 결과가 바뀌면 페이지를 1로 초기화
   useEffect(() => {
     setPage(1);
-  }, [filter, sortBy, sortDir, keyword]);
+  }, [filter, sortOption, keyword]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
 
@@ -185,8 +187,8 @@ function ExpoList() {
         <div className="expo-list__toolbar-right">
           <select
             className="expo-list__sort"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
           >
             {SORTS.map((s) => (
               <option key={s.value} value={s.value}>
@@ -194,14 +196,6 @@ function ExpoList() {
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            className="expo-list__sort-dir"
-            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            aria-label={sortDir === "asc" ? "오름차순" : "내림차순"}
-          >
-            {sortDir === "asc" ? "▲" : "▼"}
-          </button>
           <div className="expo-list__search-wrap">
             <span className="expo-list__search-icon" />
             <input
