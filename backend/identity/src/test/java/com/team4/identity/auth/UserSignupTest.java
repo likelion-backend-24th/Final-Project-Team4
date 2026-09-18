@@ -88,7 +88,7 @@ class UserSignupTest {
         assertThat(saved.getPasswordHash()).isNotEqualTo("password123");
         assertThat(saved.getPasswordHash()).startsWith("$2");
         assertThat(saved.getName()).isEqualTo("홍길동");
-        assertThat(saved.getContact()).isEqualTo("010-1234-5678");
+        assertThat(saved.getContact()).isEqualTo("01012345678"); // 하이픈은 제거하고 숫자만 저장
     }
 
     @Test

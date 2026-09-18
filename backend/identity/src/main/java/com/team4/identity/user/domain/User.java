@@ -100,7 +100,7 @@ public class User {
     public static User createMember(String email, String passwordHash, String name, String phone) {
         User user = new User(email, passwordHash, Role.USER);
         user.name = name;
-        user.contact = phone;
+        user.contact = normalizeContact(phone);
         return user;
     }
 
@@ -112,12 +112,17 @@ public class User {
         user.businessNo = businessNo;
         user.companyName = companyName;
         user.managerName = managerName;
-        user.contact = contact;
+        user.contact = normalizeContact(contact);
         user.companyAddress = companyAddress;
         user.industry = industry;
         user.representativeName = representativeName;
-        user.companyContact = companyContact;
+        user.companyContact = normalizeContact(companyContact);
         return user;
+    }
+
+    // 연락처 저장 시 하이픈 제외
+    private static String normalizeContact(String contact) {
+        return contact == null ? null : contact.replaceAll("[^0-9]", "");
     }
 
     public static User createAdmin(String email, String passwordHash) {
@@ -139,7 +144,7 @@ public class User {
     }
 
     public void changeContact(String contact) {
-        this.contact = contact;
+        this.contact = normalizeContact(contact);
     }
 
     public void changeCompanyName(String companyName) {
@@ -151,7 +156,7 @@ public class User {
     }
 
     public void changeCompanyContact(String companyContact) {
-        this.companyContact = companyContact;
+        this.companyContact = normalizeContact(companyContact);
     }
 
     public void changeCompanyAddress(String companyAddress) {

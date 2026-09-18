@@ -96,7 +96,7 @@ class ExhibitorSignupTest {
         assertThat(saved.getCompanyAddress()).isEqualTo("서울시 강남구 테헤란로 1");
         assertThat(saved.getIndustry()).isEqualTo("전기차 부품 제조");
         assertThat(saved.getRepresentativeName()).isEqualTo("이대표");
-        assertThat(saved.getCompanyContact()).isEqualTo("02-1234-5678");
+        assertThat(saved.getCompanyContact()).isEqualTo("0212345678"); // 하이픈은 제거하고 숫자만 저장
     }
 
     @Test
