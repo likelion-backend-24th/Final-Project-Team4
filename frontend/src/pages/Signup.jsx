@@ -3,7 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { sendVerificationCode, confirmVerificationCode } from '../api/identity';
+import { formatPhoneNumber } from '../utils/phone';
 import './Signup.css';
+
+const handlePhoneInput = (e) => {
+  e.target.value = formatPhoneNumber(e.target.value);
+};
 
 function Signup() {
   const navigate = useNavigate();
@@ -235,7 +240,7 @@ function Signup() {
                 </label>
                 <label>
                   <span className="signup__label-row">전화번호 <span>*</span></span>
-                  <input name="phone" placeholder="예: 010-1234-5678" required />
+                  <input name="phone" placeholder="예: 010-1234-5678" onChange={handlePhoneInput} required />
                 </label>
                 <label className="signup__full">
                   <span className="signup__label-row">이메일 주소 <span>*</span></span>
@@ -337,7 +342,7 @@ function Signup() {
                 </label>
                 <label className="signup__full">
                   <span className="signup__label-row">연락처 <span>*</span></span>
-                  <input name="contact" placeholder="예: 010-1234-5678" required />
+                  <input name="contact" placeholder="예: 010-1234-5678" onChange={handlePhoneInput} required />
                 </label>
               </div>
             </section>
@@ -367,7 +372,7 @@ function Signup() {
                 </label>
                 <label className="signup__full">
                   <span className="signup__label-row">업체 대표 연락처 <span>*</span></span>
-                  <input name="companyContact" placeholder="예: 02-1234-5678" required />
+                  <input name="companyContact" placeholder="예: 02-1234-5678" onChange={handlePhoneInput} required />
                 </label>
               </div>
             </section>

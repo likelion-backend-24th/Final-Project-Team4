@@ -12,6 +12,7 @@ import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
 import { clearAuth, notifyProfileUpdated } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
+import { formatPhoneNumber } from '../../utils/phone';
 import '../../components/customer/Modal.css';
 import '../../components/customer/EntryFlowModal.css';
 import './CustomerMyPage.css';
@@ -289,7 +290,7 @@ function CustomerMyPage() {
                   </div>
                   <div className="c-mypage__profile-row">
                     <span className="c-mypage__profile-label">휴대폰 번호</span>
-                    <span className="c-mypage__profile-value">{profile.contact ?? '-'}</span>
+                    <span className="c-mypage__profile-value">{profile.contact ? formatPhoneNumber(profile.contact) : '-'}</span>
                   </div>
                 </div>
               )}
@@ -572,7 +573,10 @@ function CustomerMyPage() {
             </label>
             <label className="ef-field">
               <span>휴대폰 번호</span>
-              <input value={editForm.contact} onChange={handleEditField('contact')} />
+              <input
+                value={editForm.contact}
+                onChange={(e) => setEditForm((prev) => ({ ...prev, contact: formatPhoneNumber(e.target.value) }))}
+              />
             </label>
             {saveError && <p className="c-modal__error">{saveError}</p>}
             <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
