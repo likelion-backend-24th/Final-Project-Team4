@@ -62,7 +62,6 @@ function Header() {
       <div className="app-header__account">
         <NotificationBell api={exhibitorNotificationApi} targetMap={NOTIFICATION_TARGET} />
         <Link to="/mypage" className="app-header__user">
-          <span className="app-header__avatar" />
           <span>{companyName || '내 정보'}</span>
         </Link>
         <Link to="/login" className="app-header__logout" onClick={handleLogout}>

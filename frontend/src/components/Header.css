@@ -24,12 +24,6 @@
   }
 }
 
-@media (max-width: 480px) {
-  .app-header__user span:not(.app-header__avatar) {
-    display: none;
-  }
-}
-
 .app-header__brand {
   display: flex;
   align-items: center;
