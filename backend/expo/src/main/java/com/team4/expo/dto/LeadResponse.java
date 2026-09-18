@@ -14,6 +14,7 @@ public record LeadResponse(
         LocalDate visitDate,
         String interestNote,
         String emailSummary,
+        boolean leadConsent,
         String status,
         LocalDateTime createdAt
 ) {
@@ -28,6 +29,7 @@ public record LeadResponse(
                 lead.getVisitDate(),
                 lead.getInterestNote(),
                 lead.getEmailSummary(),
+                lead.isLeadConsent(),
                 lead.getStatus().name(),
                 lead.getCreatedAt());
     }

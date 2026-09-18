@@ -3,8 +3,10 @@ import ConsultationCompleteModal from './ConsultationCompleteModal';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
 import { applyConsultation, getMyConsultations, toAssetUrl } from '../../api/expo';
+import { getMyProfile } from '../../api/identity';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
+import { formatPhoneNumber } from '../../utils/phone';
 import './Modal.css';
 import '../../pages/customer/VehicleDetail.css';
 import '../../pages/customer/ExhibitorVehicleList.css';
@@ -55,6 +57,19 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
       .then(setMyConsultations)
       .catch(() => setMyConsultations([]));
   }, [expoId]);
+
+  // 이미 등록된 내 정보(이름/전화번호/이메일)가 있으면 자동으로 채워준다 - 매번 다시 타이핑하지 않도록.
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => {
+        setForm((f) => ({
+          name: f.name || profile.name || '',
+          phone: f.phone || (profile.contact ? formatPhoneNumber(profile.contact) : ''),
+          email: f.email || profile.email || '',
+        }));
+      })
+      .catch(() => {});
+  }, []);
 
   // 현재 선택된 참가업체들 중 하나라도 이미 신청(대기/승인)이 있는 날짜 - 같은 날짜로 재신청하면 어차피 409.
   const appliedDates = useMemo(() => {

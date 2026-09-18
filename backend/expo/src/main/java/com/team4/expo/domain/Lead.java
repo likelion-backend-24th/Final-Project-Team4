@@ -44,10 +44,15 @@ public class Lead {
     @Enumerated(EnumType.STRING)
     private LeadStatus status;
 
+    // 이 고객에게 이메일(메모 요약본)을 보내도 되는지 - 상담 신청 건은 신청 시점 동의(Consultation.leadConsent,
+    // 이미 스캔 전에 검증됨)로 항상 true. 워크인은 스캔 시점엔 false로 시작하고, 참가업체가 QR 리드 확보
+    // 화면(스캔 결과 카드)에서 고객에게 구두로 동의를 확인한 뒤 체크박스로 true 확정(2026-09-18 확정).
+    private boolean leadConsent;
+
     private LocalDateTime createdAt;
 
     public Lead(Booth booth, Long customerId, LocalDate visitDate, Consultation consultation,
-                String customerName, String customerEmail, String interestNote) {
+                String customerName, String customerEmail, String interestNote, boolean leadConsent) {
         this.booth = booth;
         this.customerId = customerId;
         this.visitDate = visitDate;
@@ -55,6 +60,7 @@ public class Lead {
         this.customerName = customerName;
         this.customerEmail = customerEmail;
         this.interestNote = interestNote;
+        this.leadConsent = leadConsent;
         this.status = LeadStatus.NEW;
         this.createdAt = LocalDateTime.now();
     }
@@ -77,6 +83,18 @@ public class Lead {
     // LeadService.sendInfo()에서 Identity 메일 발송 성공 후 호출(TASK 11-4).
     public void markSent() {
         this.status = LeadStatus.SENT;
+    }
+
+    // LeadService.confirmLeadConsent()에서 호출 - 워크인 리드는 스캔 시점엔 동의 없이(false) 생성되고,
+    // 참가업체가 현장에서 고객에게 구두로 동의를 확인한 뒤에만 true로 바뀜.
+    public void confirmLeadConsent() {
+        this.leadConsent = true;
+    }
+
+    // LeadService.updateCustomerEmail()에서 호출 - 워크인 방문객이라 Identity에 등록된 이메일이 없을 때
+    // 참가업체가 현장에서 직접 받아 적을 수 있게(상담 신청 건은 신청서에 이메일이 항상 있어 대상 아님).
+    public void updateCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 
     // 부스후기(BOOTH) 작성 가능 여부(TASK 7-2, 2026-09-16 방문일 기준으로 보강) - 방문 예정일(visitDate)이 지나야

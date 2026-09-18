@@ -1,6 +1,14 @@
 import jsQR from 'jsqr';
 import { useEffect, useRef, useState } from 'react';
-import { getLeads, getMyBooths, scanLeadQr, sendLeadInfo, summarizeLeadEmail } from '../api/leads';
+import {
+  confirmLeadConsent,
+  getLeads,
+  getMyBooths,
+  scanLeadQr,
+  sendLeadInfo,
+  summarizeLeadEmail,
+  updateLeadEmail,
+} from '../api/leads';
 import './LeadCapture.css';
 
 const STATUS_LABEL = {
@@ -23,8 +31,10 @@ function LeadCapture() {
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
+  const [scanResult, setScanResult] = useState(null); // { customerName, isConsultation } | null
 
   const [leads, setLeads] = useState([]);
+  const [leadListOpen, setLeadListOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [note, setNote] = useState('');
   const [draft, setDraft] = useState('');
@@ -32,6 +42,8 @@ function LeadCapture() {
   const [sending, setSending] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [expandField, setExpandField] = useState(null); // null | 'note' | 'draft'
+  const [emailInput, setEmailInput] = useState('');
+  const [savingEmail, setSavingEmail] = useState(false);
 
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -42,13 +54,20 @@ function LeadCapture() {
 
   useEffect(() => {
     getMyBooths()
-      .then((booths) => {
-        setMyBooths(booths);
-        setBoothId(booths[0]?.boothId ?? null);
-      })
+      .then(setMyBooths)
       .catch((err) => setBoothsError(err.response?.data?.error?.message ?? err.message))
       .finally(() => setBoothsLoading(false));
   }, []);
+
+  const selectedBooth = myBooths.find((b) => b.boothId === boothId) ?? null;
+
+  const backToBoothList = () => {
+    setBoothId(null);
+    setLeads([]);
+    setLeadListOpen(false);
+    setScanResult(null);
+    closeLead();
+  };
 
   const refreshLeads = () => getLeads(boothId).then(setLeads);
 
@@ -62,7 +81,15 @@ function LeadCapture() {
     scanLeadQr(boothId, token)
       .then((lead) => {
         closeScanModal();
-        return refreshLeads().then(() => openLead(lead));
+        setConsentChecked(false);
+        setScanResult({
+          leadId: lead.leadId,
+          customerName: lead.customerName,
+          visitDate: lead.visitDate,
+          scannedAt: lead.createdAt,
+          isConsultation: !!lead.consultationId,
+        });
+        return refreshLeads();
       })
       .catch((err) => setScanError(err.response?.data?.error?.message ?? err.message))
       .finally(() => setScanning(false));
@@ -70,6 +97,7 @@ function LeadCapture() {
 
   const openScanModal = () => {
     setScanError(null);
+    setScanResult(null);
     setScanModalOpen(true);
   };
 
@@ -167,6 +195,7 @@ function LeadCapture() {
     setSelectedId(lead.leadId);
     setNote(lead.interestNote || '');
     setDraft(lead.emailSummary || '');
+    setEmailInput(lead.customerEmail || '');
     setActionError(null);
   };
 
@@ -174,7 +203,19 @@ function LeadCapture() {
     setSelectedId(null);
     setNote('');
     setDraft('');
+    setEmailInput('');
     setExpandField(null);
+  };
+
+  // 워크인 리드는 Identity에 이메일이 없을 수 있어 참가업체가 현장에서 직접 입력(상담 신청 건은 대상 아님).
+  const handleSaveEmail = () => {
+    if (!emailInput.trim()) return;
+    setSavingEmail(true);
+    setActionError(null);
+    updateLeadEmail(selected.leadId, emailInput.trim())
+      .then(() => refreshLeads())
+      .catch((err) => setActionError(err.message ?? '이메일 저장 중 오류가 발생했습니다.'))
+      .finally(() => setSavingEmail(false));
   };
 
   const handleSummarize = () => {
@@ -201,6 +242,28 @@ function LeadCapture() {
       .finally(() => setSending(false));
   };
 
+  // 워크인 리드는 스캔 시점엔 동의가 없는 상태 - 체크박스는 화면에서만 선택해두고,
+  // "방문 확인" 버튼을 눌러야 실제로 저장하며 스캔 결과 카드를 닫는다.
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [confirmingVisit, setConfirmingVisit] = useState(false);
+  const handleConfirmVisit = () => {
+    if (!scanResult) return;
+    if (!consentChecked || !scanResult.leadId) {
+      setScanResult(null);
+      setConsentChecked(false);
+      return;
+    }
+    setConfirmingVisit(true);
+    confirmLeadConsent(scanResult.leadId)
+      .then(() => refreshLeads())
+      .then(() => {
+        setScanResult(null);
+        setConsentChecked(false);
+      })
+      .catch((err) => setScanError(err.response?.data?.error?.message ?? err.message))
+      .finally(() => setConfirmingVisit(false));
+  };
+
   return (
     <div className="lead">
       <section className="lead-hero">
@@ -215,22 +278,31 @@ function LeadCapture() {
         <p className="lead-empty">참가 확정된 부스가 없어 QR 리드 기능을 사용할 수 없습니다.</p>
       )}
 
-      {!boothsLoading && !boothsError && myBooths.length > 0 && (
+      {!boothsLoading && !boothsError && myBooths.length > 0 && boothId == null && (
         <main className="lead-container">
-          {myBooths.length > 1 && (
-            <section className="lead-scan">
-              <label>
-                부스 선택{' '}
-                <select value={boothId ?? ''} onChange={(e) => setBoothId(Number(e.target.value))}>
-                  {myBooths.map((booth) => (
-                    <option key={booth.boothId} value={booth.boothId}>
-                      {booth.expoTitle} · {booth.boothNo}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </section>
-          )}
+          <section className="lead-booth-list">
+            <div className="lead-list__head">부스 선택</div>
+            {myBooths.map((booth) => (
+              <button
+                key={booth.boothId}
+                type="button"
+                className="lead-booth-row"
+                onClick={() => setBoothId(booth.boothId)}
+              >
+                <span className="lead-booth-row__expo">{booth.expoTitle}</span>
+                <span className="lead-booth-row__no">{booth.boothNo}</span>
+              </button>
+            ))}
+          </section>
+        </main>
+      )}
+
+      {!boothsLoading && !boothsError && selectedBooth && (
+        <main className="lead-container">
+          <button type="button" className="lead-back" onClick={backToBoothList}>
+            ← 부스 다시 선택
+          </button>
+          <div className="lead-current-booth">{selectedBooth.expoTitle} · {selectedBooth.boothNo}</div>
 
           <section className="lead-scan">
             <button type="button" className="lead-scan__button" onClick={openScanModal}>
@@ -239,20 +311,27 @@ function LeadCapture() {
           </section>
 
           <section className="lead-list">
-            <div className="lead-list__head">리드 목록 <span>{leads.length}</span>건</div>
-            {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
-            {leads.map((lead) => (
-            <div key={lead.leadId} className="lead-row" onClick={() => openLead(lead)}>
-              <div>
-                <span className="lead-row__name">{lead.customerName}</span>
-                <span className="lead-row__email">{lead.customerEmail}</span>
-              </div>
-              <span className="lead-row__date">{fmtDateTime(lead.createdAt)}</span>
-              <span className={`lead-badge lead-badge--${lead.status.toLowerCase()}`}>
-                {STATUS_LABEL[lead.status]}
-              </span>
-            </div>
-          ))}
+            <button type="button" className="lead-list__toggle" onClick={() => setLeadListOpen((v) => !v)}>
+              <span className="lead-list__head">리드 목록 <span>{leads.length}</span>건</span>
+              <span className="lead-list__chevron">{leadListOpen ? '▲' : '▼'}</span>
+            </button>
+            {leadListOpen && (
+              <>
+                {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
+                {leads.map((lead) => (
+                <div key={lead.leadId} className="lead-row" onClick={() => openLead(lead)}>
+                  <div>
+                    <span className="lead-row__name">{lead.customerName}</span>
+                    <span className="lead-row__email">{lead.customerEmail}</span>
+                  </div>
+                  <span className="lead-row__date">{fmtDateTime(lead.createdAt)}</span>
+                  <span className={`lead-badge lead-badge--${lead.status.toLowerCase()}`}>
+                    {STATUS_LABEL[lead.status]}
+                  </span>
+                </div>
+              ))}
+              </>
+            )}
           </section>
         </main>
       )}
@@ -325,7 +404,7 @@ function LeadCapture() {
             <div className="lead-drawer__head">
               <div>
                 <h2>{selected.customerName}</h2>
-                <p>{selected.customerEmail}</p>
+                <p>{selected.customerEmail || '이메일 없음'}</p>
               </div>
               <button type="button" className="lead-drawer__close" onClick={closeLead} aria-label="닫기">×</button>
             </div>
@@ -344,6 +423,34 @@ function LeadCapture() {
               </section>
 
               <section className="lead-detail-section">
+                <div className="lead-detail-title">고객 이메일 {selected.customerEmail ? '수정' : '입력'}</div>
+                {!selected.customerEmail && (
+                  <p className="lead-empty">등록된 이메일이 없습니다. 현장에서 확인해 직접 입력해주세요.</p>
+                )}
+                <div className="lead-email-input-row">
+                  <input
+                    type="email"
+                    className="lead-email-input"
+                    placeholder="customer@example.com"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="lead-btn lead-btn--ai"
+                    disabled={!emailInput.trim() || emailInput.trim() === selected.customerEmail || savingEmail}
+                    onClick={handleSaveEmail}
+                  >
+                    {savingEmail ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </section>
+
+              {!selected.leadConsent && (
+                <p className="lead-error">고객이 연락처 제공에 동의하지 않아 이메일 작성·발송을 할 수 없습니다.</p>
+              )}
+
+              <section className="lead-detail-section">
                 <div className="lead-detail-title lead-detail-title--row">
                   상담 메모
                   <button type="button" className="lead-expand-btn" onClick={() => setExpandField('note')}>
@@ -356,12 +463,12 @@ function LeadCapture() {
                   placeholder="현장에서 나눈 상담 내용을 자유롭게 적어주세요"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  disabled={selected.status === 'SENT'}
+                  disabled={selected.status === 'SENT' || !selected.leadConsent}
                 />
                 <button
                   type="button"
                   className="lead-btn lead-btn--ai"
-                  disabled={!note.trim() || summarizing || selected.status === 'SENT'}
+                  disabled={!note.trim() || summarizing || selected.status === 'SENT' || !selected.leadConsent}
                   onClick={handleSummarize}
                 >
                   {summarizing ? 'AI 요약 생성 중...' : 'AI 요약 생성'}
@@ -381,7 +488,7 @@ function LeadCapture() {
                     rows={8}
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    disabled={selected.status === 'SENT'}
+                    disabled={selected.status === 'SENT' || !selected.leadConsent}
                   />
                 </section>
               )}
@@ -394,7 +501,7 @@ function LeadCapture() {
                 <button
                   type="button"
                   className="lead-btn lead-btn--send"
-                  disabled={!draft.trim() || sending}
+                  disabled={!draft.trim() || sending || !selected.leadConsent || !selected.customerEmail}
                   onClick={handleSend}
                 >
                   {sending ? '발송 중...' : '고객에게 발송'}
@@ -418,6 +525,52 @@ function LeadCapture() {
               />
             </aside>
           )}
+          </div>
+        </div>
+      )}
+
+      {scanResult && (
+        <div className="lead-drawer-backdrop" onClick={() => { setScanResult(null); setConsentChecked(false); openScanModal(); }}>
+          <div className="lead-scan-result-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="lead-drawer__close lead-scan-result-card__close"
+              onClick={() => { setScanResult(null); setConsentChecked(false); openScanModal(); }}
+              aria-label="닫기"
+            >
+              ×
+            </button>
+            <div className="lead-scan-result-card__icon">✓</div>
+            <h2 className="lead-scan-result-card__title">방문 확인 완료</h2>
+            <div className="lead-detail-box">
+              <div className="lead-detail-row"><span className="lead-label">고객</span><span className="lead-value">{scanResult.customerName}</span></div>
+              <div className="lead-detail-row"><span className="lead-label">구분</span><span className="lead-value">{scanResult.isConsultation ? '상담 신청 고객' : '방문자(워크인)'}</span></div>
+              <div className="lead-detail-row"><span className="lead-label">방문일</span><span className="lead-value">{fmtDate(scanResult.visitDate)}</span></div>
+              <div className="lead-detail-row"><span className="lead-label">스캔 일시</span><span className="lead-value">{fmtDateTime(scanResult.scannedAt)}</span></div>
+            </div>
+
+            {!scanResult.isConsultation && (
+              <>
+                <label className="lead-scan-result-card__consent">
+                  <input
+                    type="checkbox"
+                    checked={consentChecked}
+                    disabled={confirmingVisit}
+                    onChange={(e) => setConsentChecked(e.target.checked)}
+                  />
+                  <span>부스 방문 시 연락처 제공에 동의함</span>
+                </label>
+                {scanError && <p className="lead-error">{scanError}</p>}
+                <button
+                  type="button"
+                  className="lead-scan-result-card__confirm-btn"
+                  disabled={confirmingVisit}
+                  onClick={handleConfirmVisit}
+                >
+                  {confirmingVisit ? '처리 중...' : '방문 확인'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
