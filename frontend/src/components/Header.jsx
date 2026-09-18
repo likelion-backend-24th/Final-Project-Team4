@@ -46,23 +46,17 @@ function Header() {
         <span>MOBILITY EXPO</span>
       </Link>
       <nav className="app-header__nav">
-        <NavLink to="/" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          박람회 목록
-        </NavLink>
         <NavLink to="/consultations" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           상담 신청 관리
         </NavLink>
         <NavLink to="/leads" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           QR 리드 확보
         </NavLink>
-        <NavLink to="/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          마이페이지
-        </NavLink>
       </nav>
       <div className="app-header__account">
         <NotificationBell api={exhibitorNotificationApi} targetMap={NOTIFICATION_TARGET} />
         <Link to="/mypage" className="app-header__user">
-          <span>{companyName || '내 정보'}</span>
+          <span>{companyName}</span>
         </Link>
         <Link to="/login" className="app-header__logout" onClick={handleLogout}>
           로그아웃

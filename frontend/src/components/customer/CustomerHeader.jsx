@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logoIcon from '../../assets/logo-icon.png';
 import apiClient from '../../api/client';
 import { clearAuth, useIsLoggedIn, useProfileVersion } from '../../api/auth';
@@ -47,16 +47,6 @@ function CustomerHeader() {
         <img src={logoIcon} alt="" className="app-header__logo" />
         <span>MOBILITY EXPO</span>
       </Link>
-      <nav className="app-header__nav">
-        <NavLink to="/customer" end className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          박람회 목록
-        </NavLink>
-        {loggedIn && (
-          <NavLink to="/customer/mypage" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-            마이페이지
-          </NavLink>
-        )}
-      </nav>
       <div className="app-header__account">
         {loggedIn && <NotificationBell api={customerNotificationApi} targetMap={NOTIFICATION_TARGET} />}
         <Link to={loggedIn ? '/customer/mypage' : '/login'} className="app-header__user">
