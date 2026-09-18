@@ -63,3 +63,44 @@ export function downloadTicketImage(ticket, filename = 'ticket') {
   };
   qr.src = `data:image/png;base64,${ticket.qrImageBase64}`;
 }
+
+// ↓↓↓ 여기, 파일 맨 끝에 이 함수를 새로 추가하세요 ↓↓↓
+
+// 제목 + "라벨 값" 줄글 리스트를 카드 형태의 PNG로 그려서 다운로드. 결제 내역 등 QR 없는 정보용.
+export function downloadReceiptImage(title, lines, filename = 'receipt') {
+  const width = 420;
+  const padding = 28;
+  const lineGap = 26;
+
+  const height = padding * 2 + 32 + lines.length * lineGap;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, width - 2, height - 2);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 19px "Segoe UI", sans-serif';
+  ctx.fillText(title, width / 2, padding + 20);
+
+  let y = padding + 20 + lineGap;
+  ctx.font = '14px "Segoe UI", sans-serif';
+  ctx.fillStyle = '#475569';
+  lines.forEach((text) => {
+    ctx.fillText(text, width / 2, y);
+    y += lineGap;
+  });
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    triggerDownload(url, filename);
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}
