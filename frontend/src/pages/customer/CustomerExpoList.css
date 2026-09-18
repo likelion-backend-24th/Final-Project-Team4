@@ -212,19 +212,6 @@
   flex-shrink: 0;
 }
 
-.c-expo-list__sort-dir {
-  box-sizing: border-box;
-  width: 36px;
-  height: 36px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: #fff;
-  color: #475569;
-  font-size: 12px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
 .c-expo-list__search-wrap {
   box-sizing: border-box;
   display: flex;
