@@ -16,6 +16,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 // reservation 모듈의 ExpoQueryClient와 같은 패턴(java.net.http.HttpClient 직접 사용, SVC_TOKEN Bearer 인증).
 // 실패 시 fail-closed로 CustomException(DEPENDENCY_TIMEOUT)을 던져 상담 신청을 열지 않는다.
@@ -93,6 +95,40 @@ public class ReservationHttpClient implements ReservationClient {
                     data.path("ticketId").asLong(),
                     data.path("expoId").asLong(),
                     LocalDate.parse(data.path("visitDate").asText()));
+        } catch (IOException | InterruptedException e) {
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<ScheduleChangeTicket> applyScheduleChange(Long expoId, LocalDate newStartsAt, LocalDate newEndsAt) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(reservationBaseUrl + "/internal/reservation/expos/" + expoId
+                            + "/tickets/apply-schedule-change?newStartsAt=" + newStartsAt + "&newEndsAt=" + newEndsAt))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 일정 변경 처리 실패 (status=" + response.statusCode() + "): " + response.body());
+            }
+
+            JsonNode tickets = objectMapper.readTree(response.body()).path("data").path("tickets");
+
+            List<ScheduleChangeTicket> result = new ArrayList<>();
+            tickets.forEach(node ->
+                            result.add(new ScheduleChangeTicket(
+                                    node.path("customerId").asLong(),
+                                    LocalDate.parse(node.path("visitDate").asText()),
+                                    node.path("cancelled").asBoolean(false))
+                            )
+                    );
+
+            return result;
         } catch (IOException | InterruptedException e) {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Reservation 서버 통신 중 오류: " + e.getMessage());
         }

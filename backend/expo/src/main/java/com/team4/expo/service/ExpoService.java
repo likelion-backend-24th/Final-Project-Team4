@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.client.ExhibitorProfile;
 import com.team4.expo.client.IdentityClient;
+import com.team4.expo.client.ReservationClient;
 import com.team4.expo.domain.*;
 import com.team4.expo.dto.*;
 import com.team4.expo.repository.BoothApplicationRepository;
@@ -28,16 +29,22 @@ public class ExpoService {
     private final BoothApplicationRepository boothApplicationRepository;
     private final BoothApplicationValidator validator;
     private final IdentityClient identityClient;
+    private final ReservationClient reservationClient;
+    private final NotificationService notificationService;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
                        BoothApplicationRepository boothApplicationRepository,
                        BoothApplicationValidator validator,
-                       IdentityClient identityClient) {
+                       IdentityClient identityClient,
+                       ReservationClient reservationClient,
+                       NotificationService notificationService) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
         this.validator = validator;
         this.identityClient = identityClient;
+        this.reservationClient = reservationClient;
+        this.notificationService = notificationService;
     }
 
     // 부스가 배정 완료(ASSIGNED) 상태면 확정된 신청의 exhibitorId로 Identity에서 회사명/업종을 붙여줌.
@@ -142,8 +149,6 @@ public class ExpoService {
 
         validateDateOrder(request.getApplyStartsAt(), request.getApplyEndsAt(), request.getStartsAt(), request.getEndsAt());
 
-        //TODO:  알림 기능 추가되면 scheduleChanged일 때 이 박람회 기존 QR(Reservation) 전부 취소 + 사용자 알림 발송
-        // - 모집중 단계부터 박람회 일정 수정 시 기존 고객 QR에 대한 처리가 없어서 QR이 고아가 되버릴 수 있음.
         boolean scheduleChanged = !expo.getStartsAt().isEqual(request.getStartsAt())
                 || !expo.getEndsAt().isEqual(request.getEndsAt())
                 || !expo.getApplyStartsAt().isEqual(request.getApplyStartsAt())
@@ -151,6 +156,27 @@ public class ExpoService {
 
         if (scheduleChanged && !boothApplicationRepository.findByBooth_Expo_Id(expoId).isEmpty()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "부스 신청이 있는 박람회는 일정을 수정할 수 없습니다.");
+        }
+
+        // 고객 QR(방문예약)은 개최 기간(startsAt~endsAt)만 영향을 받음 - 신청기간(applyStartsAt/applyEndsAt)만 바뀌는 건 무관.
+        // 개최 기간이 바뀌면 Reservation에 알려 새 기간 밖으로 벗어난 QR만 취소하고 영향받은 고객 전체에게 알림 발송.
+        boolean hostPeriodChanged = !expo.getStartsAt().isEqual(request.getStartsAt()) || !expo.getEndsAt().isEqual(request.getEndsAt());
+
+        if (hostPeriodChanged) {
+            reservationClient.applyScheduleChange(expoId, request.getStartsAt().toLocalDate(), request.getEndsAt().toLocalDate())
+                    .forEach(ticket -> {
+                        if (ticket.cancelled()) {
+                            notificationService.notify(ticket.customerId(), NotificationType.EXPO_TICKET_CANCELLED,
+                                    "방문예약 취소 안내",
+                                    expo.getTitle() + "의 일정 변경으로 " + ticket.visitDate() + " 방문예약이 취소되었습니다. 다시 신청해주세요.",
+                                    expoId);
+                        } else {
+                            notificationService.notify(ticket.customerId(), NotificationType.EXPO_SCHEDULE_CHANGED,
+                                    "박람회 일정 변경 안내",
+                                    expo.getTitle() + "의 일정이 변경되었습니다. " + ticket.visitDate() + " 방문예약은 그대로 유효합니다.",
+                                    expoId);
+                        }
+                    });
         }
 
         expo.update(request.getTitle(), request.getVenue(), request.getStartsAt(), request.getEndsAt(),

@@ -11,6 +11,8 @@ import '../Header.css';
 // 알림 종류별로 클릭 시 이동할 화면 (고객용) - 전부 마이페이지 "예약한 상담" 탭으로 모인다.
 const NOTIFICATION_TARGET = {
   CONSULTATION_APPROVED: '/customer/mypage',
+  EXPO_TICKET_CANCELLED: '/customer/mypage',
+  EXPO_SCHEDULE_CHANGED: '/customer/mypage',
 };
 
 // 일반 사용자(방문객)용 상단 헤더. 참가업체용 Header와 레이아웃은 동일하되

@@ -5,6 +5,7 @@ import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
 import com.team4.reservation.dto.AdmissionContextResponse;
 import com.team4.reservation.dto.IssueAdmissionTicketRequest;
+import com.team4.reservation.dto.ScheduleChangeResponse;
 import com.team4.reservation.dto.TicketCancelResponse;
 import com.team4.reservation.dto.TicketExistsResponse;
 import com.team4.reservation.dto.TicketResolveResponse;
@@ -95,6 +96,18 @@ public class ReservationInternalController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 ticketService.hasTicketForDate(customerId, expoId, visitDate)));
+    }
+
+    // Expo -> Reservation. 박람회 개최 기간(startsAt~endsAt) 변경 시 호출 - 새 기간 밖으로 벗어난 QR만 취소하고 QR을 발급받은 고객 전체 반환
+    @PostMapping("/expos/{expoId}/tickets/apply-schedule-change")
+    public ResponseEntity<ApiResponse<ScheduleChangeResponse>> applyScheduleChange(@RequestHeader("Authorization") String authorization,
+                                                                                   @PathVariable Long expoId,
+                                                                                   @RequestParam LocalDate newStartsAt,
+                                                                                   @RequestParam LocalDate newEndsAt) {
+
+        requireExpoService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(ticketService.applyScheduleChange(expoId, newStartsAt, newEndsAt)));
     }
 
     // Expo -> Reservation. 참가업체가 부스에서 고객 QR을 스캔해 리드를 만들 때 고객 식별용(읽기 전용, 체크인과 무관).
