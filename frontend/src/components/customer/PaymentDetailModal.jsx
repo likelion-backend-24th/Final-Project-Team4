@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAdmissionTicketPaymentDetail } from '../../api/payment';
+import { downloadReceiptImage } from '../../utils/downloadImage'
 import './Modal.css';
 
 const fmtDateTime = (iso) => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
@@ -26,6 +27,20 @@ function PaymentDetailModal({ ticket, onClose }) {
       .catch((err) => setError(err.response?.data?.error?.message ?? '결제 내역을 불러오지 못했습니다.'));
   }, [ticket.ticketId]);
 
+  const handleDownload = () => {
+  if (!detail) return;
+  const lines = [
+    `예매번호 ${ticket.bookingNo}`,
+    `결제 금액 ${fmtWon(detail.amount)}`,
+    `결제 상태 ${STATUS_LABEL[detail.status] ?? detail.status}`,
+    `결제 일시 ${fmtDateTime(detail.paidAt)}`,
+    `결제 수단 ${detail.payMethod ?? '-'}`,
+    `결제 번호 ${detail.paymentNo ?? '-'}`,
+    ...(detail.refundedAt ? [`환불 일시 ${fmtDateTime(detail.refundedAt)}`] : []),
+  ];
+  downloadReceiptImage(ticket.expoTitle || '결제 내역', lines, `결제내역_${ticket.bookingNo}`);
+};
+  
   return (
     <div className="c-modal__backdrop" onClick={onClose}>
       <div className="c-modal" onClick={(e) => e.stopPropagation()}>
@@ -82,7 +97,10 @@ function PaymentDetailModal({ ticket, onClose }) {
           </dl>
         )}
 
-        <button type="button" className="c-modal__secondary" onClick={onClose} style={{ marginTop: 0 }}>
+        <button type="button" className="c-modal__primary" onClick={handleDownload} disabled={!detail}>
+          다운받기
+        </button>
+        <button type="button" className="c-modal__secondary" onClick={onClose}>
           닫기
         </button>
       </div>
