@@ -63,8 +63,9 @@ public class LeadService {
             throw new CustomException(ErrorCode.INVALID_STATE, "다른 박람회의 QR입니다.");
         }
 
-        // 같은 QR(=같은 customerId+boothId) 재스캔이면 새로 만들지 않고 기존 리드를 그대로 반환(멱등)
-        Lead existing = leadRepository.findByBooth_IdAndCustomerId(boothId, ticket.customerId()).orElse(null);
+        // 같은 QR(=같은 customerId+boothId+visitDate) 재스캔이면 새로 만들지 않고 기존 리드를 그대로 반환(멱등)
+        Lead existing = leadRepository.findByBooth_IdAndCustomerIdAndVisitDate(boothId, ticket.customerId(), ticket.visitDate())
+                .orElse(null);
         if (existing != null) {
             return LeadResponse.from(existing);
         }

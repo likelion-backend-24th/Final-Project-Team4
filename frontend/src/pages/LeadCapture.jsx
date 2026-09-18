@@ -11,6 +11,8 @@ const STATUS_LABEL = {
 
 // ISO → 화면 표시용(2026.09.14 10:16)
 const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
+// 'YYYY-MM-DD' → 화면 표시용(2026.09.14)
+const fmtDate = (dateStr) => (dateStr ? dateStr.slice(0, 10).replace(/-/g, '.') : '-');
 
 // QR 스캔 → 리드 확보 → 상담 메모 → Gemini 이메일 초안 → 발송 (STORY 11, TASK 11-2~4 실제 API 연동)
 function LeadCapture() {
@@ -334,7 +336,8 @@ function LeadCapture() {
               <section className="lead-detail-section">
                 <div className="lead-detail-title">상담 예약 정보</div>
                 <div className="lead-detail-box">
-                  <div className="lead-detail-row"><span className="lead-label">부스</span><span className="lead-value">#{selected.boothId}</span></div>
+                  <div className="lead-detail-row"><span className="lead-label">고객</span><span className="lead-value">{selected.customerName}</span></div>
+                  <div className="lead-detail-row"><span className="lead-label">방문일</span><span className="lead-value">{fmtDate(selected.visitDate)}</span></div>
                   <div className="lead-detail-row"><span className="lead-label">QR 스캔 일시</span><span className="lead-value">{fmtDateTime(selected.createdAt)}</span></div>
                   <div className="lead-detail-row"><span className="lead-label">진행 상태</span><span className="lead-value">{STATUS_LABEL[selected.status]}</span></div>
                 </div>

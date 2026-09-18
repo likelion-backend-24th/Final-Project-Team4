@@ -1,6 +1,7 @@
 package com.team4.expo.dto;
 
 import com.team4.expo.domain.Lead;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public record LeadResponse(
@@ -10,6 +11,7 @@ public record LeadResponse(
         Long consultationId,
         String customerName,
         String customerEmail,
+        LocalDate visitDate,
         String interestNote,
         String emailSummary,
         String status,
@@ -23,6 +25,7 @@ public record LeadResponse(
                 lead.getConsultation() != null ? lead.getConsultation().getId() : null,
                 lead.getCustomerName(),
                 lead.getCustomerEmail(),
+                lead.getVisitDate(),
                 lead.getInterestNote(),
                 lead.getEmailSummary(),
                 lead.getStatus().name(),

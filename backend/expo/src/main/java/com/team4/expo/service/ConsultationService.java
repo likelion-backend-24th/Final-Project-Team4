@@ -196,7 +196,7 @@ public class ConsultationService {
 
         boolean eligible = "BOOTH".equals(reviewType)
                 ? leadRepository.findByBooth_IdAndCustomerId(boothId, customerId)
-                        .map(Lead::isReviewable).orElse(false)
+                        .stream().anyMatch(Lead::isReviewable)
                 : consultationRepository.findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
                         .stream().anyMatch(Consultation::isReviewable);
 
