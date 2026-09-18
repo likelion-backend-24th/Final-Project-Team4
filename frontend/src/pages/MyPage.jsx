@@ -5,6 +5,7 @@ import { getMyPayments, refundBoothPayment } from "../api/payment";
 import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../api/identity";
 import { clearAuth, notifyProfileUpdated } from "../api/auth";
 import { isFoodBooth } from "../utils/boothType";
+import { formatPhoneNumber } from "../utils/phone";
 import { REFUND_REASONS } from "../mock/customerData";
 import "../components/customer/Modal.css";
 import "../components/customer/EntryFlowModal.css";
@@ -273,8 +274,12 @@ function MyPage() {
     setShowEditModal(true);
   };
 
+  const PHONE_FIELDS = ["contact", "companyContact"];
   const handleEditField = (field) => (e) =>
-    setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
+    setEditForm((prev) => ({
+      ...prev,
+      [field]: PHONE_FIELDS.includes(field) ? formatPhoneNumber(e.target.value) : e.target.value,
+    }));
 
   const handleSaveProfile = async () => {
     setSaving(true);
@@ -352,7 +357,7 @@ function MyPage() {
                   <div className="mypage__profile-row">
                     <span className="mypage__profile-label">휴대폰 번호</span>
                     <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.contact ?? "-"}
+                      {profile.contact ? formatPhoneNumber(profile.contact) : "-"}
                     </span>
                   </div>
                 </div>
@@ -394,7 +399,7 @@ function MyPage() {
                   <div className="mypage__profile-row">
                     <span className="mypage__profile-label">대표 전화번호</span>
                     <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.companyContact ?? "-"}
+                      {profile.companyContact ? formatPhoneNumber(profile.companyContact) : "-"}
                     </span>
                   </div>
                   <div className="mypage__profile-row">
