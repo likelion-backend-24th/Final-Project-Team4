@@ -270,96 +270,6 @@
   border-radius: 50%;
 }
 
-.signup__terms {
-  background: #eff6ff;
-  border-radius: 8px;
-  padding: 24px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.signup__terms-all {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
-  color: #0f172a;
-  margin: 0;
-}
-
-.signup__terms-all input[type='checkbox'] {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  background: #2563eb;
-  border-radius: 4px;
-  margin: 0;
-  position: relative;
-  flex-shrink: 0;
-}
-
-.signup__terms-all input[type='checkbox']::before {
-  content: '';
-  position: absolute;
-  left: 25%;
-  right: 25%;
-  top: 30%;
-  bottom: 30%;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  transform: rotate(-45deg);
-}
-
-.signup__terms-divider {
-  height: 1px;
-  background: #e2e8f0;
-}
-
-.signup__terms ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.signup__terms li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Inter', sans-serif;
-  font-weight: 400;
-  font-size: 13px;
-  line-height: 16px;
-  color: #475569;
-}
-
-.signup__term-check {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #2563eb;
-  border-radius: 3px;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.signup__term-check::before {
-  content: '';
-  position: absolute;
-  left: 20%;
-  right: 20%;
-  top: 25%;
-  bottom: 30%;
-  border-left: 2px solid #2563eb;
-  border-bottom: 2px solid #2563eb;
-  transform: rotate(-45deg);
-}
-
 .signup__actions {
   display: flex;
   gap: 16px;
@@ -389,6 +299,12 @@
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
+}
+
+/* 이메일 인증이나 약관 동의가 끝나기 전에는 비활성 상태로 보이게 함 */
+.signup__submit:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

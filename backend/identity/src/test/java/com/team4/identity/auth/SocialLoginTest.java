@@ -40,19 +40,39 @@ class SocialLoginTest {
     }
 
     @Test
-    void 신규_이메일이면_USER_계정을_즉시_ACTIVE로_생성하고_토큰을_발급한다() {
-        MockHttpServletResponse response = new MockHttpServletResponse();
+    void 신규_이메일이면_가입을_보류하고_약관_동의_완료_시점에_USER_계정을_ACTIVE로_생성한다() {
+        MockHttpServletResponse reserveResponse = new MockHttpServletResponse();
 
-        TokenResponse token = socialLoginService.loginOrSignUp(
-                "newbie@gmail.com", AuthProvider.GOOGLE, "google-sub-1", "홍길동", response);
+        // 신규라서 로그인되지 않고, 동의 전까지 DB에 회원이 만들어지지 않음
+        assertThat(socialLoginService.loginIfExists("newbie@gmail.com", reserveResponse)).isEmpty();
+        socialLoginService.reserveSignUp("newbie@gmail.com", AuthProvider.GOOGLE, "google-sub-1", "홍길동", reserveResponse);
+        assertThat(userRepository.findByEmail("newbie@gmail.com")).isEmpty();
+
+        // 동의 완료 - 쿠키로 내려간 가입 보류 토큰으로 회원 생성과 로그인
+        MockHttpServletResponse completeResponse = new MockHttpServletResponse();
+        TokenResponse token = socialLoginService.completeSignUp(
+                cookieValue(reserveResponse, SocialLoginService.SIGNUP_COOKIE), completeResponse);
 
         assertThat(token.getAccessToken()).isNotBlank();
         assertThat(token.getRole()).isEqualTo("USER");
-        assertThat(response.getHeader("Set-Cookie")).contains("refreshToken=");
+        assertThat(completeResponse.getHeaders("Set-Cookie")).anyMatch(h -> h.startsWith("refreshToken="));
 
         User created = userRepository.findByEmail("newbie@gmail.com").orElseThrow();
         assertThat(created.getRole()).isEqualTo(Role.USER);
         assertThat(created.getStatus()).isEqualTo(UserStatus.ACTIVE);
+    }
+
+    @Test
+    void 가입_보류_토큰은_1회용이라_다시_쓰면_401로_거부한다() {
+        MockHttpServletResponse reserveResponse = new MockHttpServletResponse();
+        socialLoginService.reserveSignUp("once@gmail.com", AuthProvider.GOOGLE, "google-sub-2", "일회용", reserveResponse);
+        String signUpToken = cookieValue(reserveResponse, SocialLoginService.SIGNUP_COOKIE);
+
+        socialLoginService.completeSignUp(signUpToken, new MockHttpServletResponse());
+
+        assertThatThrownBy(() -> socialLoginService.completeSignUp(signUpToken, new MockHttpServletResponse()))
+                .isInstanceOf(CustomException.class)
+                .satisfies(ex -> assertThat(((CustomException) ex).errorCode()).isEqualTo(ErrorCode.UNAUTHENTICATED));
     }
 
     @Test
@@ -61,8 +81,7 @@ class SocialLoginTest {
                 User.createMember("member@gmail.com", passwordEncoder.encode("password123"), "기존회원", "010-0000-0000"));
 
         MockHttpServletResponse response = new MockHttpServletResponse();
-        TokenResponse token = socialLoginService.loginOrSignUp(
-                "member@gmail.com", AuthProvider.KAKAO, "kakao-id-1", "카카오닉네임", response);
+        TokenResponse token = socialLoginService.loginIfExists("member@gmail.com", response).orElseThrow();
 
         assertThat(token.getRole()).isEqualTo("USER");
         assertThat(userRepository.count()).isEqualTo(1); // 새 계정이 생기지 않고 기존 계정 하나로 연동됨
@@ -77,9 +96,17 @@ class SocialLoginTest {
 
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        assertThatThrownBy(() -> socialLoginService.loginOrSignUp(
-                "biz@corp.com", AuthProvider.NAVER, "naver-id-1", "네이버닉네임", response))
+        assertThatThrownBy(() -> socialLoginService.loginIfExists("biz@corp.com", response))
                 .isInstanceOf(CustomException.class)
                 .satisfies(ex -> assertThat(((CustomException) ex).errorCode()).isEqualTo(ErrorCode.DUPLICATE));
+    }
+
+    // Set-Cookie 헤더들 중 name=값 형태의 쿠키에서 값만 꺼냄
+    private String cookieValue(MockHttpServletResponse response, String name) {
+        return response.getHeaders("Set-Cookie").stream()
+                .filter(header -> header.startsWith(name + "="))
+                .map(header -> header.substring(name.length() + 1, header.indexOf(';')))
+                .findFirst()
+                .orElseThrow();
     }
 }
