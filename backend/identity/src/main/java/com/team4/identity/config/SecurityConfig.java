@@ -1,6 +1,7 @@
 package com.team4.identity.config;
 
 import com.team4.identity.security.oauth2.CookieAuthorizationRequestRepository;
+import com.team4.identity.security.oauth2.CustomAuthorizationRequestResolver;
 import com.team4.identity.security.oauth2.CustomOAuth2UserService;
 import com.team4.identity.security.oauth2.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
     private final CookieAuthorizationRequestRepository cookieAuthorizationRequestRepository;
+    private final CustomAuthorizationRequestResolver customAuthorizationRequestResolver;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
@@ -27,7 +29,9 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth
-                        .authorizationEndpoint(a -> a.authorizationRequestRepository(cookieAuthorizationRequestRepository))
+                        .authorizationEndpoint(a -> a
+                                .authorizationRequestRepository(cookieAuthorizationRequestRepository)
+                                .authorizationRequestResolver(customAuthorizationRequestResolver))
                         .userInfoEndpoint(u -> u.userService(customOAuth2UserService))
                         .successHandler(oAuth2SuccessHandler)
                 );
