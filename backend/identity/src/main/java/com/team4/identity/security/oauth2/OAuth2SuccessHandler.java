@@ -16,8 +16,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
+import java.util.Optional;
 
-// 소셜 로그인 인가 success Handler - CustomOAuth2UserService가 채워둔 email, name으로 계정 연동/발급하고 프론트로 리다이렉트
+// 소셜 로그인 인가 success Handler - CustomOAuth2UserService가 채워둔 email, name으로 기존 회원은 로그인시키고 신규 회원은 약관 동의 화면으로 보내며, 결과에 따라 프론트로 리다이렉트
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -39,11 +40,17 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         String redirectUrl;
         try {
-            TokenResponse token = socialLoginService.loginOrSignUp(email, AuthProvider.valueOf(registrationId.toUpperCase()), providerId, name, response);
-            redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
-                    .queryParam("accessToken", token.getAccessToken())
-                    .queryParam("role", token.getRole())
-                    .build().toUriString();
+            Optional<TokenResponse> token = socialLoginService.loginIfExists(email, response);
+            if (token.isPresent()) {
+                redirectUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth2/redirect")
+                        .queryParam("accessToken", token.get().getAccessToken())
+                        .queryParam("role", token.get().getRole())
+                        .build().toUriString();
+            } else {
+                // 신규 회원은 약관 동의받기 위해 가입을 보류하고 동의 화면으로 보냄
+                socialLoginService.reserveSignUp(email, AuthProvider.valueOf(registrationId.toUpperCase()), providerId, name, response);
+                redirectUrl = frontendUrl + "/oauth2/consent";
+            }
 
         } catch (CustomException e) {
             // 참가업체 이메일 충돌 -> 에러코드만 실어서 리다이렉트
