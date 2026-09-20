@@ -38,6 +38,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
     // 박람회 일정 변경(Expo -> Reservation)용 - 알림 발송 대상(전체) 추리려고 취소 전에 먼저 조회.
     List<Ticket> findByExpoIdAndStatus(Long expoId, TicketStatus status);
 
+    // 회원 탈퇴(Identity -> Reservation)용 - 그 고객의 ISSUED 티켓을 전부 CANCELLED로.
+    // 이미 USED인 티켓(체크인 완료)은 조건에서 빠져 그대로 남는다 - 이미 입장 완료된 기록이라 무효화 대상이 아님.
+    @Modifying
+    @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.CANCELLED "
+            + "WHERE t.customerId = :customerId AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED")
+    int cancelAllIssuedByCustomerId(@Param("customerId") Long customerId);
+
     // 위에서 조회한 것들 중 새 개최 기간([newStart, newEnd]) 밖으로 벗어난 것만 CANCELLED로 변경.
     @Modifying
     @Query("UPDATE Ticket t SET t.status = com.team4.reservation.domain.TicketStatus.CANCELLED "

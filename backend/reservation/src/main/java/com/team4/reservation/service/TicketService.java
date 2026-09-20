@@ -210,6 +210,14 @@ public class TicketService {
         return ticketRepository.markCancelledIfIssued(ticketId) > 0;
     }
 
+    // Identity -> Reservation. 회원 탈퇴 시 호출 — 그 고객이 보유한 모든 미사용 입장권(QR)을 강제 무효화(CANCELLED).
+    // 환불 여부와 무관하게(환불은 별도로 고객이 직접 신청) QR 자체의 효력만 즉시 끊는다.
+    // 반환값 = 실제로 무효화된 티켓 수(이미 USED/CANCELLED였던 건 제외).
+    @Transactional
+    public int invalidateAllTickets(Long customerId){
+        return ticketRepository.cancelAllIssuedByCustomerId(customerId);
+    }
+
     // Expo -> Reservation. 박람회 개최 기간(startsAt~endsAt) 변경 시 호출.
     // QR을 발급받은 고객 전체를 대상으로 새 기간 밖으로 벗어난 visitDate만 취소.
     @Transactional
