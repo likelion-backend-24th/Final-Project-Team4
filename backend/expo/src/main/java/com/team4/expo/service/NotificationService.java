@@ -56,6 +56,11 @@ public class NotificationService {
         notification.markRead();
     }
 
+    // 내 안 읽은 알림 모두 읽음 처리
+    public void markAllRead(Long recipientId) {
+        notificationRepository.markAllRead(recipientId);
+    }
+
     // 읽은 알림만 삭제 가능 (안 읽은 알림은 먼저 읽어야 지울 수 있음)
     public void delete(Long recipientId, Long notificationId) {
         Notification notification = findOwned(recipientId, notificationId);
