@@ -9,7 +9,7 @@ import '../../pages/customer/ExhibitorList.css';
 // 넓은 화면에서는 사이드바에 그대로 붙어있고, 화면이 좁아지면 맨 아래로 밀려나는 대신
 // 우측에 작은 플로팅 버튼으로 접혀서 항상 떠 있다가, 누르면 다시 펼쳐진다.
 // 상담 신청은 로그인한 회원만 가능 - 비로그인 상태면 로그인 유도 모달을 먼저 띄운다.
-function BulkConsultPromo({ expoId, groups }) {
+function BulkConsultPromo({ expoId, groups, lockedBoothId, defaultVehicle }) {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [showBulkConsult, setShowBulkConsult] = useState(false);
@@ -69,7 +69,13 @@ function BulkConsultPromo({ expoId, groups }) {
       </button>
 
       {showBulkConsult && (
-        <BulkConsultationModal expoId={expoId} groups={groups} onClose={() => setShowBulkConsult(false)} />
+        <BulkConsultationModal
+          expoId={expoId}
+          groups={groups}
+          lockedBoothId={lockedBoothId}
+          defaultVehicle={defaultVehicle}
+          onClose={() => setShowBulkConsult(false)}
+        />
       )}
 
       {showLoginPrompt && (

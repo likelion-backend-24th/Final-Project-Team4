@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -99,18 +100,88 @@ public class ReviewService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 차량명을 입력해야 합니다.");
         }
 
-        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name());
+        if (request.getReviewType() == ReviewType.CONSULT && request.getConsultationId() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 대상 상담을 지정해야 합니다.");
+        }
+        // 상담후기는 상담 1건당 1개, 부스후기는 고객·부스당 1개 - 삭제하면 다시 작성할 수 있다.
+        boolean alreadyWritten = request.getReviewType() == ReviewType.CONSULT
+                ? reviewRepository.existsByConsultationId(request.getConsultationId())
+                : reviewRepository.existsByCustomerIdAndBoothIdAndReviewType(customerId, boothId, ReviewType.BOOTH);
+        if (alreadyWritten) {
+            throw new CustomException(ErrorCode.DUPLICATE, request.getReviewType() == ReviewType.CONSULT
+                    ? "이미 이 상담에 대한 후기를 작성했습니다." : "이미 이 부스에 대한 부스후기를 작성했습니다.");
+        }
+
+        Long consultationId = request.getReviewType() == ReviewType.CONSULT ? request.getConsultationId() : null;
+        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name(), consultationId);
         if (!eligibility.eligible()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "상담이 완료된 참가업체에만 후기를 작성할 수 있습니다.");
         }
 
         String customerName = identityClient.getCustomerName(customerId).orElse("고객");
 
-        Review review = new Review(boothId, eligibility.boothNo(), request.getReviewType(), customerId, customerName,
+        Review review = new Review(boothId, eligibility.boothNo(), eligibility.companyName(), eligibility.expoTitle(),
+                request.getReviewType(), customerId, customerName,
                 request.getReviewType() == ReviewType.CONSULT ? request.getVehicleName() : null,
-                request.getContent());
+                consultationId, request.getContent());
 
-        return ReviewResponse.from(reviewRepository.save(review), List.of());
+        // 같은 상담에 동시에 두 번 요청이 들어와도 DB 유니크 인덱스(consultation_id)가 막는다.
+        try {
+            return ReviewResponse.from(reviewRepository.saveAndFlush(review), List.of());
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DUPLICATE, "이미 이 상담에 대한 후기를 작성했습니다.");
+        }
+    }
+
+    // 마이페이지 "내가 쓴 후기" - 부스 ID/후기 유형을 같이 내려줘서 프론트가 업체명(내 상담 내역과 boothId로 매칭)과 함께 보여준다.
+    @Transactional(readOnly = true)
+    public List<ReviewResponse> listMyReviews(Long customerId) {
+        List<Review> reviews = reviewRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+        List<Long> reviewIds = reviews.stream().map(Review::getId).collect(Collectors.toList());
+        Map<Long, List<ReviewImageResponse>> imagesByReviewId = reviewIds.isEmpty()
+                ? Map.of()
+                : reviewImageRepository.findByReview_IdInOrderByReview_IdAscSortOrderAsc(reviewIds).stream()
+                        .collect(Collectors.groupingBy(img -> img.getReview().getId(),
+                                Collectors.mapping(ReviewImageResponse::from, Collectors.toList())));
+
+        return reviews.stream()
+                .map(r -> ReviewResponse.from(r, imagesByReviewId.getOrDefault(r.getId(), List.of())))
+                .collect(Collectors.toList());
+    }
+
+    // 본인 후기 수정 - 유형(상담/부스)은 바꿀 수 없고 내용과 상담후기의 차량명만 바꾼다. 사진은 수정 대상이 아니다.
+    public ReviewResponse updateReview(Long customerId, Long boothId, Long reviewId, ReviewRequest request) {
+        Review review = findOwnedReview(customerId, boothId, reviewId);
+        if (request.getReviewType() != review.getReviewType()) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "후기 유형은 변경할 수 없습니다.");
+        }
+        if (review.getReviewType() == ReviewType.CONSULT
+                && (request.getVehicleName() == null || request.getVehicleName().isBlank())) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 차량명을 입력해야 합니다.");
+        }
+
+        review.update(review.getReviewType() == ReviewType.CONSULT ? request.getVehicleName() : null, request.getContent());
+
+        List<ReviewImageResponse> images = reviewImageRepository.findByReview_IdOrderBySortOrderAsc(reviewId).stream()
+                .map(ReviewImageResponse::from).collect(Collectors.toList());
+        return ReviewResponse.from(review, images);
+    }
+
+    // 본인 후기 삭제 - 사진 행과 저장된 파일까지 같이 지운다(파일 삭제 실패는 후기 삭제를 막지 않는다).
+    public void deleteReview(Long customerId, Long boothId, Long reviewId) {
+        Review review = findOwnedReview(customerId, boothId, reviewId);
+        List<ReviewImage> images = reviewImageRepository.findByReview_IdOrderBySortOrderAsc(reviewId);
+
+        reviewImageRepository.deleteByReview_Id(reviewId);
+        reviewRepository.delete(review);
+
+        images.forEach(img -> {
+            try {
+                Files.deleteIfExists(REVIEW_IMAGE_UPLOAD_DIR.resolve(Paths.get(img.getImageUrl()).getFileName()));
+            } catch (IOException ignored) {
+                // 고아 파일이 남을 뿐 DB 정합성에는 영향 없음
+            }
+        });
     }
 
     // 후기 사진 추가(최대 5장, 선택) - 프론트가 createReview 이후 파일마다 이 API를 순차 호출한다(차량 이미지와 같은 2단계 패턴).
@@ -134,7 +205,7 @@ public class ReviewService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "후기를 찾을 수 없습니다."));
         if (!review.getCustomerId().equals(customerId) || !review.getBoothId().equals(boothId)) {
-            throw new CustomException(ErrorCode.FORBIDDEN, "본인이 작성한 후기에만 사진을 추가할 수 있습니다.");
+            throw new CustomException(ErrorCode.FORBIDDEN, "본인이 작성한 후기만 처리할 수 있습니다.");
         }
         return review;
     }

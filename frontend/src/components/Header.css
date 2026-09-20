@@ -24,12 +24,6 @@
   }
 }
 
-@media (max-width: 480px) {
-  .app-header__user span:not(.app-header__avatar) {
-    display: none;
-  }
-}
-
 .app-header__brand {
   display: flex;
   align-items: center;
@@ -147,13 +141,19 @@
   color: #0f172a;
 }
 
-.app-header__notifications-count {
+.app-header__notifications-read-all {
   font-size: 11px;
   font-weight: 600;
   color: #2563eb;
   background: #eff6ff;
   padding: 3px 8px;
+  border: none;
   border-radius: 999px;
+  cursor: pointer;
+}
+
+.app-header__notifications-read-all:hover {
+  background: #dbeafe;
 }
 
 .app-header__notifications-panel ul {
@@ -327,4 +327,80 @@ a.app-header__user:hover {
   border-left: 1px solid #e2e8f0;
   padding-left: 12px;
   margin-left: 4px;
+}
+
+.app-header__account-menu {
+  position: relative;
+}
+
+.app-header__account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.app-header__account-trigger:hover {
+  color: #0f172a;
+}
+
+.app-header__account-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  box-sizing: border-box;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+  z-index: 20;
+}
+
+.app-header__account-summary {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.app-header__account-item {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #334155;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-header__account-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.app-header__account-item--logout {
+  color: #c62828;
+}
+
+.app-header__account-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0;
 }

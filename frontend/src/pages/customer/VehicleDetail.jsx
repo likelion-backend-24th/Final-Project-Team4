@@ -262,7 +262,7 @@ function VehicleDetail() {
           )}
         </div>
 
-        <BulkConsultPromo expoId={expoId} groups={groups} />
+        <BulkConsultPromo expoId={expoId} groups={groups} lockedBoothId={group.boothId} defaultVehicle={vehicle.name} />
       </div>
     </div>
   );

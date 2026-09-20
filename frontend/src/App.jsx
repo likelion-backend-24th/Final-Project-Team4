@@ -3,6 +3,7 @@ import { getRole } from './api/auth';
 import Header from './components/Header';
 import AdminHeader from './components/AdminHeader';
 import CustomerHeader from './components/customer/CustomerHeader';
+import Footer from './components/Footer';
 import ExpoList from './pages/ExpoList';
 import ExpoDetail from './pages/ExpoDetail';
 import BoothApplication from './pages/BoothApplication';
@@ -10,9 +11,12 @@ import ConsultationRequests from './pages/ConsultationRequests';
 import LeadCapture from './pages/LeadCapture';
 import Login from './pages/Login';
 import OAuth2Redirect from './pages/OAuth2Redirect';
+import OAuth2Consent from './pages/OAuth2Consent';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import Terms from './pages/Terms';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import MyPage from './pages/MyPage';
 import BoothManage from './pages/BoothManage';
 import BoothInsights from './pages/BoothInsights';
@@ -30,31 +34,36 @@ import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
 
-function ExhibitorLayout({ children }) {
+// 역할별 헤더만 다르고 본문, 푸터 배치는 공통
+function Layout({ header, children }) {
   return (
-    <>
-      <Header />
-      {children}
-    </>
+    <div className="app-layout">
+      {header}
+      <div className="app-layout__body">{children}</div>
+      <Footer />
+    </div>
   );
+}
+
+function ExhibitorLayout({ children }) {
+  return <Layout header={<Header />}>{children}</Layout>;
 }
 
 function CustomerLayout({ children }) {
-  return (
-    <>
-      <CustomerHeader />
-      {children}
-    </>
-  );
+  return <Layout header={<CustomerHeader />}>{children}</Layout>;
 }
 
 function AdminLayout({ children }) {
-  return (
-    <>
-      <AdminHeader />
-      {children}
-    </>
-  );
+  return <Layout header={<AdminHeader />}>{children}</Layout>;
+}
+
+// 약관, 개인정보처리방침은 비로그인 포함 모든 역할이 봄 -> 로그인한 역할의 헤더를 그대로 보여줌
+// 비로그인은 "둘러보기"와 같은 참관객 화면 기준
+function LegalLayout({ children }) {
+  const role = getRole();
+  if (role === 'EXHIBITOR') return <ExhibitorLayout>{children}</ExhibitorLayout>;
+  if (role === 'ADMIN') return <AdminLayout>{children}</AdminLayout>;
+  return <CustomerLayout>{children}</CustomerLayout>;
 }
 
 // "/"는 원래 참가업체(EXHIBITOR) 전용 홈. USER/ADMIN 계정이 로그인 후 새탭·북마크 등으로
@@ -75,9 +84,12 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
+      <Route path="/oauth2/consent" element={<OAuth2Consent />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/terms" element={<LegalLayout><Terms /></LegalLayout>} />
+      <Route path="/privacy" element={<LegalLayout><PrivacyPolicy /></LegalLayout>} />
 
       <Route path="/" element={<ExhibitorHome />} />
       <Route path="/expos/:expoId" element={<ExhibitorLayout><ExpoDetail /></ExhibitorLayout>} />

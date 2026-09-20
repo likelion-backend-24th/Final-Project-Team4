@@ -6,9 +6,10 @@ import TicketActionsMenu from '../../components/customer/TicketActionsMenu';
 import PaymentDetailModal from '../../components/customer/PaymentDetailModal';
 import RefundRequestModal from '../../components/customer/RefundRequestModal';
 import VisitedBoothsModal from '../../components/customer/VisitedBoothsModal';
+import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
-import { getCustomerExpoList, getMyConsultations } from '../../api/expo';
+import { deleteBoothReview, getCustomerExpoList, getMyConsultations, getMyReviews, toAssetUrl } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
 import { clearAuth, notifyProfileUpdated } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
@@ -22,6 +23,9 @@ const TABS = [
   { key: 'tickets', label: '나의 입장권' },
   { key: 'consultations', label: '예약한 상담' },
 ];
+
+const REVIEW_TYPE_LABEL = { CONSULT: '상담후기', BOOTH: '부스후기' };
+const REVIEWS_PER_PAGE = 4;
 
 // 상태는 저장된 값이 아니라 매번 계산(getTicketStatus)
 // 사용완료 = 입장 체크(체크인)를 마침, 환불 = 결제 취소로 QR이 무효화됨, 만료 = 체크인 없이 박람회 기간만 끝남
@@ -83,6 +87,11 @@ function CustomerMyPage() {
   const [consultError, setConsultError] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [reviewExpoId, setReviewExpoId] = useState(null);
+  const [myReviews, setMyReviews] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewError, setReviewError] = useState(null);
+  const [editingReview, setEditingReview] = useState(null);
+  const [reviewPage, setReviewPage] = useState(1);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
   // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
@@ -138,6 +147,35 @@ function CustomerMyPage() {
   useEffect(() => {
     loadConsultations();
   }, []);
+
+  const loadMyReviews = () =>
+    getMyReviews()
+      .then((data) => {
+        setMyReviews(data);
+        setReviewError(null);
+      })
+      .catch((err) => setReviewError(err.response?.data?.error?.message ?? '작성한 후기를 불러오지 못했습니다.'))
+      .finally(() => setReviewLoading(false));
+
+  useEffect(() => {
+    loadMyReviews();
+  }, []);
+
+  // 후기는 상담이 완료된 부스에만 쓸 수 있으므로, 내 상담 내역(boothId)과 매칭하면 어느 업체에 쓴 후기인지 알 수 있다.
+  const boothInfoById = useMemo(
+    () => new Map(consultations.map((c) => [c.boothId, { companyName: c.companyName, expoTitle: c.expoTitle }])),
+    [consultations]
+  );
+
+  const handleDeleteReview = async (review) => {
+    if (!window.confirm('이 후기를 삭제하시겠습니까? 삭제한 후기는 복구할 수 없습니다.')) return;
+    try {
+      await deleteBoothReview(review.boothId, review.reviewId);
+      loadMyReviews();
+    } catch (err) {
+      window.alert(err.response?.data?.error?.message ?? '후기 삭제 중 오류가 발생했습니다.');
+    }
+  };
 
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
   // 회원 탈퇴 모달 "미사용 유료 입장권이 있습니다" 안내 노출 조건 - 환불 신청이 가능한 티켓과 같은 기준.
@@ -241,6 +279,10 @@ function CustomerMyPage() {
     setShowWithdrawModal(false);
     setTab('tickets');
   };
+  // 삭제로 마지막 페이지가 비어도 화면이 비지 않게 현재 페이지를 총 페이지 수로 제한한다.
+  const reviewTotalPages = Math.max(1, Math.ceil(myReviews.length / REVIEWS_PER_PAGE));
+  const currentReviewPage = Math.min(reviewPage, reviewTotalPages);
+  const pagedReviews = myReviews.slice((currentReviewPage - 1) * REVIEWS_PER_PAGE, currentReviewPage * REVIEWS_PER_PAGE);
 
   const consultationsWithLabel = consultations.map((c) => ({ ...c, _statusLabel: CONSULTATION_STATUS_LABEL[c.status] ?? c.status }));
   const filteredConsultations =
@@ -282,6 +324,7 @@ function CustomerMyPage() {
         </aside>
         <main className="c-mypage__main">
           {tab === 'profile' ? (
+            <>
             <div className="c-mypage__card">
               {profileError ? (
                 <p className="c-mypage__empty">{profileError}</p>
@@ -320,6 +363,83 @@ function CustomerMyPage() {
                 회원 탈퇴
               </button>
             </div>
+
+            <h2 className="c-mypage__section-title">내가 쓴 후기</h2>
+            {reviewLoading ? (
+                  <p className="c-mypage__empty">불러오는 중...</p>
+                ) : reviewError ? (
+                  <p className="c-mypage__empty">{reviewError}</p>
+                ) : myReviews.length === 0 ? (
+                  <p className="c-mypage__empty">아직 작성한 후기가 없습니다.</p>
+                ) : (
+                  <div className="c-ticket-grid">
+                    {pagedReviews.map((r) => {
+                      // 작성 시점에 저장된 업체명/박람회명을 우선 쓰고, 이 기능 도입 전 후기는 내 상담 내역에서 찾아 보완한다.
+                  const fallback = boothInfoById.get(r.boothId);
+                  const booth = {
+                    companyName: r.companyName || fallback?.companyName,
+                    expoTitle: r.expoTitle || fallback?.expoTitle,
+                  };
+                      return (
+                        <div key={r.reviewId} className="c-ticket-card c-my-review">
+                          <div className="c-ticket-card__head">
+                            <div>
+                              <h3>{booth?.companyName || `${r.boothNo} 부스`}</h3>
+                              <p className="c-ticket-card__submeta">
+                                {booth?.expoTitle && `${booth.expoTitle} · `}
+                                {r.boothNo} 부스
+                                {r.reviewType === 'CONSULT' && r.vehicleName && ` · ${r.vehicleName}`}
+                              </p>
+                            </div>
+                            <span className="c-ticket-card__badge is-approved">{REVIEW_TYPE_LABEL[r.reviewType]}</span>
+                          </div>
+                          <p className="c-my-review__content">{r.content}</p>
+                          {r.images?.length > 0 && (
+                            <div className="c-my-review__images">
+                              {r.images.map((img) => (
+                                <img key={img.imageId ?? img.imageUrl} src={toAssetUrl(img.imageUrl)} alt="후기 사진" />
+                              ))}
+                            </div>
+                          )}
+                          <p className="c-ticket-card__meta">작성일 {fmtDateTime(r.createdAt)}</p>
+                          <div className="c-my-review__actions">
+                            <button type="button" onClick={() => setEditingReview(r)}>
+                              수정
+                            </button>
+                            <button type="button" className="is-danger" onClick={() => handleDeleteReview(r)}>
+                              삭제
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+            {myReviews.length > REVIEWS_PER_PAGE && (
+              <div className="c-my-review__pagination">
+                <button type="button" onClick={() => setReviewPage(currentReviewPage - 1)} disabled={currentReviewPage === 1}>
+                  ‹
+                </button>
+                {Array.from({ length: reviewTotalPages }, (_, i) => i + 1).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    className={n === currentReviewPage ? 'is-active' : ''}
+                    onClick={() => setReviewPage(n)}
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setReviewPage(currentReviewPage + 1)}
+                  disabled={currentReviewPage === reviewTotalPages}
+                >
+                  ›
+                </button>
+              </div>
+            )}
+            </>
           ) : tab === 'tickets' ? (
             <>
               <div className="c-mypage__ticket-filters">
@@ -730,12 +850,24 @@ function CustomerMyPage() {
       {selectedConsultation && (
         <ConsultationDetailModal
           consultation={selectedConsultation}
+          reviewed={myReviews.some((r) => r.consultationId === selectedConsultation.consultationId)}
           onClose={() => setSelectedConsultation(null)}
           onChanged={loadConsultations}
         />
       )}
       {reviewExpoId && (
-        <VisitedBoothsModal expoId={reviewExpoId} onClose={() => setReviewExpoId(null)} />
+        <VisitedBoothsModal
+          expoId={reviewExpoId}
+          reviewedBoothIds={myReviews.filter((r) => r.reviewType === 'BOOTH').map((r) => r.boothId)}
+          onClose={() => setReviewExpoId(null)} />
+      )}
+      {editingReview && (
+        <ReviewWriteModal
+          boothId={editingReview.boothId}
+          editing={editingReview}
+          onClose={() => setEditingReview(null)}
+          onCreated={loadMyReviews}
+        />
       )}
     </div>
   );

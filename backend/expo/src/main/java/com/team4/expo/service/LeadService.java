@@ -88,9 +88,14 @@ public class LeadService {
                         ? new CustomerContact(matched.getCustomerName(), matched.getCustomerEmail())
                         : new CustomerContact(null, null));
 
+        // 이메일 발송 가능 여부(leadConsent) - 상담 신청 건은 위에서 이미 동의 확인됐으니 항상 true.
+        // 워크인은 별도 동의 절차가 없어 일단 false로 만들고, 참가업체가 스캔 결과 화면에서 현장에서
+        // 고객에게 구두로 확인 후 체크박스로 동의 처리(confirmLeadConsent, 2026-09-18 확정).
+        boolean leadConsent = matched != null;
+
         // interestNote는 현장 상담 내용(자유 텍스트) - TASK 11-3(POST .../leads/{leadId}/summary)에서 채움. 생성 시점엔 비워둠.
         Lead lead = new Lead(booth, ticket.customerId(), ticket.visitDate(), matched,
-                contact.name(), contact.email(), null);
+                contact.name(), contact.email(), null, leadConsent);
         return LeadResponse.from(leadRepository.save(lead));
     }
 
@@ -137,6 +142,9 @@ public class LeadService {
     public LeadResponse generateEmailSummary(Long exhibitorId, Long leadId, String consultationNote) {
         Lead lead = findOwnedLead(exhibitorId, leadId);
 
+        if (!lead.isLeadConsent()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "고객이 연락처 제공에 동의하지 않아 이메일을 작성할 수 없습니다.");
+        }
         if (!lead.canRetryEmailSummary()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "AI 요약 생성 횟수를 초과했습니다.");
         }
@@ -153,6 +161,13 @@ public class LeadService {
     public LeadResponse sendInfo(Long exhibitorId, Long leadId, String emailBody) {
         Lead lead = findOwnedLead(exhibitorId, leadId);
 
+        if (!lead.isLeadConsent()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "고객이 연락처 제공에 동의하지 않아 발송할 수 없습니다.");
+        }
+        if (lead.getCustomerEmail() == null || lead.getCustomerEmail().isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "고객 이메일이 없어 발송할 수 없습니다. 이메일을 먼저 입력해주세요.");
+        }
+
         identityClient.sendMail(lead.getCustomerEmail(), buildSendInfoSubject(exhibitorId, lead), emailBody);
         lead.markSent();
 
@@ -163,6 +178,29 @@ public class LeadService {
             consultation.complete();
         }
 
+        return LeadResponse.from(lead);
+    }
+
+    // 워크인 리드는 스캔 시점엔 동의가 없는 상태(leadConsent=false)로 생성됨 - 참가업체가 QR 스캔 결과
+    // 화면에서 고객에게 구두로 연락처 제공 동의를 확인한 뒤 체크박스로 표시하면 이 API로 확정(2026-09-18 확정).
+    // 상담 신청 건은 신청 시점에 이미 동의를 받았으므로(Consultation.leadConsent) 대상 아님(FORBIDDEN).
+    public LeadResponse confirmLeadConsent(Long exhibitorId, Long leadId) {
+        Lead lead = findOwnedLead(exhibitorId, leadId);
+
+        if (lead.getConsultation() != null) {
+            throw new CustomException(ErrorCode.FORBIDDEN, "상담 신청 건은 이미 신청 시점에 동의가 확인되었습니다.");
+        }
+
+        lead.confirmLeadConsent();
+        return LeadResponse.from(lead);
+    }
+
+    // 참가업체가 리드의 고객 이메일을 직접 입력/수정(워크인은 이메일이 아예 없을 수 있어서, 상담 신청
+    // 건도 오탈자·변경된 주소를 현장에서 고칠 수 있게 2026-09-18 확정 - 상담 신청 원본 데이터는 안 건드림).
+    public LeadResponse updateCustomerEmail(Long exhibitorId, Long leadId, String customerEmail) {
+        Lead lead = findOwnedLead(exhibitorId, leadId);
+
+        lead.updateCustomerEmail(customerEmail);
         return LeadResponse.from(lead);
     }
 

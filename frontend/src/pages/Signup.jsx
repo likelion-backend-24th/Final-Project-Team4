@@ -4,6 +4,7 @@ import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { sendVerificationCode, confirmVerificationCode } from '../api/identity';
 import { formatPhoneNumber } from '../utils/phone';
+import TermsAgreement from '../components/TermsAgreement';
 import './Signup.css';
 
 const handlePhoneInput = (e) => {
@@ -16,6 +17,11 @@ function Signup() {
   const [showPw, setShowPw] = useState(false);
   const [showPwConfirm, setShowPwConfirm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // 필수 약관 동의 - 둘 다 체크해야 가입 가능
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const allAgreed = agreeTerms && agreePrivacy;
 
   // 이메일 인증 - 인증된 이메일과 현재 입력값이 같을 때만 '인증됨'으로 침(이메일을 바꾸면 다시 인증해야 함)
   const [email, setEmail] = useState('');
@@ -129,6 +135,16 @@ function Signup() {
       </div>
       {verifyError && <p className="signup__verify-error">{verifyError}</p>}
     </>
+  );
+
+  // 일반, 참가업체 가입 폼 공통 약관 동의 영역
+  const termsSection = (
+    <TermsAgreement
+      agreeTerms={agreeTerms}
+      agreePrivacy={agreePrivacy}
+      onChangeTerms={setAgreeTerms}
+      onChangePrivacy={setAgreePrivacy}
+    />
   );
 
   const handleUserSubmit = async (e) => {
@@ -284,11 +300,17 @@ function Signup() {
               </div>
             </section>
 
+            {termsSection}
+
             <div className="signup__actions">
               <button type="button" className="signup__back" onClick={() => navigate(-1)}>
                 이전으로
               </button>
-              <button type="submit" className="signup__submit" disabled={submitting || !isEmailVerified}>
+              <button
+                type="submit"
+                className="signup__submit"
+                disabled={submitting || !isEmailVerified || !allAgreed}
+              >
                 {submitting ? '처리 중...' : '회원가입 완료'}
               </button>
             </div>
@@ -377,33 +399,17 @@ function Signup() {
               </div>
             </section>
 
-            <section className="signup__terms">
-              <label className="signup__terms-all">
-                <input type="checkbox" defaultChecked />
-                이용약관 및 개인정보 수집, 이용 동의 (전체 동의)
-              </label>
-              <div className="signup__terms-divider" />
-              <ul>
-                <li>
-                  <span className="signup__term-check" />
-                  [필수] 서비스 이용약관 동의
-                </li>
-                <li>
-                  <span className="signup__term-check" />
-                  [필수] 개인정보 수집 및 이용 동의
-                </li>
-                <li>
-                  <span className="signup__term-check" />
-                  [선택] 마케팅 정보 수신 및 이메일 수신 동의
-                </li>
-              </ul>
-            </section>
+            {termsSection}
 
             <div className="signup__actions">
               <button type="button" className="signup__back" onClick={() => navigate(-1)}>
                 이전으로
               </button>
-              <button type="submit" className="signup__submit" disabled={submitting || !isEmailVerified}>
+              <button
+                type="submit"
+                className="signup__submit"
+                disabled={submitting || !isEmailVerified || !allAgreed}
+              >
                 {submitting ? '처리 중...' : '회원가입 완료'}
               </button>
             </div>

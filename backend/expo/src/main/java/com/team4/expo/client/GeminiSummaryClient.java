@@ -58,6 +58,11 @@ public class GeminiSummaryClient implements AiSummaryClient {
         return callGemini(prompt);
     }
 
+    @Override
+    public Optional<String> polishReview(String reviewType, String vehicleName, String content) {
+        return callGemini(buildPolishPrompt(reviewType, vehicleName, content));
+    }
+
     private Optional<String> callGemini(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
             return Optional.empty();
@@ -123,17 +128,22 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "기타 요청사항: " + (message == null || message.isBlank() ? "없음" : message);
     }
 
-    // spec.md "이메일 초안 목표 포맷(2026-09-16 확정)" - 인사말/향후 안내 사항 제거, 이모지 헤더 카테고리 불릿 요약만.
+    // 2026-09-18: 인사말/마무리 인사 생략은 "후기 초안"(buildReviewPrompt) 얘기였고, 이 고객 발송용
+    // 이메일은 원래대로 인사말·마무리 인사 포함(정중한 이메일 본문 형태로).
     private String buildEmailPrompt(String customerName, String consultationNote) {
         return "다음은 모빌리티 박람회 참가업체 담당자가 부스에서 고객과 나눈 상담 내용을 현장에서 자유롭게 적은 메모다. "
-                + "이 메모를 참가업체가 고객에게 보낼 상담 내용 요약으로 정리해줘.\n"
+                + "이 메모를 참가업체가 고객에게 보낼 이메일 본문으로 정리해줘.\n"
                 + "형식(아래 구조를 그대로 따르되, 카테고리와 불릿 내용은 메모 내용에 맞게 자유롭게 구성):\n\n"
+                + "안녕하세요, " + (customerName == null || customerName.isBlank() ? "고객" : customerName) + "님!\n"
+                + "오늘 저희 부스에 방문해 주셔서 진심으로 감사합니다.\n"
+                + "상담 나누었던 내용과 요청하신 사항들을 아래와 같이 정리해 드립니다.\n\n"
                 + "📋 주요 상담 및 관심 사항 요약\n\n"
                 + "* 카테고리1\n"
                 + "   * 세부항목\n"
                 + "* 카테고리2\n"
                 + "   * 세부항목\n\n"
-                + "인사말, 안내 문구, 마무리 인사는 넣지 말고 다른 설명 없이 위 형식의 요약 내용만 출력해.\n\n"
+                + "추가로 궁금하신 점 있으시면 언제든 편하게 연락 주세요. 감사합니다.\n\n"
+                + "다른 설명 없이 위 형식(인사말~마무리 인사 포함)의 이메일 본문만 출력해.\n\n"
                 + "상담 메모: " + (consultationNote == null || consultationNote.isBlank() ? "없음" : consultationNote);
     }
 
@@ -148,5 +158,18 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "과장된 광고 문구 없이 실제 방문 후기 톤으로, 다른 설명 없이 후기 본문만 출력해.\n\n"
                 + "고객이 신청 시 남긴 요구사항: " + (customerMessage == null || customerMessage.isBlank() ? "없음" : customerMessage) + "\n"
                 + "참가업체 담당자의 현장 상담 메모: " + (exhibitorNote == null || exhibitorNote.isBlank() ? "없음" : exhibitorNote);
+    }
+
+    // 고객이 쓴 후기를 다듬기만 한다 - 새 사실을 지어내지 않고, 1인칭·원래 의미·길이를 유지(불릿/제목/따옴표 없이 본문만).
+    private String buildPolishPrompt(String reviewType, String vehicleName, String content) {
+        String subject = "CONSULT".equals(reviewType)
+                ? "차량 " + (vehicleName == null || vehicleName.isBlank() ? "" : vehicleName) + " 상담 후기"
+                : "부스 방문 후기";
+
+        return "다음은 모빌리티 박람회 방문객이 직접 쓴 " + subject + "다. "
+                + "맞춤법과 띄어쓰기를 바로잡고 어색한 문장을 자연스럽게 다듬어줘. "
+                + "글쓴이가 말한 내용과 사실, 1인칭 말투는 그대로 유지하고, 없는 내용을 새로 지어내거나 과장하지 마. "
+                + "길이는 원문과 비슷하게 유지해. 제목, 불릿, 따옴표, 다른 설명 없이 다듬은 후기 본문만 출력해.\n\n"
+                + "원문: " + content;
     }
 }

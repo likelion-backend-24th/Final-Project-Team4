@@ -10,8 +10,10 @@ const mapLead = (lead) => ({
   consultationId: lead.consultationId,
   customerName: lead.customerName,
   customerEmail: lead.customerEmail,
+  visitDate: lead.visitDate,
   interestNote: lead.interestNote,
   emailSummary: lead.emailSummary,
+  leadConsent: lead.leadConsent,
   status: lead.status === 'SENT' ? 'SENT' : lead.emailSummary ? 'DRAFTED' : 'SCANNED',
   createdAt: lead.createdAt,
 });
@@ -38,3 +40,13 @@ export const summarizeLeadEmail = (leadId, consultationNote) =>
 // POST /api/exhibitor/leads/{leadId}/send-info — Body { emailBody }
 export const sendLeadInfo = (leadId, emailBody) =>
   apiClient.post(`/api/exhibitor/leads/${leadId}/send-info`, { emailBody }).then((res) => mapLead(res.data.data));
+
+// PUT /api/exhibitor/leads/{leadId}/email — Body { customerEmail }. 워크인 리드에 이메일이 없을 때만
+// (상담 신청 건은 신청서에 이메일이 항상 있어 403).
+export const updateLeadEmail = (leadId, customerEmail) =>
+  apiClient.put(`/api/exhibitor/leads/${leadId}/email`, { customerEmail }).then((res) => mapLead(res.data.data));
+
+// POST /api/exhibitor/leads/{leadId}/consent — 워크인 리드는 스캔 시점엔 동의 없이 생성됨. 참가업체가
+// 현장에서 고객에게 구두로 연락처 제공 동의를 확인한 뒤 이걸로 확정(상담 신청 건은 대상 아님, 403).
+export const confirmLeadConsent = (leadId) =>
+  apiClient.post(`/api/exhibitor/leads/${leadId}/consent`).then((res) => mapLead(res.data.data));

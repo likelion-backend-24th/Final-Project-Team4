@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import ConsultationCompleteModal from './ConsultationCompleteModal';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
-import { applyConsultation, getMyConsultations, toAssetUrl } from '../../api/expo';
+import { applyConsultation, getConsultationSlotAvailability, getMyConsultations, toAssetUrl } from '../../api/expo';
+import { getMyProfile } from '../../api/identity';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
+import { formatPhoneNumber } from '../../utils/phone';
 import './Modal.css';
 import '../../pages/customer/VehicleDetail.css';
 import '../../pages/customer/ExhibitorVehicleList.css';
@@ -12,15 +14,21 @@ import '../../pages/customer/ExhibitorList.css';
 import './BulkConsultationModal.css';
 
 const ACTIVE_STATUSES = new Set(['REQUESTED', 'APPROVED']);
+const PREVIEW_PER_PAGE = 5;
 
 // 참가업체 목록에서 여러 곳을 골라 상담 신청 정보를 한 번만 입력해 동시에 신청하는 2단계 모달.
 // 1단계: 참가업체 선택 + 개인정보 + 방문 희망 날짜/시간(보유한 입장권 날짜만, 이미 신청한 날짜는 제외)
 // 2단계: 상담 유형 + 관심 차종 + 운전면허 소지 여부 + 기타 요청사항
-function BulkConsultationModal({ expoId, groups, onClose }) {
+// lockedBoothId: 특정 참가업체 페이지에서 열었을 때 그 업체로 고정한다(업체 선택 목록 없이 읽기 전용 표시).
+// defaultVehicle: 차량 상세에서 열었을 때 관심 차종 입력란에 미리 채워둘 차량명.
+function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, onClose }) {
   const today = useMemo(() => new Date(), []);
+  const lockedGroup = lockedBoothId != null ? groups.find((g) => String(g.boothId) === String(lockedBoothId)) : null;
 
   const [step, setStep] = useState(1);
-  const [selectedBoothIds, setSelectedBoothIds] = useState(new Set());
+  const [selectedBoothIds, setSelectedBoothIds] = useState(
+    () => new Set(lockedGroup ? [lockedGroup.boothId] : [])
+  );
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -29,10 +37,12 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
   const [ticketDates, setTicketDates] = useState(new Set());
   const [myConsultations, setMyConsultations] = useState([]);
   const [previewGroup, setPreviewGroup] = useState(null);
+  const [previewPage, setPreviewPage] = useState(1);
+  const [slotAvailability, setSlotAvailability] = useState([]); // 선택한 업체별 그 날짜의 시간대 정원/신청 건수
 
   const [wantsPurchase, setWantsPurchase] = useState(false);
   const [wantsTestDrive, setWantsTestDrive] = useState(false);
-  const [interestedVehicle, setInterestedVehicle] = useState('');
+  const [interestedVehicle, setInterestedVehicle] = useState(defaultVehicle ?? '');
   const [hasDriverLicense, setHasDriverLicense] = useState(false);
   const [message, setMessage] = useState('');
   const [leadConsent, setLeadConsent] = useState(false);
@@ -56,6 +66,19 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
       .catch(() => setMyConsultations([]));
   }, [expoId]);
 
+  // 이미 등록된 내 정보(이름/전화번호/이메일)가 있으면 자동으로 채워준다 - 매번 다시 타이핑하지 않도록.
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => {
+        setForm((f) => ({
+          name: f.name || profile.name || '',
+          phone: f.phone || (profile.contact ? formatPhoneNumber(profile.contact) : ''),
+          email: f.email || profile.email || '',
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
   // 현재 선택된 참가업체들 중 하나라도 이미 신청(대기/승인)이 있는 날짜 - 같은 날짜로 재신청하면 어차피 409.
   const appliedDates = useMemo(() => {
     const set = new Set();
@@ -66,6 +89,47 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
     });
     return set;
   }, [myConsultations, selectedBoothIds]);
+
+  // 날짜를 먼저 고른 뒤 업체를 추가/변경해서 그 날짜가 이미 신청된 날짜가 되면 선택을 풀어준다.
+  useEffect(() => {
+    if (selectedDay && appliedDates.has(toIsoDate(viewYear, viewMonth, selectedDay))) {
+      setSelectedDay(null);
+      setSelectedTime(null);
+      setFieldErrors((prev) => ({ ...prev, date: '선택한 업체에 이미 상담 신청한 날짜입니다. 다른 날짜를 선택해주세요.' }));
+    }
+  }, [appliedDates, selectedDay, viewYear, viewMonth]);
+
+  // 날짜와 업체가 정해지면 업체별 시간대 잔여를 조회한다 - 한 업체라도 정원이 찬 시간대는 신청할 수 없다(서버도 같은 기준으로 막는다).
+  useEffect(() => {
+    if (!selectedDay || selectedBoothIds.size === 0) {
+      setSlotAvailability([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const date = toIsoDate(viewYear, viewMonth, selectedDay);
+    Promise.all([...selectedBoothIds].map((boothId) => getConsultationSlotAvailability(boothId, date)))
+      .then((list) => {
+        if (!cancelled) setSlotAvailability(list);
+      })
+      .catch(() => {
+        if (!cancelled) setSlotAvailability([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBoothIds, selectedDay, viewYear, viewMonth]);
+
+  // 선택한 업체들 중 가장 적게 남은 자리 수(정보가 없으면 제한 없음).
+  const slotRemaining = (slot) =>
+    slotAvailability.reduce((min, a) => {
+      const found = a.slots.find((x) => x.time.slice(0, 5) === slot);
+      return Math.min(min, (found?.capacity ?? a.defaultCapacity) - (found?.booked ?? 0));
+    }, Infinity);
+
+  useEffect(() => {
+    if (selectedTime && slotRemaining(selectedTime) <= 0) setSelectedTime(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotAvailability]);
 
   const isSelectedDayToday =
     selectedDay === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
@@ -223,7 +287,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
               <p className="c-bulk-consult__hint">등록된 전시 차량이 없습니다.</p>
             ) : (
               <div className="c-bulk-consult__preview-list">
-                {previewGroup.vehicles.map((v) => (
+                {previewGroup.vehicles.slice((previewPage - 1) * PREVIEW_PER_PAGE, previewPage * PREVIEW_PER_PAGE).map((v) => (
                   <div key={v.vehicleId} className="c-bulk-consult__preview-vehicle">
                     <div className="c-vehicle-card__thumb">
                       {v.images[0] && <img src={toAssetUrl(v.images[0].imageUrl)} alt={v.name} />}
@@ -240,6 +304,23 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                 ))}
               </div>
             )}
+            {previewGroup.vehicles.length > PREVIEW_PER_PAGE && (
+              <div className="c-bulk-consult__preview-pager">
+                <button type="button" onClick={() => setPreviewPage(previewPage - 1)} disabled={previewPage === 1}>
+                  ‹
+                </button>
+                <span>
+                  {previewPage} / {Math.ceil(previewGroup.vehicles.length / PREVIEW_PER_PAGE)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPage(previewPage + 1)}
+                  disabled={previewPage * PREVIEW_PER_PAGE >= previewGroup.vehicles.length}
+                >
+                  ›
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -249,12 +330,15 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
           </button>
 
           <div className="c-bulk-consult__steps">
-            <span className={step === 1 ? 'is-active' : ''}>1. 업체 선택 · 방문 정보</span>
+            <span className={step === 1 ? 'is-active' : ''}>
+              {lockedGroup ? '1. 방문 정보' : '1. 업체 선택 · 방문 정보'}
+            </span>
             <span className={step === 2 ? 'is-active' : ''}>2. 상담 내용</span>
           </div>
 
           {step === 1 ? (
-            <div className="c-bulk-consult__body">
+            <div className={`c-bulk-consult__body${lockedGroup ? ' c-bulk-consult__body--single' : ''}`}>
+              {!lockedGroup && (
               <div className="c-bulk-consult__col">
                 <h3>참가업체 선택</h3>
                 <p className="c-bulk-consult__hint">상담받고 싶은 참가업체를 모두 선택하세요.</p>
@@ -278,7 +362,10 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                       <button
                         type="button"
                         className="c-bulk-consult__preview-btn"
-                        onClick={() => setPreviewGroup(g)}
+                        onClick={() => {
+                          setPreviewGroup(g);
+                          setPreviewPage(1);
+                        }}
                       >
                         전시 차량 보기
                       </button>
@@ -286,6 +373,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                   ))}
                 </div>
               </div>
+              )}
 
               <div className="c-bulk-consult__col">
                 <h3>신청 정보</h3>
@@ -329,6 +417,12 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                   />
                   {fieldErrors.email && <span className="c-consult__error">{fieldErrors.email}</span>}
                 </label>
+                {lockedGroup && (
+                  <label className="c-consult__field">
+                    <span>참가업체</span>
+                    <input value={`${lockedGroup.title} (${lockedGroup.boothNo})`} readOnly disabled />
+                  </label>
+                )}
 
                 <div className="c-consult__field">
                   <span>방문 희망 날짜 <span className="c-consult__required">*</span></span>
@@ -376,20 +470,28 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                 <div className="c-consult__field">
                   <span>방문 희망 시간 <span className="c-consult__required">*</span></span>
                   <div className="c-consult__slots">
-                    {CONSULTATION_TIME_SLOTS.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        disabled={isSlotBlocked(t)}
-                        className={t === selectedTime ? 'is-selected' : ''}
-                        onClick={() => {
-                          setSelectedTime(t);
-                          clearFieldError('time');
-                        }}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                    {CONSULTATION_TIME_SLOTS.map((t) => {
+                      const remaining = slotRemaining(t);
+                      const full = remaining <= 0;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={isSlotBlocked(t) || full}
+                          className={t === selectedTime ? 'is-selected' : ''}
+                          onClick={() => {
+                            setSelectedTime(t);
+                            clearFieldError('time');
+                          }}
+                        >
+                          {t}
+                          {full && <small className="c-consult__slot-note">마감</small>}
+                          {!full && Number.isFinite(remaining) && (
+                            <small className="c-consult__slot-note">잔여 {remaining}</small>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                   {isSelectedDayToday && (
                     <p className="c-bulk-consult__hint">오늘 방문은 지금으로부터 20분 이후 시간만 선택할 수 있어요.</p>

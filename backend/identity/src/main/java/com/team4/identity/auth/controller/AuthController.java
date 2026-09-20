@@ -6,6 +6,7 @@ import com.team4.identity.auth.service.EmailVerificationService;
 import com.team4.identity.auth.service.PasswordResetService;
 import com.team4.identity.auth.service.SignInService;
 import com.team4.identity.auth.service.SignUpService;
+import com.team4.identity.auth.service.SocialLoginService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class AuthController {
 
     private final SignUpService signUpService;
     private final SignInService signInService;
+    private final SocialLoginService socialLoginService;
     private final PasswordResetService passwordResetService;
     private final EmailVerificationService emailVerificationService;
 
@@ -57,6 +59,15 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> logout(@CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse response) {
         signInService.logout(refreshToken, response);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    // 소셜 로그인 신규 회원 가입 확정
+    @PostMapping("/oauth/signup")
+    public ResponseEntity<ApiResponse<TokenResponse>> completeSocialSignUp(@CookieValue(name = SocialLoginService.SIGNUP_COOKIE, required = false) String signUpToken,
+                                                                           HttpServletResponse response) {
+        TokenResponse token = socialLoginService.completeSignUp(signUpToken, response);
+
+        return ResponseEntity.ok(ApiResponse.success(token));
     }
 
     // 비번 재설정 요청

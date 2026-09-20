@@ -49,6 +49,7 @@ class VisitApplicationAcceptanceTest {
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired TicketRepository ticketRepository;
+    @Autowired com.team4.reservation.service.TicketService ticketService;
 
     @MockBean ExpoClient expoClient;
 
@@ -117,6 +118,19 @@ class VisitApplicationAcceptanceTest {
 
         assertThat(secondQr).isEqualTo(firstQr);
         assertThat(ticketRepository.findAll()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("환불/취소된 날짜를 다시 신청하면 취소된 QR을 돌려주지 않고 409")
+    void 취소된_날짜_재신청_409() throws Exception {
+        String qr = applyAndGetFirstQrToken(DAY_1);
+        Long ticketId = ticketRepository.findByQrToken(qr).orElseThrow().getId();
+        ticketService.cancelTicket(ticketId);
+
+        mockMvc.perform(post("/api/customer/reservations").with(customer(CUSTOMER_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(applyBody(EXPO_ID, DAY_1)))
+                .andExpect(status().isConflict());
     }
 
     @Test

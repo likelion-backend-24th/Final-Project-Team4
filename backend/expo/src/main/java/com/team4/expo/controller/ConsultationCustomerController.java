@@ -6,6 +6,7 @@ import com.team4.expo.dto.ConsultationResponse;
 import com.team4.expo.dto.ConsultationReviewContextResponse;
 import com.team4.expo.dto.ConsultationReviewDraftRequest;
 import com.team4.expo.dto.ConsultationReviewDraftResponse;
+import com.team4.expo.dto.ReviewPolishRequest;
 import com.team4.expo.dto.ConsultationUpdateRequest;
 import com.team4.expo.security.GatewayUser;
 import com.team4.expo.service.ConsultationService;
@@ -89,5 +90,14 @@ public class ConsultationCustomerController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 consultationService.draftReview(customer.getId(), consultationId, request.getReviewType(), request.getVehicleName())));
+    }
+
+    // 후기 작성 화면 - 고객이 쓴 후기 문장을 AI로 다듬기(상담 건과 무관).
+    @PostMapping("/review-polish")
+    public ResponseEntity<ApiResponse<ConsultationReviewDraftResponse>> polishReview(
+            @Valid @RequestBody ReviewPolishRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                consultationService.polishReview(request.getReviewType(), request.getVehicleName(), request.getContent())));
     }
 }

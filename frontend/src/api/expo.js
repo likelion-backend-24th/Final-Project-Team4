@@ -125,6 +125,21 @@ export const getVisitedBooths = (expoId) =>
 export const getBoothManageDetail = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}`).then((res) => res.data.data);
 
+// GET /api/exhibitor/booths/{boothId}/consultation-slots — 상담 접수 정원 설정 조회
+// 응답: { defaultCapacity, slots: [{ date: 'YYYY-MM-DD', time: 'HH:mm:ss', capacity }] } (슬롯별로 덮어쓴 값만)
+export const getConsultationSlotSettings = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/consultation-slots`).then((res) => res.data.data);
+
+// PUT /api/exhibitor/booths/{boothId}/consultation-slots — 상담 접수 정원 저장(기존 슬롯별 설정을 통째로 교체)
+// payload: { defaultCapacity, slots: [{ date, time, capacity }] }
+export const saveConsultationSlotSettings = (boothId, payload) =>
+  apiClient.put(`/api/exhibitor/booths/${boothId}/consultation-slots`, payload).then((res) => res.data.data);
+
+// GET /api/customer/consultations/booths/{boothId}/slots?date= — 그 날짜의 시간대별 정원/신청 건수
+// 응답: { defaultCapacity, slots: [{ time: 'HH:mm:ss', capacity, booked }] } — 목록에 없는 시간대는 defaultCapacity, 신청 0건
+export const getConsultationSlotAvailability = (boothId, date) =>
+  apiClient.get(`/api/customer/consultations/booths/${boothId}/slots`, { params: { date } }).then((res) => res.data.data);
+
 // PUT /api/exhibitor/booths/{boothId}/content — 부스 소개 콘텐츠 등록/수정
 export const updateBoothContent = (boothId, payload) =>
   apiClient.put(`/api/exhibitor/booths/${boothId}/content`, payload).then((res) => res.data.data);
@@ -255,6 +270,11 @@ export const completeConsultation = (consultationId) =>
 export const markConsultationNoShow = (consultationId) =>
   apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);
 
+// POST /api/customer/consultations/review-polish — 고객이 쓴 후기 문장을 AI로 다듬기 (상담 건과 무관)
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName?, content } / 응답: { draft: string | null } (실패 시 null)
+export const polishReviewContent = (payload) =>
+  apiClient.post('/api/customer/consultations/review-polish', payload).then((res) => res.data.data);
+
 // GET /api/customer/booths/{boothId}/reviews — 부스 후기(상담후기/부스후기) 목록 (비회원 조회 가능)
 // 응답: { totalCount, consultReviews: ReviewResponse[], boothReviews: ReviewResponse[] }
 export const getBoothReviews = (boothId) =>
@@ -264,6 +284,17 @@ export const getBoothReviews = (boothId) =>
 // payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName?, content }
 export const createBoothReview = (boothId, payload) =>
   apiClient.post(`/api/customer/booths/${boothId}/reviews`, payload).then((res) => res.data.data);
+
+// GET /api/customer/reviews/mine — 내가 작성한 후기 목록 (ReviewResponse[]: reviewId, boothId, reviewType, boothNo, vehicleName, content, createdAt, images)
+export const getMyReviews = () => apiClient.get('/api/customer/reviews/mine').then((res) => res.data.data);
+
+// PUT /api/customer/booths/{boothId}/reviews/{reviewId} — 본인 후기 수정 (유형 변경 불가, payload는 작성과 동일)
+export const updateBoothReview = (boothId, reviewId, payload) =>
+  apiClient.put(`/api/customer/booths/${boothId}/reviews/${reviewId}`, payload).then((res) => res.data.data);
+
+// DELETE /api/customer/booths/{boothId}/reviews/{reviewId} — 본인 후기 삭제 (사진 포함)
+export const deleteBoothReview = (boothId, reviewId) =>
+  apiClient.delete(`/api/customer/booths/${boothId}/reviews/${reviewId}`);
 
 // POST /api/customer/booths/{boothId}/reviews/{reviewId}/images — 후기 사진 추가 (최대 5장, 선택, 본인 후기만)
 export const addBoothReviewImage = (boothId, reviewId, file) => {
