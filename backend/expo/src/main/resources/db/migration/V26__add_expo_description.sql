@@ -1,1 +1,0 @@
-ALTER TABLE expos ADD COLUMN description VARCHAR(1000) NULL AFTER venue;
