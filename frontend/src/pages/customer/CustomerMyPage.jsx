@@ -756,12 +756,16 @@ function CustomerMyPage() {
       {selectedConsultation && (
         <ConsultationDetailModal
           consultation={selectedConsultation}
+          reviewed={myReviews.some((r) => r.consultationId === selectedConsultation.consultationId)}
           onClose={() => setSelectedConsultation(null)}
           onChanged={loadConsultations}
         />
       )}
       {reviewExpoId && (
-        <VisitedBoothsModal expoId={reviewExpoId} onClose={() => setReviewExpoId(null)} />
+        <VisitedBoothsModal
+          expoId={reviewExpoId}
+          reviewedBoothIds={myReviews.filter((r) => r.reviewType === 'BOOTH').map((r) => r.boothId)}
+          onClose={() => setReviewExpoId(null)} />
       )}
       {editingReview && (
         <ReviewWriteModal

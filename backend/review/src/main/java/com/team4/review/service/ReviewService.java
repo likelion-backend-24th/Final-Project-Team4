@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -99,7 +100,20 @@ public class ReviewService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 차량명을 입력해야 합니다.");
         }
 
-        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name());
+        if (request.getReviewType() == ReviewType.CONSULT && request.getConsultationId() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담후기는 대상 상담을 지정해야 합니다.");
+        }
+        // 상담후기는 상담 1건당 1개, 부스후기는 고객·부스당 1개 - 삭제하면 다시 작성할 수 있다.
+        boolean alreadyWritten = request.getReviewType() == ReviewType.CONSULT
+                ? reviewRepository.existsByConsultationId(request.getConsultationId())
+                : reviewRepository.existsByCustomerIdAndBoothIdAndReviewType(customerId, boothId, ReviewType.BOOTH);
+        if (alreadyWritten) {
+            throw new CustomException(ErrorCode.DUPLICATE, request.getReviewType() == ReviewType.CONSULT
+                    ? "이미 이 상담에 대한 후기를 작성했습니다." : "이미 이 부스에 대한 부스후기를 작성했습니다.");
+        }
+
+        Long consultationId = request.getReviewType() == ReviewType.CONSULT ? request.getConsultationId() : null;
+        BoothReviewEligibility eligibility = expoClient.checkReviewEligibility(boothId, customerId, request.getReviewType().name(), consultationId);
         if (!eligibility.eligible()) {
             throw new CustomException(ErrorCode.INVALID_STATE, "상담이 완료된 참가업체에만 후기를 작성할 수 있습니다.");
         }
@@ -108,9 +122,14 @@ public class ReviewService {
 
         Review review = new Review(boothId, eligibility.boothNo(), request.getReviewType(), customerId, customerName,
                 request.getReviewType() == ReviewType.CONSULT ? request.getVehicleName() : null,
-                request.getContent());
+                consultationId, request.getContent());
 
-        return ReviewResponse.from(reviewRepository.save(review), List.of());
+        // 같은 상담에 동시에 두 번 요청이 들어와도 DB 유니크 인덱스(consultation_id)가 막는다.
+        try {
+            return ReviewResponse.from(reviewRepository.saveAndFlush(review), List.of());
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DUPLICATE, "이미 이 상담에 대한 후기를 작성했습니다.");
+        }
     }
 
     // 마이페이지 "내가 쓴 후기" - 부스 ID/후기 유형을 같이 내려줘서 프론트가 업체명(내 상담 내역과 boothId로 매칭)과 함께 보여준다.

@@ -6,7 +6,7 @@ import './VisitedBoothsModal.css';
 
 // 나의 입장권(만료 후 5일 이내)에서 "후기 작성하러 가기"를 누르면 뜨는 모달 - QR 스캔으로 방문 기록을
 // 남긴 부스 중 하나를 골라 그 부스의 부스후기 작성 화면으로 이동한다(TASK 7-3).
-function VisitedBoothsModal({ expoId, onClose }) {
+function VisitedBoothsModal({ expoId, reviewedBoothIds = [], onClose }) {
   const navigate = useNavigate();
   const [booths, setBooths] = useState(null);
   const [error, setError] = useState(null);
@@ -40,8 +40,11 @@ function VisitedBoothsModal({ expoId, onClose }) {
           <ul className="c-visited-booths__list">
             {booths.map((b) => (
               <li key={b.boothId}>
-                <button type="button" onClick={() => goWriteReview(b.boothId)}>
-                  <span>{b.companyName || `${b.boothNo} 부스`}</span>
+                <button type="button" disabled={reviewedBoothIds.includes(b.boothId)} onClick={() => goWriteReview(b.boothId)}>
+                  <span>
+                    {b.companyName || `${b.boothNo} 부스`}
+                    {reviewedBoothIds.includes(b.boothId) && ' (작성 완료)'}
+                  </span>
                   <span className="c-visited-booths__booth-no">{b.boothNo}</span>
                 </button>
               </li>

@@ -15,4 +15,8 @@ public interface AiSummaryClient {
     // 고객이 후기 작성 시 자기 상담 요구사항 + 참가업체 상담 메모를 바탕으로 후기 초안을 생성(TASK 후기).
     // 부가 기능이라 실패해도 후기 작성 자체는 막지 않는다(구현체는 예외를 삼키고 Optional.empty() 반환 - fail-open).
     Optional<String> draftReview(String reviewType, String vehicleName, String customerMessage, String exhibitorNote);
+
+    // 고객이 직접 쓴 후기 문장을 맞춤법·문장 흐름만 다듬는다(내용·사실은 그대로). 부가 기능이라 실패해도 후기 작성은 막지 않는다
+    // (구현체는 예외를 삼키고 Optional.empty() 반환 - fail-open).
+    Optional<String> polishReview(String reviewType, String vehicleName, String content);
 }

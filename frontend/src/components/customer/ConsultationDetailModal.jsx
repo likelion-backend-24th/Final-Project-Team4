@@ -19,7 +19,7 @@ const STATUS_LABEL = {
 };
 
 // 고객 마이페이지 - 신청한 상담 1건 상세 조회 + (대기 중일 때만) 수정/취소.
-function ConsultationDetailModal({ consultation, onClose, onChanged }) {
+function ConsultationDetailModal({ consultation, reviewed = false, onClose, onChanged }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState('view'); // 'view' | 'edit'
   const editable = consultation.status === 'REQUESTED';
@@ -224,10 +224,13 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
               <p className="c-consult-detail__notice">참가업체가 미방문으로 처리한 상담입니다.</p>
             )}
 
-            {consultation.reviewable && (
+            {consultation.reviewable && !reviewed && (
               <button type="button" className="c-consult-detail__review-btn" onClick={goWriteReview}>
                 후기 작성하러 가기
               </button>
+            )}
+            {consultation.reviewable && reviewed && (
+              <p className="c-consult-detail__notice">이미 후기를 작성한 상담입니다. 내정보의 "내가 쓴 후기"에서 확인할 수 있어요.</p>
             )}
 
             {editable ? (

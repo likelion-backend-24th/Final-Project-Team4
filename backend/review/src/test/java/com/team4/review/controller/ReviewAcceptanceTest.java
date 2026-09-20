@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -72,13 +73,18 @@ class ReviewAcceptanceTest {
         reviewRepository.deleteAllInBatch();
 
         when(identityClient.getCustomerName(anyLong())).thenReturn(Optional.of("홍길동"));
-        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString(), any()))
                 .thenReturn(new BoothReviewEligibility(true, BOOTH_NO));
     }
 
     private String createBody(String reviewType, String vehicleName, String content) {
+        return createBody(reviewType, vehicleName, content, "CONSULT".equals(reviewType) ? 7001L : null);
+    }
+
+    private String createBody(String reviewType, String vehicleName, String content, Long consultationId) {
         try {
             Map<String, Object> body = new java.util.HashMap<>();
+            body.put("consultationId", consultationId);
             body.put("reviewType", reviewType);
             body.put("vehicleName", vehicleName);
             body.put("content", content);
@@ -107,6 +113,55 @@ class ReviewAcceptanceTest {
     }
 
     @Test
+    @DisplayName("상담후기는 상담 1건당 1개 - 같은 상담에 또 쓰면 409, 다른 상담에는 쓸 수 있고, 대상 상담이 없으면 400")
+    void 상담후기_상담당_1개() throws Exception {
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("CONSULT", "EV6", "첫 후기", 7001L)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.consultationId").value(7001));
+
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("CONSULT", "EV6", "같은 상담에 또 작성", 7001L)))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("CONSULT", "EV6", "다른 상담 후기", 7002L)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("CONSULT", "EV6", "대상 상담 없음", null)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("부스후기는 부스당 1개 - 두 번째는 409, 삭제하면 다시 쓸 수 있다")
+    void 부스후기_부스당_1개() throws Exception {
+        String body = mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("BOOTH", null, "첫 부스후기")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long reviewId = objectMapper.readTree(body).path("data").path("reviewId").asLong();
+
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("BOOTH", null, "두 번째 부스후기")))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(delete("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer()))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("BOOTH", null, "삭제 후 다시 작성")))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     @DisplayName("상담후기는 차량명이 없으면 400")
     void 상담후기_차량명_필수() throws Exception {
         mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
@@ -128,7 +183,7 @@ class ReviewAcceptanceTest {
     @Test
     @DisplayName("작성 자격이 없으면(Expo가 eligible=false) 409")
     void 자격없음_409() throws Exception {
-        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString()))
+        when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString(), any()))
                 .thenReturn(new BoothReviewEligibility(false, BOOTH_NO));
 
         mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())

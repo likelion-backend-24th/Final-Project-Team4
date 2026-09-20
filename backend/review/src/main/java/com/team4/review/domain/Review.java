@@ -30,19 +30,23 @@ public class Review {
     // 상담후기(CONSULT)에서만 사용 - 어떤 차량에 대한 후기인지(자유 텍스트)
     private String vehicleName;
 
+    // 상담후기(CONSULT)에서만 사용 - 어느 상담(Expo 소유, 논리 참조)에 대한 후기인지. 상담 1건당 후기 1개.
+    private Long consultationId;
+
     @Column(length = 1000)
     private String content;
 
     private LocalDateTime createdAt;
 
     public Review(Long boothId, String boothNo, ReviewType reviewType, Long customerId, String customerName,
-                  String vehicleName, String content) {
+                  String vehicleName, Long consultationId, String content) {
         this.boothId = boothId;
         this.boothNo = boothNo;
         this.reviewType = reviewType;
         this.customerId = customerId;
         this.customerName = customerName;
         this.vehicleName = vehicleName;
+        this.consultationId = consultationId;
         this.content = content;
         this.createdAt = LocalDateTime.now();
     }
