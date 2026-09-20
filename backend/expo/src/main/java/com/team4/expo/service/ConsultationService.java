@@ -44,6 +44,7 @@ public class ConsultationService {
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
     private final NotificationService notificationService;
+    private final ConsultationSlotService consultationSlotService;
 
     // 같은 참가업체·같은 날짜 중복 신청 차단 대상 상태 - CANCELED/REJECTED만 재신청 허용(2026-09-16 확정).
     // COMPLETED/NO_SHOW도 막아야 함: 완료·미방문 처리된 건은 이미 그 날짜의 상담 "결과"가 난 것이라 같은 날짜로 또 신청하면 안 됨.
@@ -54,7 +55,8 @@ public class ConsultationService {
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
                                 BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
-                                IdentityClient identityClient, NotificationService notificationService) {
+                                IdentityClient identityClient, NotificationService notificationService,
+                                ConsultationSlotService consultationSlotService) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
@@ -63,6 +65,7 @@ public class ConsultationService {
         this.aiSummaryClient = aiSummaryClient;
         this.identityClient = identityClient;
         this.notificationService = notificationService;
+        this.consultationSlotService = consultationSlotService;
     }
 
     public List<ConsultationResponse> applyConsultation(Long customerId, ConsultationRequest request) {
@@ -91,6 +94,10 @@ public class ConsultationService {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
         }
+
+        // 부스 id 오름차순으로 잠가야 여러 부스를 함께 신청하는 동시 요청끼리 데드락이 나지 않는다.
+        booths.stream().map(Booth::getId).sorted().forEach(boothId ->
+                consultationSlotService.ensureSlotAvailable(boothId, request.getPreferredDate(), request.getPreferredTime()));
 
         List<Consultation> consultations = booths.stream()
                 .map(booth -> new Consultation(booth, customerId, request.getCustomerName(), request.getCustomerPhone(),
@@ -163,6 +170,12 @@ public class ConsultationService {
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
+        }
+
+        // 날짜나 시간을 바꿨을 때만 새 슬롯의 정원을 확인한다(같은 슬롯 그대로면 이미 자리를 차지한 상태).
+        if (!consultation.getPreferredDate().equals(request.getPreferredDate())
+                || !consultation.getPreferredTime().equals(request.getPreferredTime())) {
+            consultationSlotService.ensureSlotAvailable(booth.getId(), request.getPreferredDate(), request.getPreferredTime());
         }
 
         consultation.updateDetails(request.isWantsPurchase(), request.isWantsTestDrive(), request.getInterestedVehicle(),

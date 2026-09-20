@@ -9,6 +9,7 @@ import {
   uploadBoothBannerImage,
 } from '../api/expo';
 import { getMyProfile } from '../api/identity';
+import ConsultationSlotSettings from '../components/ConsultationSlotSettings';
 import { isFoodBooth } from '../utils/boothType';
 import './BoothManage.css';
 
@@ -417,6 +418,19 @@ function BoothManage() {
           </div>
         </section>
         )}
+
+        <section className="booth-manage__card">
+          <div className="booth-manage__section-header">
+            <span className="booth-manage__badge">{showVehicleSection ? 5 : 4}</span>
+            <div>
+              <h2>상담 접수 인원</h2>
+              <p className="booth-manage__section-desc">
+                날짜·시간대마다 받을 상담 건수를 지정하세요. 정원이 차면 고객이 그 시간대를 선택할 수 없습니다.
+              </p>
+            </div>
+          </div>
+          <ConsultationSlotSettings boothId={boothId} expoId={detail.expoId} />
+        </section>
       </div>
     </div>
   );

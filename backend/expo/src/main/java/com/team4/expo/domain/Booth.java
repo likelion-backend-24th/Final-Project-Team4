@@ -28,12 +28,19 @@ public class Booth {
 
     private String bannerImageUrl;
 
+    // 슬롯(날짜+시간)별 지정이 없을 때 적용되는 상담 접수 건수 기본값.
+    private int consultationCapacity = 1;
+
     public Booth(Expo expo, String boothNo, String type, Integer fee) {
         this.expo = expo;
         this.boothNo = boothNo;
         this.type = type;
         this.fee = fee;
         this.status = BoothStatus.AVAILABLE;
+    }
+
+    public void changeConsultationCapacity(int consultationCapacity) {
+        this.consultationCapacity = consultationCapacity;
     }
 
     public void updateBannerImage(String bannerImageUrl) {
