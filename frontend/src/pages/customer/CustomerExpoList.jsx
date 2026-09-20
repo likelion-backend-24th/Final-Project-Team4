@@ -34,6 +34,7 @@ const toCard = (e) => ({
   expoId: e.expoId,
   title: e.title,
   venue: e.venue,
+  description: e.description,
   startsAt: e.startsAt,
   endsAt: e.endsAt,
   applyStartsAt: e.applyStartsAt,

@@ -3,6 +3,7 @@ package com.team4.expo.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,9 @@ public class ExpoUpdateRequest {
 
     @NotBlank
     private String venue;
+
+    @Size(max = 1000)
+    private String description;
 
     @NotNull
     private LocalDateTime startsAt;
