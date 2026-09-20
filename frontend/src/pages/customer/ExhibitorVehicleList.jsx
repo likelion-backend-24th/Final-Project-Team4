@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import ReviewDetailModal from '../../components/customer/ReviewDetailModal';
+import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
 import './ExhibitorVehicleList.css';
 
@@ -13,6 +14,7 @@ function ExhibitorVehicleList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [expo, setExpo] = useState(null);
   const [group, setGroup] = useState(null);
+  const [groups, setGroups] = useState([]); // 일괄 상담 신청 모달에서 고를 전체 참가업체
   const [loadError, setLoadError] = useState(null);
   const [keyword, setKeyword] = useState('');
   const [reviews, setReviews] = useState(null);
@@ -35,6 +37,7 @@ function ExhibitorVehicleList() {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
       .then(([expoRes, groupsRes]) => {
         setExpo(expoRes);
+        setGroups(groupsRes);
         const found = groupsRes.find((g) => String(g.boothId) === boothId);
         if (!found) {
           setLoadError('참가업체 정보를 찾을 수 없습니다.');
@@ -89,6 +92,7 @@ function ExhibitorVehicleList() {
       </div>
 
       <div className="c-vehicle-list__body">
+        <div className="c-vehicle-list__main">
         <section className="c-vehicle-group">
           <div className="c-vehicle-group__header">
             <span className="c-vehicle-group__logo">{group.title.slice(0, 1)}</span>
@@ -189,6 +193,9 @@ function ExhibitorVehicleList() {
             })()}
           </div>
         </section>
+        </div>
+
+        <BulkConsultPromo expoId={expoId} groups={groups} lockedBoothId={boothId} />
       </div>
 
       {writeReviewType && (
