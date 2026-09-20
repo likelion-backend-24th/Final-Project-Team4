@@ -3,6 +3,7 @@ package com.team4.expo.repository;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,6 +28,16 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
     // 취소·반려된 건만 재신청 허용하고 REQUESTED/APPROVED/COMPLETED/NO_SHOW는 전부 막는다(2026-09-16 확정).
     boolean existsByCustomerIdAndBooth_IdAndPreferredDateAndStatusIn(
             Long customerId, Long boothId, LocalDate preferredDate, List<ConsultationStatus> statuses);
+
+    // 상담 정원 계산용 - 그 부스·날짜·시간에서 정원을 차지하는 상태(호출부가 대기/승인만 넘김)의 신청 건수.
+    long countByBooth_IdAndPreferredDateAndPreferredTimeAndStatusIn(
+            Long boothId, LocalDate preferredDate, LocalTime preferredTime, List<ConsultationStatus> statuses);
+
+    // 그 부스·날짜의 시간대별 정원 점유 건수(고객 화면의 잔여 표시용). [preferredTime, count]
+    @Query("SELECT c.preferredTime, COUNT(c) FROM Consultation c WHERE c.booth.id = :boothId "
+            + "AND c.preferredDate = :date AND c.status IN :statuses GROUP BY c.preferredTime")
+    List<Object[]> countByTimeForDate(@Param("boothId") Long boothId, @Param("date") LocalDate date,
+                                      @Param("statuses") List<ConsultationStatus> statuses);
 
     // QR 스캔 리드 생성 시 - 같은 고객+부스+방문일(visitDate=preferredDate)의 승인된 신청을 찾아 리드에 연결(TASK 11-2)
     Optional<Consultation> findByCustomerIdAndBooth_IdAndPreferredDateAndStatus(

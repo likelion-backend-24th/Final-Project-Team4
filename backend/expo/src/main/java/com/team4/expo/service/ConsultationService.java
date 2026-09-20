@@ -24,9 +24,13 @@ import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
 import com.team4.expo.repository.LeadRepository;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +48,7 @@ public class ConsultationService {
     private final AiSummaryClient aiSummaryClient;
     private final IdentityClient identityClient;
     private final NotificationService notificationService;
+    private final ConsultationSlotService consultationSlotService;
 
     // 같은 참가업체·같은 날짜 중복 신청 차단 대상 상태 - CANCELED/REJECTED만 재신청 허용(2026-09-16 확정).
     // COMPLETED/NO_SHOW도 막아야 함: 완료·미방문 처리된 건은 이미 그 날짜의 상담 "결과"가 난 것이라 같은 날짜로 또 신청하면 안 됨.
@@ -51,10 +56,21 @@ public class ConsultationService {
             ConsultationStatus.REQUESTED, ConsultationStatus.APPROVED,
             ConsultationStatus.COMPLETED, ConsultationStatus.NO_SHOW);
 
+    // 상담 가능한 시간대 - 프론트 CONSULTATION_TIME_SLOTS와 같아야 한다. 이 목록 밖의 시각(예: 14:01)을 허용하면
+    // 슬롯별 정원 검사를 우회할 수 있어 서버에서도 막는다.
+    private static final Set<LocalTime> ALLOWED_TIMES = Set.of(
+            LocalTime.of(10, 0), LocalTime.of(10, 30), LocalTime.of(11, 0), LocalTime.of(11, 30),
+            LocalTime.of(13, 0), LocalTime.of(13, 30), LocalTime.of(14, 0), LocalTime.of(14, 30),
+            LocalTime.of(15, 0), LocalTime.of(15, 30), LocalTime.of(16, 0));
+
+    // 프론트가 오늘 날짜에서 막는 기준과 같다 - 지금으로부터 20분 이후 시간만 신청할 수 있다.
+    private static final int MIN_LEAD_MINUTES = 20;
+
     public ConsultationService(BoothRepository boothRepository, ConsultationRepository consultationRepository,
                                 BoothApplicationRepository boothApplicationRepository, LeadRepository leadRepository,
                                 ReservationClient reservationClient, AiSummaryClient aiSummaryClient,
-                                IdentityClient identityClient, NotificationService notificationService) {
+                                IdentityClient identityClient, NotificationService notificationService,
+                                ConsultationSlotService consultationSlotService) {
         this.boothRepository = boothRepository;
         this.consultationRepository = consultationRepository;
         this.boothApplicationRepository = boothApplicationRepository;
@@ -63,6 +79,7 @@ public class ConsultationService {
         this.aiSummaryClient = aiSummaryClient;
         this.identityClient = identityClient;
         this.notificationService = notificationService;
+        this.consultationSlotService = consultationSlotService;
     }
 
     public List<ConsultationResponse> applyConsultation(Long customerId, ConsultationRequest request) {
@@ -79,6 +96,8 @@ public class ConsultationService {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "같은 박람회의 참가업체끼리만 함께 신청할 수 있습니다.");
         }
 
+        validateSchedule(request.getPreferredDate(), request.getPreferredTime());
+
         boolean hasTicket = reservationClient.hasTicket(customerId, expoId, request.getPreferredDate());
         if (!hasTicket) {
             throw new CustomException(ErrorCode.INVALID_STATE, "신청 날짜의 박람회 입장권을 보유하고 있어야 합니다.");
@@ -91,6 +110,10 @@ public class ConsultationService {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
         }
+
+        // 부스 id 오름차순으로 잠가야 여러 부스를 함께 신청하는 동시 요청끼리 데드락이 나지 않는다.
+        booths.stream().map(Booth::getId).sorted().forEach(boothId ->
+                consultationSlotService.ensureSlotAvailable(boothId, request.getPreferredDate(), request.getPreferredTime()));
 
         List<Consultation> consultations = booths.stream()
                 .map(booth -> new Consultation(booth, customerId, request.getCustomerName(), request.getCustomerPhone(),
@@ -153,6 +176,12 @@ public class ConsultationService {
         }
 
         Booth booth = consultation.getBooth();
+        // 날짜나 시간을 바꿀 때만 검증한다 - 안 바꾸면 이미 지난 일정의 대기 건도 다른 내용은 수정할 수 있어야 한다.
+        boolean scheduleChanged = !consultation.getPreferredDate().equals(request.getPreferredDate())
+                || !consultation.getPreferredTime().equals(request.getPreferredTime());
+        if (scheduleChanged) {
+            validateSchedule(request.getPreferredDate(), request.getPreferredTime());
+        }
         if (!consultation.getPreferredDate().equals(request.getPreferredDate())) {
             boolean hasTicket = reservationClient.hasTicket(customerId, booth.getExpo().getId(), request.getPreferredDate());
             if (!hasTicket) {
@@ -163,6 +192,11 @@ public class ConsultationService {
             if (alreadyApplied) {
                 throw new CustomException(ErrorCode.DUPLICATE, "같은 날짜에 이미 상담을 신청한 참가업체입니다: " + booth.getBoothNo());
             }
+        }
+
+        // 날짜나 시간을 바꿨을 때만 새 슬롯의 정원을 확인한다(같은 슬롯 그대로면 이미 자리를 차지한 상태).
+        if (scheduleChanged) {
+            consultationSlotService.ensureSlotAvailable(booth.getId(), request.getPreferredDate(), request.getPreferredTime());
         }
 
         consultation.updateDetails(request.isWantsPurchase(), request.isWantsTestDrive(), request.getInterestedVehicle(),
@@ -238,6 +272,16 @@ public class ConsultationService {
             throw new CustomException(ErrorCode.INVALID_STATE, "후기를 작성할 수 있는 상담이 아닙니다.");
         }
         return consultation;
+    }
+
+    // 신청 가능한 시간대(ALLOWED_TIMES)인지, 이미 지났거나 임박(20분 이내)하지 않은지 확인한다.
+    private void validateSchedule(LocalDate date, LocalTime time) {
+        if (!ALLOWED_TIMES.contains(time)) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "상담 가능한 시간대가 아닙니다: " + time);
+        }
+        if (LocalDateTime.of(date, time).isBefore(LocalDateTime.now().plusMinutes(MIN_LEAD_MINUTES))) {
+            throw new CustomException(ErrorCode.VALIDATION_ERROR, "이미 지났거나 임박한 시간에는 상담을 신청할 수 없습니다.");
+        }
     }
 
     private Consultation findOwnedConsultation(Long customerId, Long consultationId) {

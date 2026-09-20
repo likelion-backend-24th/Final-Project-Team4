@@ -17,4 +17,18 @@ export function toIsoDate(year, month, day) {
   return `${year}-${mm}-${dd}`;
 }
 
-export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+// 박람회 기간(startsAt~endsAt ISO 문자열)의 날짜 목록 'YYYY-MM-DD'. UTC 기준으로만 계산해서 타임존에 따라 하루 밀리지 않는다.
+export function expoDateRange(expo) {
+  const [sy, sm, sd] = expo.startsAt.slice(0, 10).split('-').map(Number);
+  const [ey, em, ed] = expo.endsAt.slice(0, 10).split('-').map(Number);
+  const cur = new Date(Date.UTC(sy, sm - 1, sd));
+  const end = new Date(Date.UTC(ey, em - 1, ed));
+  const dates = [];
+  while (cur <= end) {
+    dates.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return dates;
+}
+
+export const WEEKDAYS =['일', '월', '화', '수', '목', '금', '토'];

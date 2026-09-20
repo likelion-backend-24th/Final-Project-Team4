@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
-import { cancelConsultation, updateConsultation } from '../../api/expo';
+import { cancelConsultation, getConsultationSlotAvailability, updateConsultation } from '../../api/expo';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
 import './Modal.css';
@@ -42,6 +42,7 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
   const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
   const [selectedTime, setSelectedTime] = useState(consultation.preferredTime?.slice(0, 5) ?? null);
   const [ticketDates, setTicketDates] = useState(new Set());
+  const [slotAvailability, setSlotAvailability] = useState(null); // 선택한 날짜의 시간대별 정원/신청 건수
 
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -58,6 +59,42 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
       })
       .catch(() => setTicketDates(new Set()));
   }, [mode, consultation.expoId]);
+
+  // 수정 화면에서 날짜를 고르면 그 날짜의 시간대별 정원을 조회해 마감된 시간대를 막는다(서버도 같은 기준으로 막는다).
+  useEffect(() => {
+    if (mode !== 'edit' || !selectedDay) {
+      setSlotAvailability(null);
+      return undefined;
+    }
+    let cancelled = false;
+    getConsultationSlotAvailability(consultation.boothId, toIsoDate(viewYear, viewMonth, selectedDay))
+      .then((data) => {
+        if (!cancelled) setSlotAvailability(data);
+      })
+      .catch(() => {
+        if (!cancelled) setSlotAvailability(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, selectedDay, viewYear, viewMonth, consultation.boothId]);
+
+  // 남은 자리 수(정보가 없으면 제한 없음). 내가 이미 차지한 원래 슬롯은 자리 하나를 돌려받은 것으로 본다.
+  const slotRemaining = (slot) => {
+    if (!slotAvailability) return Infinity;
+    const found = slotAvailability.slots.find((x) => x.time.slice(0, 5) === slot);
+    const own =
+      toIsoDate(viewYear, viewMonth, selectedDay) === consultation.preferredDate &&
+      slot === consultation.preferredTime?.slice(0, 5)
+        ? 1
+        : 0;
+    return (found?.capacity ?? slotAvailability.defaultCapacity) - (found?.booked ?? 0) + own;
+  };
+
+  useEffect(() => {
+    if (selectedTime && slotRemaining(selectedTime) <= 0) setSelectedTime(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotAvailability]);
 
   const clearFieldError = (field) =>
     setFieldErrors((prev) => {
@@ -277,11 +314,17 @@ function ConsultationDetailModal({ consultation, onClose, onChanged }) {
             <div className="c-consult__field">
               <span>방문 희망 시간 <span className="c-consult__required">*</span></span>
               <div className="c-consult__slots">
-                {CONSULTATION_TIME_SLOTS.map((t) => (
-                  <button key={t} type="button" className={t === selectedTime ? 'is-selected' : ''} onClick={() => { setSelectedTime(t); clearFieldError('time'); }}>
-                    {t}
-                  </button>
-                ))}
+                {CONSULTATION_TIME_SLOTS.map((t) => {
+                  const remaining = slotRemaining(t);
+                  const full = remaining <= 0;
+                  return (
+                    <button key={t} type="button" disabled={full} className={t === selectedTime ? 'is-selected' : ''} onClick={() => { setSelectedTime(t); clearFieldError('time'); }}>
+                      {t}
+                      {full && <small className="c-consult__slot-note">마감</small>}
+                      {!full && Number.isFinite(remaining) && <small className="c-consult__slot-note">잔여 {remaining}</small>}
+                    </button>
+                  );
+                })}
               </div>
               {fieldErrors.time && <span className="c-consult__error">{fieldErrors.time}</span>}
             </div>

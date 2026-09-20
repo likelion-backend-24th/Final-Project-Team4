@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ConsultationCompleteModal from './ConsultationCompleteModal';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
-import { applyConsultation, getMyConsultations, toAssetUrl } from '../../api/expo';
+import { applyConsultation, getConsultationSlotAvailability, getMyConsultations, toAssetUrl } from '../../api/expo';
 import { getMyProfile } from '../../api/identity';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
@@ -38,6 +38,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
   const [myConsultations, setMyConsultations] = useState([]);
   const [previewGroup, setPreviewGroup] = useState(null);
   const [previewPage, setPreviewPage] = useState(1);
+  const [slotAvailability, setSlotAvailability] = useState([]); // 선택한 업체별 그 날짜의 시간대 정원/신청 건수
 
   const [wantsPurchase, setWantsPurchase] = useState(false);
   const [wantsTestDrive, setWantsTestDrive] = useState(false);
@@ -97,6 +98,38 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
       setFieldErrors((prev) => ({ ...prev, date: '선택한 업체에 이미 상담 신청한 날짜입니다. 다른 날짜를 선택해주세요.' }));
     }
   }, [appliedDates, selectedDay, viewYear, viewMonth]);
+
+  // 날짜와 업체가 정해지면 업체별 시간대 잔여를 조회한다 - 한 업체라도 정원이 찬 시간대는 신청할 수 없다(서버도 같은 기준으로 막는다).
+  useEffect(() => {
+    if (!selectedDay || selectedBoothIds.size === 0) {
+      setSlotAvailability([]);
+      return undefined;
+    }
+    let cancelled = false;
+    const date = toIsoDate(viewYear, viewMonth, selectedDay);
+    Promise.all([...selectedBoothIds].map((boothId) => getConsultationSlotAvailability(boothId, date)))
+      .then((list) => {
+        if (!cancelled) setSlotAvailability(list);
+      })
+      .catch(() => {
+        if (!cancelled) setSlotAvailability([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBoothIds, selectedDay, viewYear, viewMonth]);
+
+  // 선택한 업체들 중 가장 적게 남은 자리 수(정보가 없으면 제한 없음).
+  const slotRemaining = (slot) =>
+    slotAvailability.reduce((min, a) => {
+      const found = a.slots.find((x) => x.time.slice(0, 5) === slot);
+      return Math.min(min, (found?.capacity ?? a.defaultCapacity) - (found?.booked ?? 0));
+    }, Infinity);
+
+  useEffect(() => {
+    if (selectedTime && slotRemaining(selectedTime) <= 0) setSelectedTime(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotAvailability]);
 
   const isSelectedDayToday =
     selectedDay === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
@@ -437,20 +470,28 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                 <div className="c-consult__field">
                   <span>방문 희망 시간 <span className="c-consult__required">*</span></span>
                   <div className="c-consult__slots">
-                    {CONSULTATION_TIME_SLOTS.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        disabled={isSlotBlocked(t)}
-                        className={t === selectedTime ? 'is-selected' : ''}
-                        onClick={() => {
-                          setSelectedTime(t);
-                          clearFieldError('time');
-                        }}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                    {CONSULTATION_TIME_SLOTS.map((t) => {
+                      const remaining = slotRemaining(t);
+                      const full = remaining <= 0;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          disabled={isSlotBlocked(t) || full}
+                          className={t === selectedTime ? 'is-selected' : ''}
+                          onClick={() => {
+                            setSelectedTime(t);
+                            clearFieldError('time');
+                          }}
+                        >
+                          {t}
+                          {full && <small className="c-consult__slot-note">마감</small>}
+                          {!full && Number.isFinite(remaining) && (
+                            <small className="c-consult__slot-note">잔여 {remaining}</small>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                   {isSelectedDayToday && (
                     <p className="c-bulk-consult__hint">오늘 방문은 지금으로부터 20분 이후 시간만 선택할 수 있어요.</p>

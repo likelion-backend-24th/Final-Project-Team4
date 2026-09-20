@@ -125,6 +125,21 @@ export const getVisitedBooths = (expoId) =>
 export const getBoothManageDetail = (boothId) =>
   apiClient.get(`/api/exhibitor/booths/${boothId}`).then((res) => res.data.data);
 
+// GET /api/exhibitor/booths/{boothId}/consultation-slots — 상담 접수 정원 설정 조회
+// 응답: { defaultCapacity, slots: [{ date: 'YYYY-MM-DD', time: 'HH:mm:ss', capacity }] } (슬롯별로 덮어쓴 값만)
+export const getConsultationSlotSettings = (boothId) =>
+  apiClient.get(`/api/exhibitor/booths/${boothId}/consultation-slots`).then((res) => res.data.data);
+
+// PUT /api/exhibitor/booths/{boothId}/consultation-slots — 상담 접수 정원 저장(기존 슬롯별 설정을 통째로 교체)
+// payload: { defaultCapacity, slots: [{ date, time, capacity }] }
+export const saveConsultationSlotSettings = (boothId, payload) =>
+  apiClient.put(`/api/exhibitor/booths/${boothId}/consultation-slots`, payload).then((res) => res.data.data);
+
+// GET /api/customer/consultations/booths/{boothId}/slots?date= — 그 날짜의 시간대별 정원/신청 건수
+// 응답: { defaultCapacity, slots: [{ time: 'HH:mm:ss', capacity, booked }] } — 목록에 없는 시간대는 defaultCapacity, 신청 0건
+export const getConsultationSlotAvailability = (boothId, date) =>
+  apiClient.get(`/api/customer/consultations/booths/${boothId}/slots`, { params: { date } }).then((res) => res.data.data);
+
 // PUT /api/exhibitor/booths/{boothId}/content — 부스 소개 콘텐츠 등록/수정
 export const updateBoothContent = (boothId, payload) =>
   apiClient.put(`/api/exhibitor/booths/${boothId}/content`, payload).then((res) => res.data.data);
