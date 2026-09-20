@@ -116,7 +116,7 @@ function mapReservationTicket(expo, t, holderName) {
 
 // 박람회 목록에서 "선택하기"를 눌렀을 때 뜨는 입장 방법 선택 팝업 + 이어지는 전체 플로우.
 // 업무 규칙: 날짜를 먼저 고르고(무료/유료 모두 다중 선택 가능, 이미 지난 날짜·이미 QR을 받은 날짜는
-// 선택 불가), 박람회 시작일 이전 신청이면 무료 QR 즉시 발급, 시작일 이후면 결제 후 QR 발급.
+// 선택 불가 — 무료/유료 공통), 박람회 시작일 이전 신청이면 무료 QR 즉시 발급, 시작일 이후면 결제 후 QR 발급.
 // - 무료 경로: 실제 Reservation 서비스(POST/GET /api/customer/reservations, 체크인)로 연동됨.
 // - 유료 경로: 실제 PortOne 결제 + 백엔드(POST /api/customer/admission-payments)로 연동됨. 무료
 //   경로와 동일하게 날짜를 여러 개 골라 한 번에 결제하면(금액 = 1일 입장료 x 날짜 수) 그 수만큼
@@ -517,10 +517,9 @@ function SelectDate({
 }) {
   const dates = expoDateRange(expo);
   const today = todayDateString();
-  // 유료 모드는 이미 QR을 받은 날짜를 다시 결제하지 않도록 애초에 선택 자체를 막는다 — 백엔드도
-  // 같은 날짜 재구매를 blockedDates로 막지만, 결제창까지 갔다가 막히는 것보다 여기서 막는 게 낫다.
-  // 무료 모드는 재신청이 멱등(기존 QR 그대로 반환)이라 그대로 둠.
-  const alreadyIssuedDates = new Set(freeMode ? [] : existingTickets.map((t) => t.visitDate));
+  // 이미 QR을 받은 날짜는 무료/유료 모두 "발급완료"로 표시하고 선택을 막는다 — 유료는 결제창까지
+  // 갔다가 blockedDates로 막히는 것보다 낫고, 무료는 재신청해도 기존 QR만 돌려받는 멱등 동작이라 의미 없음.
+  const alreadyIssuedDates = new Set(existingTickets.map((t) => t.visitDate));
   return (
     <>
       <div className="c-modal__icon">
@@ -551,7 +550,7 @@ function SelectDate({
               <span>
                 {fmtDate(d)}
                 {isPast && ' (지난 날짜)'}
-                {isAlreadyIssued && ' (이미 발급됨)'}
+                {isAlreadyIssued && ' (발급완료)'}
               </span>
             </label>
           );

@@ -18,11 +18,16 @@ const ACTIVE_STATUSES = new Set(['REQUESTED', 'APPROVED']);
 // 참가업체 목록에서 여러 곳을 골라 상담 신청 정보를 한 번만 입력해 동시에 신청하는 2단계 모달.
 // 1단계: 참가업체 선택 + 개인정보 + 방문 희망 날짜/시간(보유한 입장권 날짜만, 이미 신청한 날짜는 제외)
 // 2단계: 상담 유형 + 관심 차종 + 운전면허 소지 여부 + 기타 요청사항
-function BulkConsultationModal({ expoId, groups, onClose }) {
+// lockedBoothId: 특정 참가업체 페이지에서 열었을 때 그 업체로 고정한다(업체 선택 목록 없이 읽기 전용 표시).
+// defaultVehicle: 차량 상세에서 열었을 때 관심 차종 입력란에 미리 채워둘 차량명.
+function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, onClose }) {
   const today = useMemo(() => new Date(), []);
+  const lockedGroup = lockedBoothId != null ? groups.find((g) => String(g.boothId) === String(lockedBoothId)) : null;
 
   const [step, setStep] = useState(1);
-  const [selectedBoothIds, setSelectedBoothIds] = useState(new Set());
+  const [selectedBoothIds, setSelectedBoothIds] = useState(
+    () => new Set(lockedGroup ? [lockedGroup.boothId] : [])
+  );
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -34,7 +39,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
 
   const [wantsPurchase, setWantsPurchase] = useState(false);
   const [wantsTestDrive, setWantsTestDrive] = useState(false);
-  const [interestedVehicle, setInterestedVehicle] = useState('');
+  const [interestedVehicle, setInterestedVehicle] = useState(defaultVehicle ?? '');
   const [hasDriverLicense, setHasDriverLicense] = useState(false);
   const [message, setMessage] = useState('');
   const [leadConsent, setLeadConsent] = useState(false);
@@ -81,6 +86,15 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
     });
     return set;
   }, [myConsultations, selectedBoothIds]);
+
+  // 날짜를 먼저 고른 뒤 업체를 추가/변경해서 그 날짜가 이미 신청된 날짜가 되면 선택을 풀어준다.
+  useEffect(() => {
+    if (selectedDay && appliedDates.has(toIsoDate(viewYear, viewMonth, selectedDay))) {
+      setSelectedDay(null);
+      setSelectedTime(null);
+      setFieldErrors((prev) => ({ ...prev, date: '선택한 업체에 이미 상담 신청한 날짜입니다. 다른 날짜를 선택해주세요.' }));
+    }
+  }, [appliedDates, selectedDay, viewYear, viewMonth]);
 
   const isSelectedDayToday =
     selectedDay === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
@@ -264,12 +278,15 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
           </button>
 
           <div className="c-bulk-consult__steps">
-            <span className={step === 1 ? 'is-active' : ''}>1. 업체 선택 · 방문 정보</span>
+            <span className={step === 1 ? 'is-active' : ''}>
+              {lockedGroup ? '1. 방문 정보' : '1. 업체 선택 · 방문 정보'}
+            </span>
             <span className={step === 2 ? 'is-active' : ''}>2. 상담 내용</span>
           </div>
 
           {step === 1 ? (
-            <div className="c-bulk-consult__body">
+            <div className={`c-bulk-consult__body${lockedGroup ? ' c-bulk-consult__body--single' : ''}`}>
+              {!lockedGroup && (
               <div className="c-bulk-consult__col">
                 <h3>참가업체 선택</h3>
                 <p className="c-bulk-consult__hint">상담받고 싶은 참가업체를 모두 선택하세요.</p>
@@ -301,6 +318,7 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                   ))}
                 </div>
               </div>
+              )}
 
               <div className="c-bulk-consult__col">
                 <h3>신청 정보</h3>
@@ -344,6 +362,12 @@ function BulkConsultationModal({ expoId, groups, onClose }) {
                   />
                   {fieldErrors.email && <span className="c-consult__error">{fieldErrors.email}</span>}
                 </label>
+                {lockedGroup && (
+                  <label className="c-consult__field">
+                    <span>참가업체</span>
+                    <input value={`${lockedGroup.title} (${lockedGroup.boothNo})`} readOnly disabled />
+                  </label>
+                )}
 
                 <div className="c-consult__field">
                   <span>방문 희망 날짜 <span className="c-consult__required">*</span></span>
