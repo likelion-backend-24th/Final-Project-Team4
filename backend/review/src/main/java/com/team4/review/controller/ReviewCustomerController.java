@@ -11,9 +11,11 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,6 +46,26 @@ public class ReviewCustomerController {
 
         ReviewResponse response = reviewService.createReview(customer.getId(), boothId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PutMapping("/{reviewId}")
+    public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long boothId,
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ReviewRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(reviewService.updateReview(customer.getId(), boothId, reviewId, request)));
+    }
+
+    @DeleteMapping("/{reviewId}")
+    public ResponseEntity<Void> deleteReview(
+            @AuthenticationPrincipal GatewayUser customer,
+            @PathVariable Long boothId,
+            @PathVariable Long reviewId) {
+
+        reviewService.deleteReview(customer.getId(), boothId, reviewId);
+        return ResponseEntity.noContent().build();
     }
 
     // 후기 사진 추가(최대 5장, 선택) - createReview로 후기를 먼저 만든 뒤 파일마다 호출.

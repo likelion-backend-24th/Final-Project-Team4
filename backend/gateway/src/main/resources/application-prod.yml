@@ -21,7 +21,7 @@ spring:
         - id: review
           uri: http://review:8085
           predicates:
-              - Path=/api/customer/booths/**
+              - Path=/api/customer/booths/**,/api/customer/reviews/**
         - id: review-exhibitor
           uri: http://review:8085
           predicates:

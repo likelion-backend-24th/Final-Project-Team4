@@ -46,4 +46,10 @@ public class Review {
         this.content = content;
         this.createdAt = LocalDateTime.now();
     }
+
+    // 후기 유형(상담/부스)과 부스는 바꿀 수 없고, 내용과(상담후기의) 차량명만 수정한다.
+    public void update(String vehicleName, String content) {
+        this.vehicleName = vehicleName;
+        this.content = content;
+    }
 }
