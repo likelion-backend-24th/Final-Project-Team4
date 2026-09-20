@@ -239,7 +239,7 @@ public class ConsultationService {
                         : consultationRepository.findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
                                 .stream().anyMatch(Consultation::isReviewable);
 
-        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
+        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo(), companyNameOf(booth), booth.getExpo().getTitle());
     }
 
     // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모의 AI 요약본(있으면).

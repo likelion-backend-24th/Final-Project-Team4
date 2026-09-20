@@ -74,7 +74,7 @@ class ReviewAcceptanceTest {
 
         when(identityClient.getCustomerName(anyLong())).thenReturn(Optional.of("홍길동"));
         when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString(), any()))
-                .thenReturn(new BoothReviewEligibility(true, BOOTH_NO));
+                .thenReturn(new BoothReviewEligibility(true, BOOTH_NO, "현대자동차", "2026 모빌리티 엑스포"));
     }
 
     private String createBody(String reviewType, String vehicleName, String content) {
@@ -184,7 +184,7 @@ class ReviewAcceptanceTest {
     @DisplayName("작성 자격이 없으면(Expo가 eligible=false) 409")
     void 자격없음_409() throws Exception {
         when(expoClient.checkReviewEligibility(eq(BOOTH_ID), eq(CUSTOMER_ID), anyString(), any()))
-                .thenReturn(new BoothReviewEligibility(false, BOOTH_NO));
+                .thenReturn(new BoothReviewEligibility(false, BOOTH_NO, "현대자동차", "2026 모빌리티 엑스포"));
 
         mockMvc.perform(post("/api/customer/booths/{boothId}/reviews", BOOTH_ID).with(customer())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -265,6 +265,17 @@ class ReviewAcceptanceTest {
         mockMvc.perform(multipart("/api/customer/booths/{boothId}/reviews/{reviewId}/images", BOOTH_ID, reviewId)
                         .file(image).with(customer(OTHER_CUSTOMER_ID)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("후기에는 작성 시점의 업체명·박람회명이 함께 저장된다(상담 없는 부스후기도 업체명 표시용)")
+    void 후기_업체명_박람회명_저장() throws Exception {
+        createReviewAndGetId();
+
+        mockMvc.perform(get("/api/customer/reviews/mine").with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].companyName").value("현대자동차"))
+                .andExpect(jsonPath("$.data[0].expoTitle").value("2026 모빌리티 엑스포"));
     }
 
     @Test

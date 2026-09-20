@@ -14,6 +14,8 @@ public class ReviewResponse {
     private final ReviewType reviewType;
     private final Long consultationId;
     private final String boothNo;
+    private final String companyName;
+    private final String expoTitle;
     private final String vehicleName;
     private final String customerName;
     private final String content;
@@ -21,12 +23,14 @@ public class ReviewResponse {
     private final List<ReviewImageResponse> images;
 
     private ReviewResponse(Long reviewId, Long boothId, ReviewType reviewType, Long consultationId, String boothNo,
-                            String vehicleName, String customerName, String content, LocalDateTime createdAt, List<ReviewImageResponse> images) {
+                            String companyName, String expoTitle, String vehicleName, String customerName, String content, LocalDateTime createdAt, List<ReviewImageResponse> images) {
         this.reviewId = reviewId;
         this.boothId = boothId;
         this.reviewType = reviewType;
         this.consultationId = consultationId;
         this.boothNo = boothNo;
+        this.companyName = companyName;
+        this.expoTitle = expoTitle;
         this.vehicleName = vehicleName;
         this.customerName = customerName;
         this.content = content;
@@ -41,6 +45,8 @@ public class ReviewResponse {
                 review.getReviewType(),
                 review.getConsultationId(),
                 review.getBoothNo(),
+                review.getCompanyName(),
+                review.getExpoTitle(),
                 review.getVehicleName(),
                 mask(review.getCustomerName()),
                 review.getContent(),

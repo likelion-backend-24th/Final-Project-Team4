@@ -90,9 +90,11 @@ public class TicketService {
     }
 
     // Expo -> Reservation. 상담 신청 접수 시점에 "이 고객이 이 박람회 이 날짜 입장권을 갖고 있는지"만 확인.
-    // 티켓 타입(FREE/PAID)·상태(ISSUED/USED) 무관 — 그 날짜에 티켓이 존재하기만 하면 true.
+    // 티켓 타입(FREE/PAID)·상태(ISSUED/USED) 무관 — 그 날짜에 유효한 티켓이 있으면 true. 환불/일정 변경으로
+    // 취소된(CANCELLED) 티켓은 입장권이 아니므로 제외한다(안 그러면 환불한 날짜로도 상담 신청이 통과한다).
     public TicketExistsResponse hasTicketForDate(Long customerId, Long expoId, LocalDate visitDate) {
         boolean hasTicket = ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
+                .filter(ticket -> ticket.getStatus() != TicketStatus.CANCELLED)
                 .isPresent();
         return new TicketExistsResponse(hasTicket);
     }
@@ -112,7 +114,14 @@ public class TicketService {
 
     private TicketResponse issueOrGetTicket(Long customerId, Long expoId, LocalDate visitDate) {
         return ticketRepository.findByCustomerIdAndExpoIdAndVisitDate(customerId, expoId, visitDate)
-                .map(TicketResponse::from)
+                .map(ticket -> {
+                    // 취소된 티켓을 유효한 입장권처럼 돌려주면 안 된다. (customer, expo, date)당 티켓이 1건이라 다시 발급하지도 못한다.
+                    if (ticket.getStatus() == TicketStatus.CANCELLED) {
+                        throw new CustomException(ErrorCode.INVALID_STATE,
+                                "환불 또는 취소된 날짜(" + visitDate + ")는 다시 신청할 수 없습니다.");
+                    }
+                    return TicketResponse.from(ticket);
+                })
                 .orElseGet(() -> createTicket(customerId, expoId, visitDate));
     }
 

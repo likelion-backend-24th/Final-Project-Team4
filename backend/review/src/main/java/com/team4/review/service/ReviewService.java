@@ -120,7 +120,8 @@ public class ReviewService {
 
         String customerName = identityClient.getCustomerName(customerId).orElse("고객");
 
-        Review review = new Review(boothId, eligibility.boothNo(), request.getReviewType(), customerId, customerName,
+        Review review = new Review(boothId, eligibility.boothNo(), eligibility.companyName(), eligibility.expoTitle(),
+                request.getReviewType(), customerId, customerName,
                 request.getReviewType() == ReviewType.CONSULT ? request.getVehicleName() : null,
                 consultationId, request.getContent());
 

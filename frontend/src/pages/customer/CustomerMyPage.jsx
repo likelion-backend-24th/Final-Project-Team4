@@ -365,7 +365,12 @@ function CustomerMyPage() {
                 ) : (
                   <div className="c-ticket-grid">
                     {pagedReviews.map((r) => {
-                      const booth = boothInfoById.get(r.boothId);
+                      // 작성 시점에 저장된 업체명/박람회명을 우선 쓰고, 이 기능 도입 전 후기는 내 상담 내역에서 찾아 보완한다.
+                  const fallback = boothInfoById.get(r.boothId);
+                  const booth = {
+                    companyName: r.companyName || fallback?.companyName,
+                    expoTitle: r.expoTitle || fallback?.expoTitle,
+                  };
                       return (
                         <div key={r.reviewId} className="c-ticket-card c-my-review">
                           <div className="c-ticket-card__head">

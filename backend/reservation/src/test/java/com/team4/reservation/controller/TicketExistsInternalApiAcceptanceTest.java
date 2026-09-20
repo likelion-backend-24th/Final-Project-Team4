@@ -2,6 +2,7 @@ package com.team4.reservation.controller;
 
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.repository.TicketRepository;
+import com.team4.reservation.service.TicketService;
 import java.time.LocalDate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +32,7 @@ class TicketExistsInternalApiAcceptanceTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired TicketRepository ticketRepository;
+    @Autowired TicketService ticketService;
 
     @AfterEach
     void cleanUp() {
@@ -59,6 +61,17 @@ class TicketExistsInternalApiAcceptanceTest {
         mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, VISIT_DATE)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.hasTicket").value(true));
+    }
+
+    @Test
+    @DisplayName("환불/취소(CANCELLED)된 티켓은 입장권이 아니므로 hasTicket=false")
+    void 취소된_티켓은_false() throws Exception {
+        Ticket ticket = ticketRepository.save(Ticket.issuePaid(CUSTOMER_ID, EXPO_ID, VISIT_DATE));
+        ticketService.cancelTicket(ticket.getId());
+
+        mockMvc.perform(get(path(CUSTOMER_ID, EXPO_ID, VISIT_DATE)).header(HttpHeaders.AUTHORIZATION, SVC_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.hasTicket").value(false));
     }
 
     @Test

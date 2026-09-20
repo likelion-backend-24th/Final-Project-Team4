@@ -8,9 +8,14 @@ public class BoothReviewEligibilityResponse {
 
     private final boolean eligible;
     private final String boothNo;
+    // 후기에 같이 저장할 표시용 이름(작성 시점 스냅샷). 업체명은 조회 실패/미입력 시 null.
+    private final String companyName;
+    private final String expoTitle;
 
-    public BoothReviewEligibilityResponse(boolean eligible, String boothNo) {
+    public BoothReviewEligibilityResponse(boolean eligible, String boothNo, String companyName, String expoTitle) {
         this.eligible = eligible;
         this.boothNo = boothNo;
+        this.companyName = companyName;
+        this.expoTitle = expoTitle;
     }
 }

@@ -21,6 +21,10 @@ public class Review {
     private Long boothId;
     private String boothNo;
 
+    // 작성 시점의 업체명/박람회명 스냅샷(마이페이지 표시용). 이 기능 도입 전 후기는 null.
+    private String companyName;
+    private String expoTitle;
+
     @Enumerated(EnumType.STRING)
     private ReviewType reviewType;
 
@@ -38,10 +42,12 @@ public class Review {
 
     private LocalDateTime createdAt;
 
-    public Review(Long boothId, String boothNo, ReviewType reviewType, Long customerId, String customerName,
-                  String vehicleName, Long consultationId, String content) {
+    public Review(Long boothId, String boothNo, String companyName, String expoTitle, ReviewType reviewType,
+                  Long customerId, String customerName, String vehicleName, Long consultationId, String content) {
         this.boothId = boothId;
         this.boothNo = boothNo;
+        this.companyName = companyName;
+        this.expoTitle = expoTitle;
         this.reviewType = reviewType;
         this.customerId = customerId;
         this.customerName = customerName;

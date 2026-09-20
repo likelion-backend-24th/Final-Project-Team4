@@ -57,7 +57,8 @@ public class ExpoHttpClient implements ExpoClient {
             }
 
             JsonNode data = objectMapper.readTree(response.body()).path("data");
-            return new BoothReviewEligibility(data.path("eligible").asBoolean(false), data.path("boothNo").asText(null));
+            return new BoothReviewEligibility(data.path("eligible").asBoolean(false), data.path("boothNo").asText(null),
+                    data.path("companyName").asText(null), data.path("expoTitle").asText(null));
         } catch (IOException | InterruptedException e) {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Expo 서버 통신 중 오류: " + e.getMessage());
         }
