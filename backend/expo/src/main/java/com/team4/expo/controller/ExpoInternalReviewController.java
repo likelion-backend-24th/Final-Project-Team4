@@ -39,12 +39,13 @@ public class ExpoInternalReviewController {
             @RequestHeader("Authorization") String authorization,
             @PathVariable Long boothId,
             @RequestParam Long customerId,
-            @RequestParam String reviewType) {
+            @RequestParam String reviewType,
+            @RequestParam(required = false) Long consultationId) {
 
         requireReviewService(authorization);
 
         return ResponseEntity.ok(ApiResponse.success(
-                consultationService.getBoothReviewEligibility(boothId, customerId, reviewType)));
+                consultationService.getBoothReviewEligibility(boothId, customerId, reviewType, consultationId)));
     }
 
     // Review -> Expo. 참가업체가 본인 부스 후기를 조회하기 전에 그 부스 소유(참가 확정) 여부 확인.

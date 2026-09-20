@@ -110,6 +110,7 @@ function mapReservationTicket(expo, t, holderName) {
     bookingNo: `TICKET-${t.ticketId}`,
     purchasedAt: t.issuedAt ? t.issuedAt.replace('T', ' ').slice(0, 16) : nowLabel(),
     usedAt: t.status === 'USED' ? t.issuedAt : null,
+    status: t.status,
     qrImageBase64: t.qrImageBase64,
   };
 }
@@ -520,6 +521,8 @@ function SelectDate({
   // 이미 QR을 받은 날짜는 무료/유료 모두 "발급완료"로 표시하고 선택을 막는다 — 유료는 결제창까지
   // 갔다가 blockedDates로 막히는 것보다 낫고, 무료는 재신청해도 기존 QR만 돌려받는 멱등 동작이라 의미 없음.
   const alreadyIssuedDates = new Set(existingTickets.map((t) => t.visitDate));
+  // 환불/취소된 티켓의 날짜는 "발급완료"가 아니라 "환불됨"으로 보여주고, 다시 신청할 수도 없다(서버가 날짜당 티켓 1건).
+  const cancelledDates = new Set(existingTickets.filter((t) => t.status === 'CANCELLED').map((t) => t.visitDate));
   return (
     <>
       <div className="c-modal__icon">
@@ -550,7 +553,7 @@ function SelectDate({
               <span>
                 {fmtDate(d)}
                 {isPast && ' (지난 날짜)'}
-                {isAlreadyIssued && ' (발급완료)'}
+                {isAlreadyIssued && (cancelledDates.has(d) ? ' (환불됨)' : ' (발급완료)')}
               </span>
             </label>
           );

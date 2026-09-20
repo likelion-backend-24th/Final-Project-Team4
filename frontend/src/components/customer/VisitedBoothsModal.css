@@ -33,7 +33,14 @@
   text-align: left;
 }
 
-.c-visited-booths__list button:hover {
+.c-visited-booths__list button:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.c-visited-booths__list button:not(:disabled):hover {
   border-color: #2f6fed;
   background: #f7faff;
 }

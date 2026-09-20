@@ -58,6 +58,11 @@ public class GeminiSummaryClient implements AiSummaryClient {
         return callGemini(prompt);
     }
 
+    @Override
+    public Optional<String> polishReview(String reviewType, String vehicleName, String content) {
+        return callGemini(buildPolishPrompt(reviewType, vehicleName, content));
+    }
+
     private Optional<String> callGemini(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
             return Optional.empty();
@@ -153,5 +158,18 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "과장된 광고 문구 없이 실제 방문 후기 톤으로, 다른 설명 없이 후기 본문만 출력해.\n\n"
                 + "고객이 신청 시 남긴 요구사항: " + (customerMessage == null || customerMessage.isBlank() ? "없음" : customerMessage) + "\n"
                 + "참가업체 담당자의 현장 상담 메모: " + (exhibitorNote == null || exhibitorNote.isBlank() ? "없음" : exhibitorNote);
+    }
+
+    // 고객이 쓴 후기를 다듬기만 한다 - 새 사실을 지어내지 않고, 1인칭·원래 의미·길이를 유지(불릿/제목/따옴표 없이 본문만).
+    private String buildPolishPrompt(String reviewType, String vehicleName, String content) {
+        String subject = "CONSULT".equals(reviewType)
+                ? "차량 " + (vehicleName == null || vehicleName.isBlank() ? "" : vehicleName) + " 상담 후기"
+                : "부스 방문 후기";
+
+        return "다음은 모빌리티 박람회 방문객이 직접 쓴 " + subject + "다. "
+                + "맞춤법과 띄어쓰기를 바로잡고 어색한 문장을 자연스럽게 다듬어줘. "
+                + "글쓴이가 말한 내용과 사실, 1인칭 말투는 그대로 유지하고, 없는 내용을 새로 지어내거나 과장하지 마. "
+                + "길이는 원문과 비슷하게 유지해. 제목, 불릿, 따옴표, 다른 설명 없이 다듬은 후기 본문만 출력해.\n\n"
+                + "원문: " + content;
     }
 }

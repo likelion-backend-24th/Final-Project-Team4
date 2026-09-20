@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { addBoothReviewImage, createBoothReview, draftConsultationReview, updateBoothReview } from '../../api/expo';
+import { addBoothReviewImage, createBoothReview, draftConsultationReview, polishReviewContent, updateBoothReview } from '../../api/expo';
 import './Modal.css';
 import './ReviewWriteModal.css';
 
@@ -30,6 +30,26 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
   const [drafting, setDrafting] = useState(false);
   const [draftError, setDraftError] = useState(null);
 
+  // 문장 다듬기 - 내가 쓴 글을 AI가 다시 쓰므로 마음에 안 들면 원문으로 되돌릴 수 있게 다듬기 직전 글을 보관한다.
+  const [polishing, setPolishing] = useState(false);
+  const [beforePolish, setBeforePolish] = useState(null);
+
+  const handlePolish = () => {
+    setPolishing(true);
+    setDraftError(null);
+    polishReviewContent({ reviewType, vehicleName: reviewType === 'CONSULT' ? vehicleName.trim() || null : null, content: content.trim() })
+      .then((res) => {
+        if (!res.draft) {
+          setDraftError('AI 문장 다듬기에 실패했습니다. 잠시 후 다시 시도해주세요.');
+          return;
+        }
+        setBeforePolish(content);
+        setContent(res.draft);
+      })
+      .catch((err) => setDraftError(err.response?.data?.error?.message ?? 'AI 문장 다듬기 중 오류가 발생했습니다.'))
+      .finally(() => setPolishing(false));
+  };
+
   const handleAiDraft = () => {
     setDrafting(true);
     setDraftError(null);
@@ -58,6 +78,8 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
     setError(null);
     const payload = {
       reviewType,
+      // 상담후기는 상담 1건당 1개라 어느 상담에 대한 후기인지 함께 보낸다(수정 시에는 서버가 기존 값을 유지).
+      consultationId: reviewType === 'CONSULT' && consultationId ? Number(consultationId) : null,
       vehicleName: reviewType === 'CONSULT' ? vehicleName.trim() : null,
       content: content.trim(),
     };
@@ -106,13 +128,33 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
             </label>
           )}
 
-          {consultationId && (
-            <div className="c-review-write__tools">
-              <button type="button" className="c-review-write__tool-btn c-review-write__tool-btn--ai" onClick={handleAiDraft} disabled={drafting}>
+          <div className="c-review-write__tools">
+            {consultationId && !editing && (
+              <button type="button" className="c-review-write__tool-btn c-review-write__tool-btn--ai" onClick={handleAiDraft} disabled={drafting || polishing}>
                 {drafting ? 'AI 작성 중...' : 'AI로 후기 작성하기'}
               </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              className="c-review-write__tool-btn c-review-write__tool-btn--ai"
+              onClick={handlePolish}
+              disabled={!content.trim() || drafting || polishing}
+            >
+              {polishing ? 'AI 다듬는 중...' : 'AI로 문장 다듬기'}
+            </button>
+            {beforePolish !== null && (
+              <button
+                type="button"
+                className="c-review-write__tool-btn"
+                onClick={() => {
+                  setContent(beforePolish);
+                  setBeforePolish(null);
+                }}
+              >
+                원래 문장으로 되돌리기
+              </button>
+            )}
+          </div>
           {draftError && <p className="c-modal__error">{draftError}</p>}
 
           <label className="c-review-write__field">
@@ -120,7 +162,10 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
             <textarea
               rows={5}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                setContent(e.target.value);
+                setBeforePolish(null);
+              }}
               placeholder="상담 또는 방문 경험을 자유롭게 남겨주세요."
             />
           </label>

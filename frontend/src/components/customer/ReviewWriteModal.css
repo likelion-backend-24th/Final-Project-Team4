@@ -12,12 +12,13 @@
 
 .c-review-write__tools {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
 
 .c-review-write__tool-btn {
-  flex: 1;
+  flex: 1 1 140px;
   padding: 9px;
   border: 1px solid #dfe5ed;
   border-radius: 6px;

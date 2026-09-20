@@ -35,11 +35,12 @@ public class ExpoHttpClient implements ExpoClient {
     }
 
     @Override
-    public BoothReviewEligibility checkReviewEligibility(Long boothId, Long customerId, String reviewType) {
+    public BoothReviewEligibility checkReviewEligibility(Long boothId, Long customerId, String reviewType, Long consultationId) {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(expoBaseUrl + "/internal/expo/booths/" + boothId
-                            + "/review-eligibility?customerId=" + customerId + "&reviewType=" + reviewType))
+                            + "/review-eligibility?customerId=" + customerId + "&reviewType=" + reviewType
+                            + (consultationId == null ? "" : "&consultationId=" + consultationId)))
                     .header("Authorization", "Bearer " + serviceToken)
                     .timeout(Duration.ofSeconds(5))
                     .GET()
@@ -56,7 +57,8 @@ public class ExpoHttpClient implements ExpoClient {
             }
 
             JsonNode data = objectMapper.readTree(response.body()).path("data");
-            return new BoothReviewEligibility(data.path("eligible").asBoolean(false), data.path("boothNo").asText(null));
+            return new BoothReviewEligibility(data.path("eligible").asBoolean(false), data.path("boothNo").asText(null),
+                    data.path("companyName").asText(null), data.path("expoTitle").asText(null));
         } catch (IOException | InterruptedException e) {
             throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT, "Expo 서버 통신 중 오류: " + e.getMessage());
         }

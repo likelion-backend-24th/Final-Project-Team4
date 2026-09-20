@@ -270,6 +270,11 @@ export const completeConsultation = (consultationId) =>
 export const markConsultationNoShow = (consultationId) =>
   apiClient.post(`/api/exhibitor/consultations/${consultationId}/no-show`).then((res) => res.data.data);
 
+// POST /api/customer/consultations/review-polish — 고객이 쓴 후기 문장을 AI로 다듬기 (상담 건과 무관)
+// payload: { reviewType: 'CONSULT' | 'BOOTH', vehicleName?, content } / 응답: { draft: string | null } (실패 시 null)
+export const polishReviewContent = (payload) =>
+  apiClient.post('/api/customer/consultations/review-polish', payload).then((res) => res.data.data);
+
 // GET /api/customer/booths/{boothId}/reviews — 부스 후기(상담후기/부스후기) 목록 (비회원 조회 가능)
 // 응답: { totalCount, consultReviews: ReviewResponse[], boothReviews: ReviewResponse[] }
 export const getBoothReviews = (boothId) =>

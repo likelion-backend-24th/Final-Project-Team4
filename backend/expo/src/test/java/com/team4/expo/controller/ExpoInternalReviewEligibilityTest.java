@@ -99,6 +99,31 @@ class ExpoInternalReviewEligibilityTest {
     }
 
     @Test
+    @DisplayName("CONSULT + consultationId: 그 상담이 본인 소유의 완료 상담이면 true, 타인 상담·없는 상담이면 false")
+    void 상담후기_대상상담_지정() throws Exception {
+        Consultation consultation = new Consultation(booth, CUSTOMER_ID, "홍길동", "010-1234-5678",
+                "hong@example.com", true, false, "EV6", true,
+                LocalDate.now().plusDays(1), LocalTime.of(14, 0), "상담 부탁드립니다", true);
+        consultation.approve();
+        consultation.complete();
+        Long consultationId = consultationRepository.save(consultation).getId();
+
+        performWithConsultation(CUSTOMER_ID, consultationId, true);
+        performWithConsultation(CUSTOMER_ID + 1, consultationId, false);
+        performWithConsultation(CUSTOMER_ID, consultationId + 9999, false);
+    }
+
+    private void performWithConsultation(long customerId, long consultationId, boolean expectedEligible) throws Exception {
+        mockMvc.perform(get("/internal/expo/booths/{boothId}/review-eligibility", booth.getId())
+                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN)
+                        .param("customerId", String.valueOf(customerId))
+                        .param("reviewType", "CONSULT")
+                        .param("consultationId", String.valueOf(consultationId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.eligible").value(expectedEligible));
+    }
+
+    @Test
     @DisplayName("CONSULT: 완료된 상담이 없으면 eligible=false (방문 기록만 있어도 상담후기는 불가)")
     void 상담후기_상담없음_ineligible() throws Exception {
         leadRepository.save(new Lead(booth, CUSTOMER_ID, LocalDate.now().minusDays(1), null, "홍길동", "hong@example.com", null, true));

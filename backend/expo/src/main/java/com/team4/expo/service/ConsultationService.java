@@ -224,17 +224,22 @@ public class ConsultationService {
     // 5일 이내여야 하고, 부스후기(BOOTH)는 상담과 무관하게 방문 기록(Lead)이 있고 방문 후 5일 이내면 된다
     // (워크인 방문객도 부스후기는 쓸 수 있게 하기 위함, 2026-09-16 확정).
     @Transactional(readOnly = true)
-    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId, String reviewType) {
+    public BoothReviewEligibilityResponse getBoothReviewEligibility(Long boothId, Long customerId, String reviewType, Long consultationId) {
         Booth booth = boothRepository.findById(boothId)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
 
         boolean eligible = "BOOTH".equals(reviewType)
                 ? leadRepository.findByBooth_IdAndCustomerId(boothId, customerId)
                         .stream().anyMatch(Lead::isReviewable)
-                : consultationRepository.findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
-                        .stream().anyMatch(Consultation::isReviewable);
+                : consultationId != null
+                        // 상담후기는 상담 1건당 후기 1개라 대상 상담을 지정한다 - 본인 소유·해당 부스·작성 가능(완료 후 5일 이내)이어야 한다.
+                        ? consultationRepository.findById(consultationId)
+                                .filter(c -> c.getCustomerId().equals(customerId) && c.getBooth().getId().equals(boothId))
+                                .map(Consultation::isReviewable).orElse(false)
+                        : consultationRepository.findByCustomerIdAndBooth_IdAndStatus(customerId, boothId, ConsultationStatus.COMPLETED)
+                                .stream().anyMatch(Consultation::isReviewable);
 
-        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo());
+        return new BoothReviewEligibilityResponse(eligible, booth.getBoothNo(), companyNameOf(booth), booth.getExpo().getTitle());
     }
 
     // 후기 작성 화면의 "상담내용" 패널 - 본인 요구사항 + 참가업체 현장 메모의 AI 요약본(있으면).
@@ -264,6 +269,13 @@ public class ConsultationService {
                 .orElse(null);
 
         return new ConsultationReviewDraftResponse(draft);
+    }
+
+    // 후기 작성 화면 - 고객이 쓴 문장을 AI로 다듬기. 상담 신청과 무관하게(워크인 부스후기 포함) 쓸 수 있어 상담 조회 없이 문장만 넘긴다.
+    // 실패 시 draft=null(fail-open) - 프론트는 원문을 그대로 두고 안내만 한다.
+    public ConsultationReviewDraftResponse polishReview(String reviewType, String vehicleName, String content) {
+        return new ConsultationReviewDraftResponse(
+                aiSummaryClient.polishReview(reviewType, vehicleName, content).orElse(null));
     }
 
     private Consultation findReviewableConsultation(Long customerId, Long consultationId) {
