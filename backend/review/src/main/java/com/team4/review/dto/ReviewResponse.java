@@ -1,6 +1,7 @@
 package com.team4.review.dto;
 
 import com.team4.review.domain.Review;
+import com.team4.review.domain.ReviewType;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Getter;
@@ -9,6 +10,8 @@ import lombok.Getter;
 public class ReviewResponse {
 
     private final Long reviewId;
+    private final Long boothId;
+    private final ReviewType reviewType;
     private final String boothNo;
     private final String vehicleName;
     private final String customerName;
@@ -16,9 +19,11 @@ public class ReviewResponse {
     private final LocalDateTime createdAt;
     private final List<ReviewImageResponse> images;
 
-    private ReviewResponse(Long reviewId, String boothNo, String vehicleName, String customerName,
-                            String content, LocalDateTime createdAt, List<ReviewImageResponse> images) {
+    private ReviewResponse(Long reviewId, Long boothId, ReviewType reviewType, String boothNo, String vehicleName,
+                            String customerName, String content, LocalDateTime createdAt, List<ReviewImageResponse> images) {
         this.reviewId = reviewId;
+        this.boothId = boothId;
+        this.reviewType = reviewType;
         this.boothNo = boothNo;
         this.vehicleName = vehicleName;
         this.customerName = customerName;
@@ -30,6 +35,8 @@ public class ReviewResponse {
     public static ReviewResponse from(Review review, List<ReviewImageResponse> images) {
         return new ReviewResponse(
                 review.getId(),
+                review.getBoothId(),
+                review.getReviewType(),
                 review.getBoothNo(),
                 review.getVehicleName(),
                 mask(review.getCustomerName()),

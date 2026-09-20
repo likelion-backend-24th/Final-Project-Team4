@@ -23,8 +23,11 @@ public class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 후기 목록 조회(GET)는 비회원도 가능(게이트웨이 화이트리스트), 작성/사진 추가(POST)는 USER 롤만.
+                        // 후기 목록 조회(GET)는 비회원도 가능(게이트웨이 화이트리스트), 작성/사진 추가(POST)·수정(PUT)·삭제(DELETE)는 USER 롤만.
                         .requestMatchers(HttpMethod.POST, "/api/customer/booths/*/reviews/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.PUT, "/api/customer/booths/*/reviews/*").hasRole("USER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/customer/booths/*/reviews/*").hasRole("USER")
+                        .requestMatchers("/api/customer/reviews/**").hasRole("USER")
                         // 참가업체가 본인 부스 후기를 실명으로 조회(2026-09-16).
                         .requestMatchers("/api/exhibitor/booths/*/reviews").hasRole("EXHIBITOR")
                         .anyRequest().permitAll())

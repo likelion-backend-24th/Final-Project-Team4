@@ -28,7 +28,7 @@ spring:
         - id: review
           uri: http://localhost:8085
           predicates:
-              - Path=/api/customer/booths/**
+              - Path=/api/customer/booths/**,/api/customer/reviews/**
         # expo의 "/api/exhibitor/**"보다 먼저 와야 함 - 참가업체가 보는 본인 부스 후기(실명).
         - id: review-exhibitor
           uri: http://localhost:8085

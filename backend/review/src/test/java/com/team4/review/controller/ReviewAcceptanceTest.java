@@ -26,9 +26,11 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -208,6 +210,61 @@ class ReviewAcceptanceTest {
         mockMvc.perform(multipart("/api/customer/booths/{boothId}/reviews/{reviewId}/images", BOOTH_ID, reviewId)
                         .file(image).with(customer(OTHER_CUSTOMER_ID)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("내가 쓴 후기 조회 - 본인 후기만, 부스ID/유형 포함")
+    void 내후기_조회() throws Exception {
+        createReviewAndGetId();
+
+        mockMvc.perform(get("/api/customer/reviews/mine").with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].boothId").value(BOOTH_ID))
+                .andExpect(jsonPath("$.data[0].reviewType").value("BOOTH"));
+
+        mockMvc.perform(get("/api/customer/reviews/mine").with(customer(OTHER_CUSTOMER_ID)))
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("본인 후기는 내용을 수정할 수 있고, 유형 변경은 400, 타인은 403")
+    void 후기_수정() throws Exception {
+        Long reviewId = createReviewAndGetId();
+
+        mockMvc.perform(put("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("BOOTH", null, "수정한 내용")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").value("수정한 내용"));
+
+        mockMvc.perform(put("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("CONSULT", "EV6", "유형 변경 시도")))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer(OTHER_CUSTOMER_ID))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createBody("BOOTH", null, "남의 후기 수정")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("본인 후기는 사진과 함께 삭제할 수 있고, 타인은 403")
+    void 후기_삭제() throws Exception {
+        Long reviewId = createReviewAndGetId();
+        MockMultipartFile image = new MockMultipartFile("image", "photo.png", "image/png", new byte[]{1, 2, 3});
+        mockMvc.perform(multipart("/api/customer/booths/{boothId}/reviews/{reviewId}/images", BOOTH_ID, reviewId)
+                .file(image).with(customer())).andExpect(status().isCreated());
+
+        mockMvc.perform(delete("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer(OTHER_CUSTOMER_ID)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(delete("/api/customer/booths/{boothId}/reviews/{reviewId}", BOOTH_ID, reviewId).with(customer()))
+                .andExpect(status().isNoContent());
+
+        assertThat(reviewRepository.findAll()).isEmpty();
+        assertThat(reviewImageRepository.findAll()).isEmpty();
     }
 
     private static final long EXHIBITOR_ID = 700L;

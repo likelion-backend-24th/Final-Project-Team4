@@ -61,6 +61,32 @@
   align-items: center;
 }
 
+.c-bulk-consult__preview-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.c-bulk-consult__preview-pager button {
+  box-sizing: border-box;
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.c-bulk-consult__preview-pager button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .c-bulk-consult__preview-vehicle .c-vehicle-card__thumb {
   width: 64px;
   height: 48px;

@@ -265,6 +265,17 @@ export const getBoothReviews = (boothId) =>
 export const createBoothReview = (boothId, payload) =>
   apiClient.post(`/api/customer/booths/${boothId}/reviews`, payload).then((res) => res.data.data);
 
+// GET /api/customer/reviews/mine — 내가 작성한 후기 목록 (ReviewResponse[]: reviewId, boothId, reviewType, boothNo, vehicleName, content, createdAt, images)
+export const getMyReviews = () => apiClient.get('/api/customer/reviews/mine').then((res) => res.data.data);
+
+// PUT /api/customer/booths/{boothId}/reviews/{reviewId} — 본인 후기 수정 (유형 변경 불가, payload는 작성과 동일)
+export const updateBoothReview = (boothId, reviewId, payload) =>
+  apiClient.put(`/api/customer/booths/${boothId}/reviews/${reviewId}`, payload).then((res) => res.data.data);
+
+// DELETE /api/customer/booths/{boothId}/reviews/{reviewId} — 본인 후기 삭제 (사진 포함)
+export const deleteBoothReview = (boothId, reviewId) =>
+  apiClient.delete(`/api/customer/booths/${boothId}/reviews/${reviewId}`);
+
 // POST /api/customer/booths/{boothId}/reviews/{reviewId}/images — 후기 사진 추가 (최대 5장, 선택, 본인 후기만)
 export const addBoothReviewImage = (boothId, reviewId, file) => {
   const formData = new FormData();

@@ -14,6 +14,7 @@ import '../../pages/customer/ExhibitorList.css';
 import './BulkConsultationModal.css';
 
 const ACTIVE_STATUSES = new Set(['REQUESTED', 'APPROVED']);
+const PREVIEW_PER_PAGE = 5;
 
 // 참가업체 목록에서 여러 곳을 골라 상담 신청 정보를 한 번만 입력해 동시에 신청하는 2단계 모달.
 // 1단계: 참가업체 선택 + 개인정보 + 방문 희망 날짜/시간(보유한 입장권 날짜만, 이미 신청한 날짜는 제외)
@@ -36,6 +37,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
   const [ticketDates, setTicketDates] = useState(new Set());
   const [myConsultations, setMyConsultations] = useState([]);
   const [previewGroup, setPreviewGroup] = useState(null);
+  const [previewPage, setPreviewPage] = useState(1);
 
   const [wantsPurchase, setWantsPurchase] = useState(false);
   const [wantsTestDrive, setWantsTestDrive] = useState(false);
@@ -252,7 +254,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
               <p className="c-bulk-consult__hint">등록된 전시 차량이 없습니다.</p>
             ) : (
               <div className="c-bulk-consult__preview-list">
-                {previewGroup.vehicles.map((v) => (
+                {previewGroup.vehicles.slice((previewPage - 1) * PREVIEW_PER_PAGE, previewPage * PREVIEW_PER_PAGE).map((v) => (
                   <div key={v.vehicleId} className="c-bulk-consult__preview-vehicle">
                     <div className="c-vehicle-card__thumb">
                       {v.images[0] && <img src={toAssetUrl(v.images[0].imageUrl)} alt={v.name} />}
@@ -267,6 +269,23 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+            {previewGroup.vehicles.length > PREVIEW_PER_PAGE && (
+              <div className="c-bulk-consult__preview-pager">
+                <button type="button" onClick={() => setPreviewPage(previewPage - 1)} disabled={previewPage === 1}>
+                  ‹
+                </button>
+                <span>
+                  {previewPage} / {Math.ceil(previewGroup.vehicles.length / PREVIEW_PER_PAGE)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPage(previewPage + 1)}
+                  disabled={previewPage * PREVIEW_PER_PAGE >= previewGroup.vehicles.length}
+                >
+                  ›
+                </button>
               </div>
             )}
           </div>
@@ -310,7 +329,10 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                       <button
                         type="button"
                         className="c-bulk-consult__preview-btn"
-                        onClick={() => setPreviewGroup(g)}
+                        onClick={() => {
+                          setPreviewGroup(g);
+                          setPreviewPage(1);
+                        }}
                       >
                         전시 차량 보기
                       </button>
