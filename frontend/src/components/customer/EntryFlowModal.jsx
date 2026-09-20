@@ -8,6 +8,7 @@ import { isLoggedIn } from '../../api/auth';
 import { getMyProfile } from '../../api/identity';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
+import { toAssetUrl } from '../../api/expo';
 import './Modal.css';
 import './EntryFlowModal.css';
 
@@ -23,6 +24,30 @@ const PAY_METHOD_CODE = {
 };
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
+
+const IconCalendar = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
+  </svg>
+);
+const IconPin = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" />
+    <circle cx="12" cy="9.5" r="2.5" />
+  </svg>
+);
+const IconDoc = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+    <path d="M9 12h6M9 16h6" strokeLinecap="round" />
+  </svg>
+);
+
+// 관리자가 아직 행사 소개 문구를 입력하지 않은 박람회용 기본 문구.
+// ExpoDetail.jsx의 "개요" 탭에 있는 문구와 동일한 톤으로 맞춤(제목만 다르게 끼워넣음).
+const defaultExpoDescription = (title) =>
+  `${title}은(는) 다양한 브랜드와 참가업체가 한자리에 모이는 박람회입니다. 풍성한 부스와 프로그램을 통해 새로운 비즈니스 기회를 만나보세요.`;
 
 function nowLabel() {
   const d = new Date();
@@ -335,21 +360,26 @@ function EntryFlowModal({ expo, onClose }) {
 
   return (
     <div className="c-modal__backdrop" onClick={onClose}>
-      <div className="c-modal ef-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
-          ✕
-        </button>
+    <div
+      className={`c-modal ef-modal ${step === 'choose' ? 'ef-modal--choose' : ''}`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
+        ✕
+      </button>
 
-        {step === 'choose' && (
-          <ChooseMethod
-            hasExisting={existingTickets.length > 0}
-            loggedIn={isLoggedIn()}
-            onQrExisting={showExistingQr}
-            onApply={() => setStep('select-date')}
-            onGuest={() => setStep('guest-info')}
-            onBrowse={goDetail}
-          />
-        )}
+      {step === 'choose' && (
+        <ChooseMethod
+          expo={expo}
+          hasExisting={existingTickets.length > 0}
+          loggedIn={isLoggedIn()}
+          onQrExisting={showExistingQr}
+          onApply={() => setStep('select-date')}
+          onGuest={() => setStep('guest-info')}
+          onBrowse={goDetail}
+          onCancel={onClose}
+        />
+      )}
 
         {step === 'login-required' && (
           <LoginRequired onLogin={goLogin} onGuest={() => setStep('guest-info')} />
@@ -421,66 +451,138 @@ function EntryFlowModal({ expo, onClose }) {
   );
 }
 
-function ChooseMethod({ hasExisting, loggedIn, onQrExisting, onApply, onGuest, onBrowse }) {
+function ChooseMethod({ expo, hasExisting, loggedIn, onQrExisting, onApply, onGuest, onBrowse, onCancel }) {
+  const [method, setMethod] = useState(hasExisting ? 'existing' : 'apply');
+
+  const browseLabel = loggedIn ? '박람회 정보만 둘러보기' : '로그인 없이 둘러보기';
+  const browseDesc = loggedIn
+    ? '지금은 입장권을 발급하지 않고, 박람회 정보만 확인합니다.'
+    : '로그인 없이도 박람회 정보를 확인할 수 있습니다.';
+
+  const handleConfirm = () => {
+    if (method === 'existing') onQrExisting();
+    else if (method === 'apply') onApply();
+    else if (loggedIn) onBrowse();
+    else onGuest();
+  };
+
   return (
-    <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" strokeLinecap="round" />
-        </svg>
+    <div className="ef-choose">
+      <div className="ef-choose__summary">
+        <div
+          className="ef-choose__banner"
+          style={expo.bannerImageUrl ? { backgroundImage: `url(${toAssetUrl(expo.bannerImageUrl)})` } : undefined}
+        >
+          <span className={`ef-choose__badge ${expo.phase === '진행중' ? 'is-live' : ''}`}>{expo.phase}</span>
+          <h3 className="ef-choose__title">{expo.title}</h3>
+        </div>
+
+        <div className="ef-choose__info">
+          <div className="ef-choose__info-row">
+            <IconCalendar />
+            <div>
+              <p className="ef-choose__info-label">행사 기간</p>
+              <p className="ef-choose__info-value">
+                {fmtDate(expo.startsAt)} - {fmtDate(expo.endsAt)}
+              </p>
+            </div>
+          </div>
+          <div className="ef-choose__info-row">
+            <IconPin />
+            <div>
+              <p className="ef-choose__info-label">행사 장소</p>
+              <p className="ef-choose__info-value">{expo.venue}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="ef-choose__divider" />
+
+        <div className="ef-choose__desc">
+          <div className="ef-choose__desc-title">
+            <IconDoc />
+            <h4>행사 소개</h4>
+          </div>
+          <p>{expo.description?.trim() ? expo.description : defaultExpoDescription(expo.title)}</p>
+        </div>
       </div>
-      <h2>박람회 입장 방법을 선택해주세요</h2>
-      <p className="c-modal__desc">
-        {hasExisting
-          ? '이미 발급받은 QR이 있어요. 바로 입장하거나 새로 신청할 수 있습니다.'
-          : '방문 날짜를 고르면 QR 입장권이 발급됩니다.'}
-      </p>
-      <div className="ef-options">
-        {hasExisting && (
-          <button type="button" className="ef-option" onClick={onQrExisting}>
-            <span className="ef-option__icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
+
+      <div className="ef-choose__panel">
+        <h2 className="ef-left">입장 방법을 선택해주세요</h2>
+        <p className="c-modal__desc ef-left">선택한 방법에 따라 입장권이 발급됩니다.</p>
+
+        <div className="ef-choose__options">
+          {hasExisting && (
+            <label className={`ef-choose__radio ${method === 'existing' ? 'is-selected' : ''}`}>
+              <input
+                type="radio"
+                name="entry-method"
+                checked={method === 'existing'}
+                onChange={() => setMethod('existing')}
+              />
+              <span className="ef-choose__radio-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="3" y="3" width="7" height="7" rx="1" />
+                  <rect x="14" y="3" width="7" height="7" rx="1" />
+                  <rect x="3" y="14" width="7" height="7" rx="1" />
+                </svg>
+              </span>
+              <span className="ef-choose__radio-body">
+                <strong>QR 사전 입장</strong>
+                <span>이미 발급받은 입장권으로 바로 입장합니다.</span>
+              </span>
+            </label>
+          )}
+
+          <label className={`ef-choose__radio ${method === 'apply' ? 'is-selected' : ''}`}>
+            <input type="radio" name="entry-method" checked={method === 'apply'} onChange={() => setMethod('apply')} />
+            <span className="ef-choose__radio-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="3" y="4" width="18" height="17" rx="2" />
+                <path d="M3 9h18M8 3v3M16 3v3" strokeLinecap="round" />
               </svg>
             </span>
-            <span className="ef-option__body">
-              <strong>QR 사전 입장</strong>
-              <span>이미 발급받은 입장권으로 바로 입장</span>
+            <span className="ef-choose__radio-body">
+              <strong>방문 날짜 선택하고 입장권 받기</strong>
+              <span>방문할 날짜를 선택하면 즉시 QR 입장권이 발급됩니다.</span>
             </span>
-            <span className="ef-option__chevron" />
-          </button>
-        )}
-        <button type="button" className="ef-option" onClick={onApply}>
-          <span className="ef-option__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="17" rx="2" />
-              <path d="M3 9h18M8 3v3M16 3v3" strokeLinecap="round" />
-            </svg>
-          </span>
-          <span className="ef-option__body">
-            <strong>방문 날짜 선택하고 입장권 받기</strong>
-            <span>박람회 시작 전이면 무료, 시작 이후는 결제 후 QR 발급</span>
-          </span>
-          <span className="ef-option__chevron" />
+          </label>
+
+          <label className={`ef-choose__radio ${method === 'browse' ? 'is-selected' : ''}`}>
+            <input type="radio" name="entry-method" checked={method === 'browse'} onChange={() => setMethod('browse')} />
+            <span className="ef-choose__radio-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </span>
+            <span className="ef-choose__radio-body">
+              <strong>{browseLabel}</strong>
+              <span>{browseDesc}</span>
+            </span>
+          </label>
+        </div>
+
+        <button type="button" className="c-modal__primary" onClick={handleConfirm}>
+          선택한 방법으로 진행하기
         </button>
-        <button type="button" className="ef-option" onClick={loggedIn ? onBrowse : onGuest}>
-          <span className="ef-option__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </span>
-          <span className="ef-option__body">
-            <strong>{loggedIn ? '박람회 정보 둘러보기' : '로그인 없이 둘러보기'}</strong>
-            <span>입장권 신청 없이 박람회 정보만 확인</span>
-          </span>
-          <span className="ef-option__chevron" />
+        <button type="button" className="c-modal__secondary" onClick={onCancel}>
+          취소
         </button>
+
+        <div className="ef-choose__notice">
+          <p className="ef-choose__notice-title">
+            <span className="ef-choose__notice-icon">i</span>
+            안내사항
+          </p>
+          <ul>
+            <li>선택한 방법으로 입장권이 발급되며, 현장에서 QR 코드로 입장합니다.</li>
+            <li>입장권은 1인 1매 기준으로 발급됩니다.</li>
+            <li>행사 일정 및 운영 시간은 주최 측 사정에 따라 변경될 수 있습니다.</li>
+          </ul>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 

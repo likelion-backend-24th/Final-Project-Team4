@@ -26,12 +26,13 @@ function AdminExpoCreate() {
   const [form, setForm] = useState({
     title: '2026 서울 모빌리티 엑스포',
     venue: 'COEX Hall A',
+    // 행사 소개 문구(선택) - 고객 화면(박람회 상세 '개요' 탭, 입장 방법 선택 모달)에 노출됨.
+    // 비워두면 프론트에서 제목 기반 기본 문구로 대체해서 보여줌.
+    description: '',
     applyStartsAt: isoLocal(-5),
     applyEndsAt: isoLocal(10),
     startsAt: isoLocal(30),
     endsAt: isoLocal(33),
-    // 박람회 시작 이후(사전 예약 마감 후) 방문객이 내는 당일 입장료. 0이면 당일에도 무료.
-    // Reservation 서비스가 이 값을 조회해 당일 유료 입장권 결제 금액으로 사용함(US17/US18).
     admissionFee: 20000,
   });
   const [booths, setBooths] = useState([]);
@@ -149,6 +150,7 @@ function AdminExpoCreate() {
       const payload = {
         title: form.title,
         venue: form.venue,
+        description: form.description?.trim() ? form.description.trim() : null,
         startsAt: form.startsAt,
         endsAt: form.endsAt,
         applyStartsAt: form.applyStartsAt,
@@ -215,6 +217,19 @@ function AdminExpoCreate() {
           </div>
           <p className="admin-expo-create__hint">규칙: 신청 시작 &lt; 신청 마감 ≤ 개최 시작 &lt; 개최 종료</p>
           <p className="admin-expo-create__hint">당일 입장료: 무료 QR 입장권이 없는 방문객이 개최 당일 결제하는 입장료. 0이면 당일에도 무료.</p>
+
+          <div className="admin-expo-create__desc-field">
+            <label>
+              행사 소개 (선택, 최대 1000자)
+              <textarea
+                rows={3}
+                maxLength={1000}
+                placeholder="비워두면 고객 화면에 기본 소개 문구가 대신 표시됩니다."
+                value={form.description}
+                onChange={setField('description')}
+              />
+            </label>
+          </div>
 
           <div className="admin-expo-create__banner-field">
             <label>

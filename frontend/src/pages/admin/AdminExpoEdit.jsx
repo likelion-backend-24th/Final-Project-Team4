@@ -33,6 +33,7 @@ function AdminExpoEdit() {
         setForm({
           title: res.title,
           venue: res.venue,
+          description: res.description ?? '',
           applyStartsAt: toInputValue(res.applyStartsAt),
           applyEndsAt: toInputValue(res.applyEndsAt),
           startsAt: toInputValue(res.startsAt),
@@ -67,7 +68,11 @@ function AdminExpoEdit() {
 
     setSubmitting(true);
     try {
-      await updateExpo(expoId, { ...form, admissionFee: Number(form.admissionFee) });
+      await updateExpo(expoId, {
+        ...form,
+        admissionFee: Number(form.admissionFee),
+        description: form.description?.trim() ? form.description.trim() : null,
+      });
       if (bannerFile) {
         await uploadExpoBannerImage(expoId, bannerFile);
       }
@@ -189,6 +194,19 @@ function AdminExpoEdit() {
           {hasApplications && (
             <p className="admin-expo-create__hint">부스 신청이 있어 일정 필드는 수정할 수 없습니다.</p>
           )}
+
+          <div className="admin-expo-create__desc-field">
+            <label>
+              행사 소개 (선택, 최대 1000자)
+              <textarea
+                rows={3}
+                maxLength={1000}
+                placeholder="비워두면 고객 화면에 기본 소개 문구가 대신 표시됩니다."
+                value={form.description}
+                onChange={setField('description')}
+              />
+            </label>
+          </div>
 
           <div className="admin-expo-create__banner-field">
             <label>

@@ -244,14 +244,15 @@ function ExpoDetail() {
             </section>
           )}
 
-          {tab === '개요' && (
+           {tab === '개요' && (
             <>
             <section className="expo-detail__booths">
               <h2>행사 소개</h2>
               <div className="expo-detail__intro-layout">
                 <p className="expo-detail__intro-text">
-                  {detail.title}은(는) 다양한 브랜드와 참가업체가 한자리에 모이는 박람회입니다.
-                  풍성한 부스와 프로그램을 통해 새로운 비즈니스 기회를 만들어보세요.
+                  {summary?.description?.trim()
+                    ? summary.description
+                    : `${detail.title}은(는) 다양한 브랜드와 참가업체가 한자리에 모이는 박람회입니다. 풍성한 부스와 프로그램을 통해 새로운 비즈니스 기회를 만들어보세요.`}
                 </p>
                 <div className="expo-detail__intro-visual" aria-hidden="true">
                   <span>Mobility for a Better Tomorrow</span>

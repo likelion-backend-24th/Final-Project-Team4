@@ -88,7 +88,8 @@ public class ExpoService {
                 request.getEndsAt(),
                 request.getApplyStartsAt(),
                 request.getApplyEndsAt(),
-                request.getAdmissionFee()
+                request.getAdmissionFee(),
+                request.getDescription()
         );
         expoRepository.save(expo);
 
@@ -180,7 +181,7 @@ public class ExpoService {
         }
 
         expo.update(request.getTitle(), request.getVenue(), request.getStartsAt(), request.getEndsAt(),
-                request.getApplyStartsAt(), request.getApplyEndsAt(), request.getAdmissionFee());
+                request.getApplyStartsAt(), request.getApplyEndsAt(), request.getAdmissionFee(), request.getDescription());
 
         return new ExpoResponse(expo.getId(), expo.getStatus(), null);
     }

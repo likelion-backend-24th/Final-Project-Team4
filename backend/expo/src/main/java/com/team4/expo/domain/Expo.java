@@ -19,6 +19,10 @@ public class Expo {
     private String title;
     private String venue;
 
+    // 행사 소개 문구(선택). 관리자가 입력하며, 고객 화면(박람회 상세/입장 방법 선택 모달)의 소개 텍스트로 쓰임.
+    // 비어 있으면 프론트에서 제목 기반 기본 문구로 대체해서 보여줌.
+    private String description;
+
     // 박람회 실제 행사 기간
     private LocalDateTime startsAt;
     private LocalDateTime endsAt;
@@ -60,6 +64,13 @@ public class Expo {
         this(title, venue, startsAt, endsAt, applyStartsAt, applyEndsAt, 0L);
     }
 
+    // 등록 시점에 소개 문구까지 함께 받는 오버로드 (registerExpo 전용, 기존 생성자들은 하위 호환을 위해 그대로 둠).
+    public Expo(String title, String venue, LocalDateTime startsAt, LocalDateTime endsAt,
+                LocalDateTime applyStartsAt, LocalDateTime applyEndsAt, Long admissionFee, String description) {
+        this(title, venue, startsAt, endsAt, applyStartsAt, applyEndsAt, admissionFee);
+        this.description = description;
+    }
+
     // 관리자가 박람회를 공개할 때 호출 (ExpoService.openExpo). DRAFT -> OPEN.
     public void open() {
         this.status = ExpoStatus.OPEN;
@@ -74,7 +85,7 @@ public class Expo {
 
     // 관리자가 박람회 정보를 수정
     public void update(String title, String venue, LocalDateTime startsAt, LocalDateTime endsAt,
-                        LocalDateTime applyStartsAt, LocalDateTime applyEndsAt, Long admissionFee) {
+                       LocalDateTime applyStartsAt, LocalDateTime applyEndsAt, Long admissionFee, String description) {
         this.title = title;
         this.venue = venue;
         this.startsAt = startsAt;
@@ -82,6 +93,7 @@ public class Expo {
         this.applyStartsAt = applyStartsAt;
         this.applyEndsAt = applyEndsAt;
         this.admissionFee = admissionFee;
+        this.description = description;
         this.updatedAt = LocalDateTime.now();
     }
 
