@@ -127,6 +127,36 @@ class ConsultationSlotCapacityAcceptanceTest {
     }
 
     @Test
+    @DisplayName("허용된 시간대(10:00~16:00, 30분 단위) 밖의 시각은 400 - 14:01로 정원을 우회할 수 없다")
+    void 허용되지_않은_시각_400() throws Exception {
+        Booth booth = assignedBooth();
+
+        apply(9001, booth.getId(), "14:01:00").andExpect(status().isBadRequest());
+        apply(9001, booth.getId(), "12:00:00").andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("이미 지난 날짜로는 신청할 수 없다(400)")
+    void 지난_날짜_400() throws Exception {
+        Booth booth = assignedBooth();
+
+        mockMvc.perform(post("/api/customer/consultations").with(as(9001, "USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json(Map.ofEntries(
+                                Map.entry("boothIds", List.of(booth.getId())),
+                                Map.entry("customerName", "홍길동"),
+                                Map.entry("customerPhone", "010-1234-5678"),
+                                Map.entry("customerEmail", "hong@example.com"),
+                                Map.entry("wantsPurchase", true),
+                                Map.entry("wantsTestDrive", false),
+                                Map.entry("hasDriverLicense", true),
+                                Map.entry("preferredDate", LocalDate.now().minusDays(1).toString()),
+                                Map.entry("preferredTime", "14:00:00"),
+                                Map.entry("leadConsent", true)))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("슬롯 정원을 2건으로 지정하면 2건까지 받고 3번째는 409")
     void 슬롯정원_2건() throws Exception {
         Booth booth = assignedBooth();
