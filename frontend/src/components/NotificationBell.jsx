@@ -74,6 +74,16 @@ function NotificationBell({ api, targetMap }) {
     navigate(targetMap[notification.type] ?? '/');
   };
 
+  // 안 읽은 알림 모두 읽음 처리
+  const handleMarkAllRead = () => {
+    api.markAllRead()
+      .then(() => {
+        setUnreadCount(0);
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      })
+      .catch(() => {});
+  };
+
   // 읽은 알림 삭제. 목록 클릭(읽음 처리+이동)과 이벤트가 겹치지 않게 버블링을 막는다.
   const handleDelete = (e, notificationId) => {
     e.stopPropagation();
@@ -96,7 +106,11 @@ function NotificationBell({ api, targetMap }) {
         <div className="app-header__notifications-panel">
           <div className="app-header__notifications-panel-head">
             <span>알림</span>
-            {unreadCount > 0 && <span className="app-header__notifications-count">{unreadCount}개 안 읽음</span>}
+            {unreadCount > 0 && (
+              <button type="button" className="app-header__notifications-read-all" onClick={handleMarkAllRead}>
+                모두 읽음 ({unreadCount})
+              </button>
+            )}
           </div>
           {notifications.length === 0 ? (
             <p className="app-header__notifications-empty">아직 알림이 없습니다.</p>

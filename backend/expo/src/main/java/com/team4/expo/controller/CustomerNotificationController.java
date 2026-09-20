@@ -62,6 +62,12 @@ public class CustomerNotificationController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @PostMapping("/read-all")
+    public ResponseEntity<ApiResponse<Void>> markAllRead(@AuthenticationPrincipal GatewayUser customer) {
+        notificationService.markAllRead(customer.getId());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
     // 읽은 알림 삭제 (안 읽은 알림은 먼저 읽어야 지울 수 있음)
     @DeleteMapping("/{notificationId}")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(

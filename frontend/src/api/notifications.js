@@ -14,6 +14,9 @@ const createNotificationApi = (basePath) => ({
   // POST {basePath}/{id}/read - 알림 읽음 처리
   markRead: (notificationId) => apiClient.post(`${basePath}/${notificationId}/read`).then((res) => res.data.data),
 
+  // POST {basePath}/read-all - 안 읽은 알림 모두 읽음 처리
+  markAllRead: () => apiClient.post(`${basePath}/read-all`).then((res) => res.data.data),
+
   // DELETE {basePath}/{id} - 읽은 알림 삭제 (안 읽은 알림은 서버에서 거부됨)
   deleteNotification: (notificationId) => apiClient.delete(`${basePath}/${notificationId}`).then((res) => res.data.data),
 
