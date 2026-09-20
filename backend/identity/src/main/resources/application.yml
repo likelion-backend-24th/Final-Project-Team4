@@ -123,3 +123,8 @@ springdoc:
 identity:
   base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
   service-token: ${SVC_TOKEN_EXPO:local_dev_expo_token}
+
+# 회원 탈퇴 시 보유 입장권 QR 무효화 요청용 - Identity -> Reservation
+reservation:
+  base-url: ${RESERVATION_BASE_URL:http://localhost:8084}
+  service-token: ${SVC_TOKEN_IDENTITY:local_dev_identity_token}

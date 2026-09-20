@@ -3,13 +3,7 @@ package com.team4.reservation.controller;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ApiResponse;
-import com.team4.reservation.dto.AdmissionContextResponse;
-import com.team4.reservation.dto.IssueAdmissionTicketRequest;
-import com.team4.reservation.dto.ScheduleChangeResponse;
-import com.team4.reservation.dto.TicketCancelResponse;
-import com.team4.reservation.dto.TicketExistsResponse;
-import com.team4.reservation.dto.TicketResolveResponse;
-import com.team4.reservation.dto.VisitApplicationResponse;
+import com.team4.reservation.dto.*;
 import com.team4.reservation.service.TicketService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -37,6 +31,9 @@ public class ReservationInternalController {
 
     @Value("${service.token.expo}")
     private String expoServiceToken;
+
+    @Value("${service.token.identity}")
+    private String identityServiceToken;
 
     public ReservationInternalController(TicketService ticketService) {
         this.ticketService = ticketService;
@@ -121,6 +118,20 @@ public class ReservationInternalController {
         return ResponseEntity.ok(ApiResponse.success(ticketService.resolveByQrToken(qrToken)));
     }
 
+    // Identity -> Reservation. 회원 탈퇴 시 호출 — 그 고객이 보유한 모든 미사용 입장권(QR)을 강제 무효화(CANCELLED).
+    // 환불(결제 취소)과는 별개 - 고객은 탈퇴와 별도로 직접 환불을 신청해야 하며, 여기서는 QR의 입장 효력만 끊는다.
+    @PostMapping("/customers/{customerId}/tickets/invalidate-all")
+    public ResponseEntity<ApiResponse<TicketInvalidateAllResponse>> invalidateAllTickets(
+            @RequestHeader("Authorization") String authorization,
+            @PathVariable Long customerId) {
+
+        requireIdentityService(authorization);
+
+        int invalidatedCount = ticketService.invalidateAllTickets(customerId);
+        return ResponseEntity.ok(ApiResponse.success(new TicketInvalidateAllResponse(invalidatedCount)));
+    }
+
+
     private void requirePaymentService(String authorization) {
         String expected = "Bearer " + paymentServiceToken;
         if (authorization == null || !authorization.equals(expected)) {
@@ -132,6 +143,13 @@ public class ReservationInternalController {
         String expected = "Bearer " + expoServiceToken;
         if (authorization == null || !authorization.equals(expected)) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
+        }
+    }
+
+    private void requireIdentityService(String authorization){
+        String expected = "Bearer " + identityServiceToken;
+        if (authorization == null || !authorization.equals(expected)) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED,"내부 서비스 인증에 실패했습니다.");
         }
     }
 }

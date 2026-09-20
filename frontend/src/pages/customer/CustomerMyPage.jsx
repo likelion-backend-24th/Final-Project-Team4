@@ -178,6 +178,8 @@ function CustomerMyPage() {
   };
 
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
+  // 회원 탈퇴 모달 "미사용 유료 입장권이 있습니다" 안내 노출 조건 - 환불 신청이 가능한 티켓과 같은 기준.
+  const hasUnusedPaidTicket = allTickets.some((t) => isTicketRefundable(t));
   const tickets =
     ticketFilter === '전체' ? allTickets : allTickets.filter((t) => t._status === ticketFilter);
    const upcomingCount = allTickets.filter((t) => t._status === '사용예정').length;
@@ -227,6 +229,7 @@ function CustomerMyPage() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState(null);
+  const [withdrawAgreed, setWithdrawAgreed] = useState(false);
 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState(null);
@@ -271,6 +274,11 @@ function CustomerMyPage() {
     navigate('/login');
   };
 
+  // 탈퇴 모달의 "입장권 확인하기" - 모달을 닫고 나의 입장권 탭으로 바로 이동.
+  const goToTicketsFromWithdrawModal = () => {
+    setShowWithdrawModal(false);
+    setTab('tickets');
+  };
   // 삭제로 마지막 페이지가 비어도 화면이 비지 않게 현재 페이지를 총 페이지 수로 제한한다.
   const reviewTotalPages = Math.max(1, Math.ceil(myReviews.length / REVIEWS_PER_PAGE));
   const currentReviewPage = Math.min(reviewPage, reviewTotalPages);
@@ -348,6 +356,7 @@ function CustomerMyPage() {
                 className="c-mypage__withdraw"
                 onClick={() => {
                   setWithdrawError(null);
+                  setShowWithdrawModal(true);
                   setShowWithdrawModal(true);
                 }}
               >
@@ -720,7 +729,7 @@ function CustomerMyPage() {
           className="c-modal__backdrop"
           onClick={() => !withdrawing && setShowWithdrawModal(false)}
         >
-          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="c-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="c-modal__close"
@@ -730,31 +739,111 @@ function CustomerMyPage() {
             >
               ✕
             </button>
-            <h2>회원 탈퇴</h2>
-            <p className="c-modal__desc">
-              탈퇴 시 모든 서비스 이용이 제한되며,
-              <br />
-              가입하신 이메일로는 다시 가입할 수 없습니다.
-              <br />
-              정말 탈퇴하시겠습니까?
-            </p>
-            {withdrawError && <p className="c-modal__error">{withdrawError}</p>}
-            <button
-              type="button"
-              className="c-modal__primary c-modal__primary--danger"
-              onClick={handleWithdraw}
-              disabled={withdrawing}
-            >
-              {withdrawing ? '처리 중...' : '탈퇴하기'}
-            </button>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              onClick={() => setShowWithdrawModal(false)}
-              disabled={withdrawing}
-            >
-              취소
-            </button>
+
+            <div className="c-withdraw-modal__header">
+              <span className="c-withdraw-modal__icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" strokeLinecap="round" />
+                </svg>
+              </span>
+              <div>
+                <h2>회원 탈퇴 안내</h2>
+                <p className="c-withdraw-modal__lead">
+                  회원 탈퇴 전 아래 내용을 꼭 확인해주세요.
+                  <br />
+                  탈퇴 후에는 계정 복구가 불가능하며, 일부 정보는 법령에 따라 보관될 수 있습니다.
+                </p>
+              </div>
+            </div>
+
+            {hasUnusedPaidTicket && (
+              <div className="c-withdraw-modal__box c-withdraw-modal__box--info">
+                <span className="c-withdraw-modal__box-icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="3" y="7" width="18" height="10" rx="2" />
+                    <path d="M9 7v10M15 7v10" strokeDasharray="2 2" />
+                  </svg>
+                </span>
+                <div className="c-withdraw-modal__box-body">
+                  <strong>미사용 유료 입장권이 있습니다.</strong>
+                  <p>
+                    보유 중인 유료 입장권이 있어요. 탈퇴 시 해당 입장권은 자동으로 환불되지 않습니다.
+                    <br />
+                    입장권을 사용하거나, 아래의 환불 절차를 먼저 진행한 후 탈퇴해주세요.
+                  </p>
+                </div>
+                <button type="button" className="c-withdraw-modal__link-btn" onClick={goToTicketsFromWithdrawModal}>
+                  입장권 확인하기 ›
+                </button>
+              </div>
+            )}
+
+            <div className="c-withdraw-modal__box">
+              <span className="c-withdraw-modal__box-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                  <path d="M9 12h6M9 16h6" strokeLinecap="round" />
+                </svg>
+              </span>
+              <div className="c-withdraw-modal__box-body">
+                <strong>환불 및 사용 안내</strong>
+                <ul>
+                  <li>유료 입장권은 탈퇴와 별도로 직접 환불 신청이 필요합니다.</li>
+                  <li>환불은 결제 수단 및 정책에 따라 처리되며, 자세한 내용은 고객센터를 통해 확인해주세요.</li>
+                  <li>탈퇴 후에는 입장권 사용이 불가능합니다.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="c-withdraw-modal__box c-withdraw-modal__box--danger">
+              <span className="c-withdraw-modal__box-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="4" y="4" width="6" height="6" />
+                  <rect x="14" y="4" width="6" height="6" />
+                  <rect x="4" y="14" width="6" height="6" />
+                  <path d="M14 14h3v3h-3zM20 14v3M17 20h3" />
+                </svg>
+              </span>
+              <div className="c-withdraw-modal__box-body">
+                <strong>보유한 QR의 효력이 즉시 만료됩니다.</strong>
+                <ul>
+                  <li>탈퇴 시, 발급받은 모든 입장권 QR 코드가 즉시 비활성화됩니다.</li>
+                  <li>탈퇴 후에는 해당 QR로 행사장 입장이 불가능합니다.</li>
+                </ul>
+              </div>
+            </div>
+
+            <label className="c-withdraw-modal__agree">
+              <input
+                type="checkbox"
+                checked={withdrawAgreed}
+                onChange={(e) => setWithdrawAgreed(e.target.checked)}
+                disabled={withdrawing}
+              />
+              위 내용을 모두 확인하였으며, 이에 동의합니다.
+            </label>
+
+            {withdrawError && <p className="c-modal__error" style={{ margin: '0 0 4px' }}>{withdrawError}</p>}
+
+            <div className="c-withdraw-modal__actions">
+              <button
+                type="button"
+                className="c-withdraw-modal__cancel"
+                onClick={() => setShowWithdrawModal(false)}
+                disabled={withdrawing}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className="c-withdraw-modal__confirm"
+                onClick={handleWithdraw}
+                disabled={withdrawing || !withdrawAgreed}
+              >
+                {withdrawing ? '처리 중...' : '회원 탈퇴하기'}
+              </button>
+            </div>
           </div>
         </div>
       )}
