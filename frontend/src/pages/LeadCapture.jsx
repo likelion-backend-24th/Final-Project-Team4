@@ -35,6 +35,10 @@ function LeadCapture() {
 
   const [leads, setLeads] = useState([]);
   const [leadListOpen, setLeadListOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [dateFilter, setDateFilter] = useState(''); // 'YYYY-MM-DD' | ''
+  const [dateType, setDateType] = useState('visit'); // 'visit' 방문일 | 'scan' 스캔일
+  const [kindFilter, setKindFilter] = useState(''); // '' | 'consultation' | 'walkin'
   const [selectedId, setSelectedId] = useState(null);
   const [note, setNote] = useState('');
   const [draft, setDraft] = useState('');
@@ -191,6 +195,16 @@ function LeadCapture() {
 
   const selected = leads.find((l) => l.leadId === selectedId) ?? null;
 
+  // 리드는 전량 내려받아 화면에서 거름 - 부스당 수천 건까지는 충분. ponytail: 그 이상이면 서버 페이징+쿼리 파라미터로.
+  const q = searchText.trim().toLowerCase();
+  const filteredLeads = leads.filter(
+    (l) =>
+      (!q || l.customerName?.toLowerCase().includes(q) || l.customerEmail?.toLowerCase().includes(q)) &&
+      (!dateFilter || (dateType === 'visit' ? l.visitDate : l.createdAt?.slice(0, 10)) === dateFilter) &&
+      (!kindFilter || (kindFilter === 'consultation') === !!l.consultationId),
+  );
+  const hasFilter = searchText || dateFilter || kindFilter;
+
   const openLead = (lead) => {
     setSelectedId(lead.leadId);
     setNote(lead.interestNote || '');
@@ -312,19 +326,55 @@ function LeadCapture() {
 
           <section className="lead-list">
             <button type="button" className="lead-list__toggle" onClick={() => setLeadListOpen((v) => !v)}>
-              <span className="lead-list__head">리드 목록 <span>{leads.length}</span>건</span>
+              <span className="lead-list__head">
+                리드 목록 <span>{filteredLeads.length}</span>
+                {filteredLeads.length !== leads.length && ` / ${leads.length}`}건
+              </span>
               <span className="lead-list__chevron">{leadListOpen ? '▲' : '▼'}</span>
             </button>
             {leadListOpen && (
               <>
+                <div className="lead-filter">
+                  <input
+                    type="search"
+                    className="lead-email-input"
+                    placeholder="고객 이름 또는 이메일 검색"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                  />
+                  <select className="lead-email-input lead-filter__select" value={dateType} onChange={(e) => setDateType(e.target.value)}>
+                    <option value="visit">방문일</option>
+                    <option value="scan">스캔일</option>
+                  </select>
+                  <input
+                    type="date"
+                    className="lead-email-input lead-filter__select"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                  />
+                  <select className="lead-email-input lead-filter__select" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)}>
+                    <option value="">전체 구분</option>
+                    <option value="consultation">상담 신청 고객</option>
+                    <option value="walkin">워크인</option>
+                  </select>
+                  {hasFilter && (
+                    <button type="button" className="lead-btn" onClick={() => { setSearchText(''); setDateFilter(''); setKindFilter(''); }}>
+                      초기화
+                    </button>
+                  )}
+                </div>
                 {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
-                {leads.map((lead) => (
+                {leads.length > 0 && filteredLeads.length === 0 && <p className="lead-empty">조건에 맞는 리드가 없습니다.</p>}
+                {filteredLeads.map((lead) => (
                 <div key={lead.leadId} className="lead-row" onClick={() => openLead(lead)}>
                   <div>
                     <span className="lead-row__name">{lead.customerName}</span>
                     <span className="lead-row__email">{lead.customerEmail}</span>
                   </div>
-                  <span className="lead-row__date">{fmtDateTime(lead.createdAt)}</span>
+                  <span className="lead-row__date">
+                    <span>방문일:</span><span>{fmtDate(lead.visitDate)}</span>
+                    <span>스캔일:</span><span>{fmtDateTime(lead.createdAt)}</span>
+                  </span>
                   <span className={`lead-badge lead-badge--${lead.status.toLowerCase()}`}>
                     {STATUS_LABEL[lead.status]}
                   </span>
