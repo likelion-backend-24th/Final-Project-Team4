@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerExpo, openExpo, uploadExpoBannerImage } from '../../api/expo';
+import { registerExpo, openExpo, uploadExpoBannerImage, draftExpoDescription } from '../../api/expo';
 import { getBoothHall, isFoodBooth } from '../../utils/boothType';
 import './AdminExpoCreate.css';
 
@@ -41,17 +41,72 @@ function AdminExpoCreate() {
   const bannerInputRef = useRef(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
+  const [bannerError, setBannerError] = useState(null);
+  const [bannerDragActive, setBannerDragActive] = useState(false);
 
-  const handleBannerFileChange = (e) => {
-    const file = e.target.files?.[0] ?? null;
+  const BANNER_ACCEPTED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  const BANNER_MAX_SIZE = 5 * 1024 * 1024;
+
+  // 드래그&드롭/버튼 선택 공용 - 실제 MIME 타입·용량까지 검증(드래그&드롭은 accept 속성이 안 먹힘)
+  const applyBannerFile = (file) => {
+    if (!file) return;
+    if (!BANNER_ACCEPTED_TYPES.includes(file.type)) {
+      setBannerError('PNG, JPG, JPEG, WEBP 형식의 이미지만 업로드할 수 있습니다.');
+      return;
+    }
+    if (file.size > BANNER_MAX_SIZE) {
+      setBannerError('파일 용량은 5MB 이하만 업로드할 수 있습니다.');
+      return;
+    }
+    setBannerError(null);
     if (bannerPreview) URL.revokeObjectURL(bannerPreview);
     setBannerFile(file);
-    setBannerPreview(file ? URL.createObjectURL(file) : null);
+    setBannerPreview(URL.createObjectURL(file));
+  };
+
+  const handleBannerFileChange = (e) => {
+    applyBannerFile(e.target.files?.[0] ?? null);
+    e.target.value = ''; // 같은 파일을 다시 골라도 onChange가 발생하도록 초기화
+  };
+
+  const handleBannerDrop = (e) => {
+    e.preventDefault();
+    setBannerDragActive(false);
+    applyBannerFile(e.dataTransfer.files?.[0] ?? null);
+  };
+
+  const clearBannerFile = () => {
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerFile(null);
+    setBannerPreview(null);
+    setBannerError(null);
   };
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [genError, setGenError] = useState(null);
+
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState(null);
+
+  const handleAiDraft = () => {
+    if (!form.title.trim()) {
+      setDraftError('박람회명을 먼저 입력해주세요.');
+      return;
+    }
+    setDrafting(true);
+    setDraftError(null);
+    draftExpoDescription({ title: form.title.trim(), venue: form.venue.trim() || null })
+      .then((res) => {
+        if (!res.draft) {
+          setDraftError('AI 초안 생성에 실패했습니다. 직접 작성해주세요.');
+          return;
+        }
+        setForm((f) => ({ ...f, description: res.draft }));
+      })
+      .catch((err) => setDraftError(err.response?.data?.error?.message ?? 'AI 초안 생성 중 오류가 발생했습니다.'))
+      .finally(() => setDrafting(false));
+  };
 
   // 부스 일괄 생성 입력값
   const [gen, setGen] = useState({ prefix: 'A-', start: 101, count: 10, type: BOOTH_TYPES[0], fee: 3000000 });
@@ -219,31 +274,94 @@ function AdminExpoCreate() {
           <p className="admin-expo-create__hint">당일 입장료: 무료 QR 입장권이 없는 방문객이 개최 당일 결제하는 입장료. 0이면 당일에도 무료.</p>
 
           <div className="admin-expo-create__desc-field">
-            <label>
-              행사 소개 (선택, 최대 1000자)
-              <textarea
-                rows={3}
-                maxLength={1000}
-                placeholder="비워두면 고객 화면에 기본 소개 문구가 대신 표시됩니다."
-                value={form.description}
-                onChange={setField('description')}
-              />
-            </label>
+            <div className="admin-expo-create__desc-label-row">
+              <label htmlFor="expo-description">행사 소개 (선택, 최대 1000자)</label>
+              <button
+                type="button"
+                className="admin-expo-create__ai-btn"
+                onClick={handleAiDraft}
+                disabled={drafting}
+              >
+                {drafting ? 'AI 작성 중...' : 'AI로 소개 문구 생성'}
+              </button>
+            </div>
+            <textarea
+              id="expo-description"
+              rows={3}
+              maxLength={1000}
+              placeholder="비워두면 고객 화면에 기본 소개 문구가 대신 표시됩니다."
+              value={form.description}
+              onChange={setField('description')}
+            />
+            {draftError && <p className="admin-expo-create__ai-error">{draftError}</p>}
+            <p className="admin-expo-create__hint">AI 초안은 박람회명(+장소)을 참고해 생성되며, 등록 전 내용을 꼭 확인·수정해주세요.</p>
           </div>
 
           <div className="admin-expo-create__banner-field">
-            <label>
-              배너 이미지 (선택, PNG/JPEG/WEBP, 5MB 이하)
-              <input
-                ref={bannerInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={handleBannerFileChange}
-              />
-            </label>
-            {bannerPreview && (
-              <img src={bannerPreview} alt="배너 미리보기" className="admin-expo-create__banner-preview" />
+            <div className="admin-expo-create__banner-label-row">
+              <label htmlFor="expo-banner">배너 이미지 (선택, PNG/JPEG/WEBP, 5MB 이하)</label>
+              <span className="admin-expo-create__banner-info">
+                <span className="admin-expo-create__banner-info-icon" aria-hidden="true">i</span>
+                박람회 목록과 상세 페이지에 노출되는 대표 이미지입니다.
+              </span>
+            </div>
+
+            <input
+              ref={bannerInputRef}
+              id="expo-banner"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={handleBannerFileChange}
+              hidden
+            />
+
+            {bannerPreview ? (
+              <div className="admin-expo-create__banner-preview-box">
+                <img src={bannerPreview} alt="배너 미리보기" className="admin-expo-create__banner-preview" />
+                <div className="admin-expo-create__banner-preview-actions">
+                  <button type="button" className="admin-expo-create__ai-btn" onClick={() => bannerInputRef.current?.click()}>
+                    이미지 변경
+                  </button>
+                  <button type="button" className="admin-expo-create__banner-remove-btn" onClick={clearBannerFile}>
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`admin-expo-create__dropzone${bannerDragActive ? ' is-active' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => bannerInputRef.current?.click()}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && bannerInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setBannerDragActive(true); }}
+                onDragLeave={(e) => { e.preventDefault(); setBannerDragActive(false); }}
+                onDrop={handleBannerDrop}
+              >
+                <span className="admin-expo-create__dropzone-icon" aria-hidden="true">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6" />
+                    <circle cx="8.5" cy="9.5" r="1.5" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M21 15.5 16 10.5 6.5 20" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <p className="admin-expo-create__dropzone-title">배너 이미지를 업로드해 주세요</p>
+                <p className="admin-expo-create__dropzone-desc">여기에 파일을 드래그하거나, 아래 버튼을 클릭하여 선택할 수 있습니다.</p>
+                <button
+                  type="button"
+                  className="admin-expo-create__dropzone-btn"
+                  onClick={(e) => { e.stopPropagation(); bannerInputRef.current?.click(); }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 20V6M12 6l-5.5 5.5M12 6l5.5 5.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  이미지 선택하기
+                </button>
+                <p className="admin-expo-create__dropzone-hint">권장 사이즈 1920 x 600px&nbsp;&nbsp;·&nbsp;&nbsp;PNG, JPG, JPEG, WEBP&nbsp;&nbsp;·&nbsp;&nbsp;최대 5MB</p>
+              </div>
             )}
+            {bannerError && <p className="admin-expo-create__ai-error">{bannerError}</p>}
           </div>
         </section>
 

@@ -2,6 +2,7 @@ package com.team4.expo.service;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.expo.client.AiSummaryClient;
 import com.team4.expo.client.ExhibitorProfile;
 import com.team4.expo.client.IdentityClient;
 import com.team4.expo.client.ReservationClient;
@@ -31,13 +32,15 @@ public class ExpoService {
     private final IdentityClient identityClient;
     private final ReservationClient reservationClient;
     private final NotificationService notificationService;
+    private final AiSummaryClient aiSummaryClient;
 
     public ExpoService(ExpoRepository expoRepository, BoothRepository boothRepository,
                        BoothApplicationRepository boothApplicationRepository,
                        BoothApplicationValidator validator,
                        IdentityClient identityClient,
                        ReservationClient reservationClient,
-                       NotificationService notificationService) {
+                       NotificationService notificationService,
+                       AiSummaryClient aiSummaryClient) {
         this.expoRepository = expoRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
@@ -45,6 +48,7 @@ public class ExpoService {
         this.identityClient = identityClient;
         this.reservationClient = reservationClient;
         this.notificationService = notificationService;
+        this.aiSummaryClient = aiSummaryClient;
     }
 
     // 부스가 배정 완료(ASSIGNED) 상태면 확정된 신청의 exhibitorId로 Identity에서 회사명/업종을 붙여줌.
@@ -298,5 +302,10 @@ public class ExpoService {
         if (distinctCount != booths.size()) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "부스 번호가 중복되었습니다.");
         }
+    }
+
+    @Transactional(readOnly = true)
+    public ExpoDescriptionDraftResponse draftExpoDescription(String title, String venue) {
+        return new ExpoDescriptionDraftResponse(aiSummaryClient.draftExpoDescription(title, venue).orElse(null));
     }
 }

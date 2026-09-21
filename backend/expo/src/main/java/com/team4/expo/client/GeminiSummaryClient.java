@@ -63,6 +63,11 @@ public class GeminiSummaryClient implements AiSummaryClient {
         return callGemini(buildPolishPrompt(reviewType, vehicleName, content));
     }
 
+    @Override
+    public Optional<String> draftExpoDescription(String title, String venue) {
+        return callGemini(buildExpoDescriptionPrompt(title, venue));
+    }
+
     private Optional<String> callGemini(String prompt) {
         if (apiKey == null || apiKey.isBlank()) {
             return Optional.empty();
@@ -158,6 +163,16 @@ public class GeminiSummaryClient implements AiSummaryClient {
                 + "과장된 광고 문구 없이 실제 방문 후기 톤으로, 다른 설명 없이 후기 본문만 출력해.\n\n"
                 + "고객이 신청 시 남긴 요구사항: " + (customerMessage == null || customerMessage.isBlank() ? "없음" : customerMessage) + "\n"
                 + "참가업체 담당자의 현장 상담 메모: " + (exhibitorNote == null || exhibitorNote.isBlank() ? "없음" : exhibitorNote);
+    }
+
+    private String buildExpoDescriptionPrompt(String title, String venue){
+        return "다음은 새로 등록하는 모빌리티 박람회의 이름이다."
+                + "이 박람회를 소개하는 문구를 작성해줘. 고객이 박람회 목록·상세 페이지에서 보게 될 행사 소개문이야. "
+                + "박람회명에서 유추할 수 있는 주제(전기차, 자율주행, 튜닝 등)와 분위기를 살려서, "
+                + "과장된 광고 문구 없이 신뢰감 있게 2~3문장(200자 내외)으로 자연스럽게 작성해줘. "
+                + "제목, 따옴표, 다른 설명 없이 소개 문구 본문만 출력해.\n\n"
+                + "박람회명: " + title + "\n"
+                + "장소: " + (venue == null || venue.isBlank() ? "미정" : venue);
     }
 
     // 고객이 쓴 후기를 다듬기만 한다 - 새 사실을 지어내지 않고, 1인칭·원래 의미·길이를 유지(불릿/제목/따옴표 없이 본문만).

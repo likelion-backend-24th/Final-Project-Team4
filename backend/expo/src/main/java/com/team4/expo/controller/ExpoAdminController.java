@@ -2,15 +2,7 @@ package com.team4.expo.controller;
 
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
-import com.team4.expo.dto.BoothApplicationDecisionResponse;
-import com.team4.expo.dto.BoothApplicationGroupDetailResponse;
-import com.team4.expo.dto.BoothApplicationRejectRequest;
-import com.team4.expo.dto.ExpoAdminSummaryResponse;
-import com.team4.expo.dto.ExpoBoothsResponse;
-import com.team4.expo.dto.ExpoRegisterRequest;
-import com.team4.expo.dto.ExpoResponse;
-import com.team4.expo.dto.ExpoSummaryResponse;
-import com.team4.expo.dto.ExpoUpdateRequest;
+import com.team4.expo.dto.*;
 import com.team4.expo.service.BoothApplicationReviewService;
 import com.team4.expo.service.BoothApplicationService;
 import com.team4.expo.service.ExpoContentService;
@@ -50,6 +42,12 @@ public class ExpoAdminController {
             @Valid @RequestBody ExpoRegisterRequest request) {
         ExpoResponse response = expoService.registerExpo(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @PostMapping("/api/admin/expos/description-draft")
+    public ResponseEntity<ApiResponse<ExpoDescriptionDraftResponse>> draftExpoDescription(
+            @Valid @RequestBody ExpoDescriptionDraftRequest request){
+        return ResponseEntity.ok(ApiResponse.success(expoService.draftExpoDescription(request.getTitle(), request.getVenue())));
     }
 
     @PostMapping("/api/admin/expos/{expoId}/open")
