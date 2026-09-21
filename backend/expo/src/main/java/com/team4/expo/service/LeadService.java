@@ -20,6 +20,9 @@ import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
 import com.team4.expo.repository.ConsultationRepository;
 import com.team4.expo.repository.LeadRepository;
+import java.time.LocalDate;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -121,8 +124,16 @@ public class LeadService {
     // 고객이 해당 박람회에서 방문 기록(Lead)을 남긴 부스 목록(TASK 7-1) - 후기 작성 대상 선택 화면에서 씀.
     @Transactional(readOnly = true)
     public List<VisitedBoothResponse> listVisitedBooths(Long customerId, Long expoId) {
+        // 같은 부스를 여러 날짜에 방문했으면 방문 기록이 여러 건이라 부스 단위로 묶고, 작성 가능한 기록 중 가장 늦은 기한을 내려준다.
         return leadRepository.findByCustomerIdAndBooth_Expo_IdOrderByCreatedAtDesc(customerId, expoId).stream()
-                .map(lead -> VisitedBoothResponse.of(lead.getBooth(), companyNameOf(lead.getBooth())))
+                .collect(Collectors.groupingBy(lead -> lead.getBooth().getId(), LinkedHashMap::new, Collectors.toList()))
+                .values().stream()
+                .map(leads -> {
+                    Booth booth = leads.get(0).getBooth();
+                    LocalDate deadline = leads.stream().filter(Lead::isReviewable).map(Lead::reviewDeadline)
+                            .max(Comparator.naturalOrder()).orElse(null);
+                    return VisitedBoothResponse.of(booth, companyNameOf(booth), deadline);
+                })
                 .collect(Collectors.toList());
     }
 

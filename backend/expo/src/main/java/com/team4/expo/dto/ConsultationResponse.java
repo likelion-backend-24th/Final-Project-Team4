@@ -34,6 +34,8 @@ public class ConsultationResponse {
     private final String rejectReason;
     private final LocalDateTime createdAt;
     private final boolean reviewable;
+    // 후기 작성 마감 시각. 지금 작성할 수 없는 상담이면 null.
+    private final LocalDateTime reviewDeadline;
 
     private ConsultationResponse(Long consultationId, Long boothId, String boothNo, Long expoId, String expoTitle,
                                   String companyName,
@@ -42,7 +44,7 @@ public class ConsultationResponse {
                                   boolean hasDriverLicense, LocalDate preferredDate, LocalTime preferredTime,
                                   String message, String aiSummary, boolean aiSummaryRetryable, boolean leadConsent,
                                   ConsultationStatus status, String rejectReason,
-                                  LocalDateTime createdAt, boolean reviewable) {
+                                  LocalDateTime createdAt, boolean reviewable, LocalDateTime reviewDeadline) {
         this.consultationId = consultationId;
         this.boothId = boothId;
         this.boothNo = boothNo;
@@ -67,6 +69,7 @@ public class ConsultationResponse {
         this.rejectReason = rejectReason;
         this.createdAt = createdAt;
         this.reviewable = reviewable;
+        this.reviewDeadline = reviewDeadline;
     }
 
     public static ConsultationResponse from(Consultation consultation) {
@@ -98,7 +101,8 @@ public class ConsultationResponse {
                 consultation.getStatus(),
                 consultation.getRejectReason(),
                 consultation.getCreatedAt(),
-                consultation.isReviewable()
+                consultation.isReviewable(),
+                consultation.isReviewable() ? consultation.reviewDeadline() : null
         );
     }
 }
