@@ -216,12 +216,13 @@ public class ExpoService {
             int approved = (int) applications.stream().filter(a ->
                     a.getStatus() == ApplicationStatus.PAYMENT_PENDING || a.getStatus() == ApplicationStatus.CONFIRMED).count();
             int rejected = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.REJECTED).count();
+            int paymentPending = (int) applications.stream().filter(a -> a.getStatus() == ApplicationStatus.PAYMENT_PENDING).count();
 
             return new ExpoAdminSummaryResponse(
                     expo.getId(), expo.getTitle(), expo.getBannerImageUrl(), expo.getStatus(),
                     expo.getApplyStartsAt(), expo.getApplyEndsAt(),
                     booths.size(), availableBooths,
-                    applications.size(), pending, approved, rejected
+                    applications.size(), pending, approved, rejected, paymentPending
             );
         });
     }
