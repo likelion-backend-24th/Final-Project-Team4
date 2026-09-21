@@ -24,7 +24,7 @@ function AdminExpoList() {
   }, []);
 
   // 심사 대기가 많은(급한) 박람회를 위로
-  const sorted = [...expos].sort((a, b) => b.pendingCount - a.pendingCount);
+  const sorted = [...expos].sort((a, b) => b.expoId - a.expoId);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
 

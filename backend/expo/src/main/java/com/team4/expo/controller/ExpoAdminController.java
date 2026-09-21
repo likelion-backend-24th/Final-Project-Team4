@@ -17,6 +17,7 @@ import com.team4.expo.service.ExpoContentService;
 import com.team4.expo.service.ExpoService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -91,7 +92,8 @@ public class ExpoAdminController {
 
     // Admin - 전체 박람회 목록 (상태 무관) + 박람회별 신청 현황 집계
     @GetMapping("/api/admin/expos")
-    public ResponseEntity<ApiResponse<PageMeta<ExpoAdminSummaryResponse>>> listExposForAdmin(@PageableDefault(size = 20) Pageable pageable) {
+    public ResponseEntity<ApiResponse<PageMeta<ExpoAdminSummaryResponse>>> listExposForAdmin(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
 
         return ResponseEntity.ok(ApiResponse.success(PageMeta.from(expoService.listExposForAdmin(pageable))));
     }
