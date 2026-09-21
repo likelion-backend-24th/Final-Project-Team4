@@ -313,3 +313,7 @@ export const searchVehicles = (query) =>
   apiClient
     .get('/api/customer/vehicles/search', { params: { query } })
     .then((res) => res.data.data);
+
+// POST /api/admin/expos/description-draft — Admin: 박람회명(+장소)을 키워드로 행사 소개 문구 AI 초안 생성
+export const draftExpoDescription = (payload) =>
+  apiClient.post('/api/admin/expos/description-draft', payload).then((res) => res.data.data);
