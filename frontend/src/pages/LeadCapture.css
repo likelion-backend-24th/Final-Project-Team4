@@ -590,6 +590,19 @@
   flex-direction: column;
 }
 
+/* 좁은 화면(모바일/태블릿 세로)에선 옆에 나란히 두면 둘 다 찌그러지므로 "크게 보기"를 화면 전체로 띄운다. */
+@media (max-width: 900px) {
+  .lead-expand-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    width: 100%;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
 .lead-expand-panel__head {
   display: flex;
   justify-content: space-between;
