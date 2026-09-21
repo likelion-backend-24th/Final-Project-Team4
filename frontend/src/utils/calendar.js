@@ -17,6 +17,20 @@ export function toIsoDate(year, month, day) {
   return `${year}-${mm}-${dd}`;
 }
 
+// 오늘에서 offsetDays일 떨어진 날짜 'YYYY-MM-DD' (어제는 -1)
+export function offsetIsoDate(offsetDays) {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return toIsoDate(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// 'YYYY-MM-DD'에서 days일 떨어진 날짜 'YYYY-MM-DD'
+export function shiftIsoDate(iso, days) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const shifted = new Date(y, m - 1, d + days);
+  return toIsoDate(shifted.getFullYear(), shifted.getMonth(), shifted.getDate());
+}
+
 // 박람회 기간(startsAt~endsAt ISO 문자열)의 날짜 목록 'YYYY-MM-DD'. UTC 기준으로만 계산해서 타임존에 따라 하루 밀리지 않는다.
 export function expoDateRange(expo) {
   const [sy, sm, sd] = expo.startsAt.slice(0, 10).split('-').map(Number);

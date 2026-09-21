@@ -1,23 +1,16 @@
 import { useEffect, useState } from 'react';
 import { getAdminExpoList } from '../../api/expo';
 import { getExpoRevenue, getPaymentStats } from '../../api/payment';
-import { toIsoDate } from '../../utils/calendar';
+import { offsetIsoDate } from '../../utils/calendar';
+import { SOURCE_LABEL } from '../../utils/statsFormat';
 import './AdminApplications.css';
 import './AdminRevenueStats.css';
-
-const SOURCE_LABEL = { BOOTH_FEE: '부스 참가비', DAY_TICKET: '당일 입장권' };
-
-function defaultDate(offsetDays) {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return toIsoDate(d.getFullYear(), d.getMonth(), d.getDate());
-}
 
 function AdminRevenueStats() {
   const [expos, setExpos] = useState([]);
   const [expoId, setExpoId] = useState('');
-  const [from, setFrom] = useState(defaultDate(-29));
-  const [to, setTo] = useState(defaultDate(0));
+  const [from, setFrom] = useState(offsetIsoDate(-29));
+  const [to, setTo] = useState(offsetIsoDate(0));
   const [revenue, setRevenue] = useState(null);
   const [statsEntries, setStatsEntries] = useState([]);
   const [loadError, setLoadError] = useState(null);
