@@ -89,6 +89,17 @@
   color: #fff;
 }
 
+/* 이미 고른 부스와 종류가 달라 선택할 수 없는 칸. 검은색(마감)과 구분되게 흐리게 표시 */
+.hall-map__cell--blocked:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  opacity: 0.5;
+}
+
+.hall-map__cell--blocked:disabled .hall-map__cell-no {
+  color: #94a3b8;
+}
+
 .hall-map__cell--selected {
   background: #2563eb;
   border-color: #2563eb;

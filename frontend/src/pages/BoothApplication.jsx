@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getExpoBooths, applyBooth } from '../api/expo';
 import HallMap, { HallPlaza } from '../components/HallMap';
-import { getBoothHall } from '../utils/boothType';
+import { getBoothHall, getSelectedKind } from '../utils/boothType';
 import './BoothApplication.css';
 
 const STEPS = ['부스 선택', '신청 정보 입력', '신청 완료'];
@@ -48,6 +48,7 @@ function BoothApplication() {
   const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
   // ExpoDetail의 부스 배치도와 동일하게 A홀/B홀로 나눠서 보여주기 위한 계산
   const halls = [...new Set(expoBooths.booths.map((b) => getBoothHall(b.boothNo)))].sort();
+  const selectedKind = getSelectedKind(expoBooths.booths, selectedBoothIds); // 먹거리/조립 중 한 종류만 선택 가능
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -135,7 +136,7 @@ function BoothApplication() {
           <div className="booth-application__left">
             <section className="booth-application__map-card">
               <div className="booth-application__map-header">
-                <h2>부스 도면에서 위치 선택 (다중 선택 가능)</h2>
+                <h2>부스 도면에서 위치 선택 (같은 종류 부스만 다중 선택 가능)</h2>
                 <div className="booth-application__legend">
                   <span><i className="booth-application__dot booth-application__dot--available" />선택가능</span>
                   <span><i className="booth-application__dot booth-application__dot--reserved" />예약됨</span>
@@ -151,6 +152,7 @@ function BoothApplication() {
                       booths={expoBooths.booths.filter((b) => getBoothHall(b.boothNo) === h)}
                       selectedBoothIds={selectedBoothIds}
                       onSelect={toggleBooth}
+                      selectedKind={selectedKind}
                       reverseFood={i % 2 === 1}
                     />
                   </Fragment>
