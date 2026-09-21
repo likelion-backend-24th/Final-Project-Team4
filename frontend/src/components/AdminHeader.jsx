@@ -2,6 +2,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { clearAuth } from '../api/auth';
+import AccountMenu from './AccountMenu';
 import './Header.css';
 
 function AdminHeader() {
@@ -39,13 +40,8 @@ function AdminHeader() {
         </NavLink>
       </nav>
       <div className="app-header__account">
-        <div className="app-header__user">
-          <span className="app-header__avatar" />
-          <span>최고 관리자</span>
-        </div>
-        <Link to="/login" className="app-header__logout" onClick={handleLogout}>
-          로그아웃
-        </Link>
+        {/* 관리자는 마이페이지가 없어 mypageTo 없이 로그아웃만 노출 */}
+        <AccountMenu label="최고 관리자" onLogout={handleLogout} />
       </div>
     </header>
   );

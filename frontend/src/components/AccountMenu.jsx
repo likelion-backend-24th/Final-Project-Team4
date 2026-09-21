@@ -33,10 +33,14 @@ function AccountMenu({ label, mypageTo, onLogout }) {
       {open && (
         <div className="app-header__account-panel">
           <p className="app-header__account-summary">{label}</p>
-          <Link to={mypageTo} className="app-header__account-item" onClick={() => setOpen(false)}>
-            마이페이지
-          </Link>
-          <div className="app-header__account-divider" />
+          {mypageTo && (
+            <>
+              <Link to={mypageTo} className="app-header__account-item" onClick={() => setOpen(false)}>
+                마이페이지
+              </Link>
+              <div className="app-header__account-divider" />
+            </>
+          )}
           <button
             type="button"
             className="app-header__account-item app-header__account-item--logout"
