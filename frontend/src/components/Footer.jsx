@@ -13,6 +13,7 @@ const QUICK_LINKS = {
     { to: '/leads', label: '리드 관리' },
   ],
   ADMIN: [
+    { to: '/admin', label: '대시보드' },
     { to: '/admin/applications', label: '참가신청 관리' },
     { to: '/admin/expos/new', label: '박람회 등록' },
     { to: '/admin/stats', label: '매출 통계' },
