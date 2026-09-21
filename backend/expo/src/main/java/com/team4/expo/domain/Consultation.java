@@ -132,7 +132,12 @@ public class Consultation {
     // 후기(TASK 부스 후기) 작성 가능 여부 - 상담 완료 후 5일 이내(2026-09-16 확정). 완료 시각은 별도 필드 없이
     // complete()가 갱신하는 updatedAt을 그대로 쓴다(다른 상태 전이도 전부 이 필드 하나로 "마지막 전이 시각"을 표현).
     public boolean isReviewable() {
-        return status == ConsultationStatus.COMPLETED && LocalDateTime.now().isBefore(updatedAt.plusDays(REVIEWABLE_DAYS));
+        return status == ConsultationStatus.COMPLETED && LocalDateTime.now().isBefore(reviewDeadline());
+    }
+
+    // 후기를 쓸 수 있는 마지막 시각(이 시각 전까지).
+    public LocalDateTime reviewDeadline() {
+        return updatedAt.plusDays(REVIEWABLE_DAYS);
     }
 
     // ConsultationService.updateConsultation()에서 호출. REQUESTED 상태에서만 내용 수정 가능(서비스 레이어에서 검증).

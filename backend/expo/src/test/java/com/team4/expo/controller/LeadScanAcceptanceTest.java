@@ -14,6 +14,7 @@ import com.team4.expo.domain.BoothApplicationGroup;
 import com.team4.expo.domain.Consultation;
 import com.team4.expo.domain.ConsultationStatus;
 import com.team4.expo.domain.Expo;
+import com.team4.expo.domain.Lead;
 import com.team4.expo.repository.BoothApplicationGroupRepository;
 import com.team4.expo.repository.BoothApplicationRepository;
 import com.team4.expo.repository.BoothRepository;
@@ -282,6 +283,20 @@ class LeadScanAcceptanceTest {
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].boothId").value(booth.getId()))
                 .andExpect(jsonPath("$.data[0].boothNo").value(booth.getBoothNo()));
+    }
+
+    @Test
+    @DisplayName("같은 부스를 여러 날 방문해도 부스는 1건이고, 후기 마감일은 작성 가능한 방문 중 가장 늦은 기한이다")
+    void 방문부스_후기마감일() throws Exception {
+        LocalDate expired = LocalDate.now().minusDays(10);
+        LocalDate recent = LocalDate.now().minusDays(1);
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, expired, null, "고객", "c@test.com", null, true));
+        leadRepository.save(new Lead(booth, CUSTOMER_ID, recent, null, "고객", "c@test.com", null, true));
+
+        mockMvc.perform(get("/api/customer/expos/{expoId}/visited-booths", expo.getId()).with(customer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].reviewDeadline").value(recent.plusDays(5).toString()));
     }
 
     @Test

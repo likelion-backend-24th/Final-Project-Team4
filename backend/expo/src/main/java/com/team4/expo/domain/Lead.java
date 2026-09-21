@@ -102,6 +102,11 @@ public class Lead {
     // visitDate를 기준으로 삼는다 - Consultation.isReviewable()의 "다음날부터" 규칙과 같은 REVIEWABLE_DAYS 재사용.
     public boolean isReviewable() {
         LocalDate today = LocalDate.now();
-        return today.isAfter(visitDate) && !today.isAfter(visitDate.plusDays(Consultation.REVIEWABLE_DAYS));
+        return today.isAfter(visitDate) && !today.isAfter(reviewDeadline());
+    }
+
+    // 부스후기를 쓸 수 있는 마지막 날(포함).
+    public LocalDate reviewDeadline() {
+        return visitDate.plusDays(Consultation.REVIEWABLE_DAYS);
     }
 }

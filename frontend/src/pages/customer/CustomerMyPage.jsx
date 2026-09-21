@@ -7,6 +7,7 @@ import PaymentDetailModal from '../../components/customer/PaymentDetailModal';
 import RefundRequestModal from '../../components/customer/RefundRequestModal';
 import VisitedBoothsModal from '../../components/customer/VisitedBoothsModal';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
+import WritableReviewsModal from '../../components/customer/WritableReviewsModal';
 import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { deleteBoothReview, getCustomerExpoList, getMyConsultations, getMyReviews, toAssetUrl } from '../../api/expo';
@@ -94,6 +95,7 @@ function CustomerMyPage() {
   const [reviewLoading, setReviewLoading] = useState(true);
   const [reviewError, setReviewError] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
+  const [showWritableReviews, setShowWritableReviews] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
 
   // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
@@ -394,7 +396,12 @@ function CustomerMyPage() {
               </button>
             </div>
 
-            <h2 className="c-mypage__section-title">내가 쓴 후기</h2>
+            <div className="c-mypage__section-head">
+              <h2 className="c-mypage__section-title">내가 쓴 후기</h2>
+              <button type="button" className="c-mypage__edit-btn" onClick={() => setShowWritableReviews(true)}>
+                후기 쓰러 가기
+              </button>
+            </div>
             {reviewLoading ? (
                   <p className="c-mypage__empty">불러오는 중...</p>
                 ) : reviewError ? (
@@ -895,6 +902,14 @@ function CustomerMyPage() {
           expoId={reviewExpoId}
           reviewedBoothIds={myReviews.filter((r) => r.reviewType === 'BOOTH').map((r) => r.boothId)}
           onClose={() => setReviewExpoId(null)} />
+      )}
+      {showWritableReviews && (
+        <WritableReviewsModal
+          consultations={consultations}
+          tickets={rawTickets}
+          myReviews={myReviews}
+          onClose={() => setShowWritableReviews(false)}
+        />
       )}
       {editingReview && (
         <ReviewWriteModal
