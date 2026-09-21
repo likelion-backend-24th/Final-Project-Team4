@@ -32,6 +32,12 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         // .getUserNameAttributeName(): - google: "sub", kakao: "id", naver: "response"
         String nameAttributeKey = userRequest.getClientRegistration().getProviderDetails().getUserInfoEndpoint().getUserNameAttributeName();
 
+        // 네이버 nameAttributeKey는 response라 getName()이 {id=..., email=..., name=...} 통째 문자열이 되므로 다시 id만 꺼냄
+        if ("naver".equals(registrationId)) {
+            mergedAttributes.put("id", extractNaverResponse(attributes).get("id"));
+            nameAttributeKey = "id";
+        }
+
         return new DefaultOAuth2User(oAuth2User.getAuthorities(), mergedAttributes, nameAttributeKey);
     }
 
