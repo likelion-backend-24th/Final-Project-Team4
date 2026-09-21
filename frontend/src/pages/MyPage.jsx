@@ -442,6 +442,8 @@ function MyPage() {
               const rejectedApps = group.applications.filter((a) => a.status === "REJECTED" && a.rejectReason);
               const assemblyApps = group.applications.filter((a) => !isFoodBooth(a.boothType));
               const foodApps = group.applications.filter((a) => isFoodBooth(a.boothType));
+              // 부스 관리 화면은 차량 전시용이라 확정된 조립 부스가 있을 때만 바로가기를 보여줌 (먹거리 부스만 있으면 숨김)
+              const manageApp = confirmedApps.find((a) => !isFoodBooth(a.boothType));
 
               const boothSection = (label, apps) =>
                 apps.length > 0 && (
@@ -504,11 +506,11 @@ function MyPage() {
                           <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
                         </button>
                       )}
-                      {payableApps.length === 0 && confirmedApps.length > 0 && (
+                      {payableApps.length === 0 && manageApp && (
                         <button
                           type="button"
                           className="mypage__action-btn"
-                          onClick={() => navigate(`/mypage/booths/${confirmedApps[0].boothId}`)}
+                          onClick={() => navigate(`/mypage/booths/${manageApp.boothId}`)}
                         >
                           <span className="mypage__action-btn-label">
                             <span aria-hidden="true">⚙️</span>
