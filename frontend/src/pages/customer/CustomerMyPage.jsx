@@ -26,6 +26,7 @@ const TABS = [
 
 const REVIEW_TYPE_LABEL = { CONSULT: '상담후기', BOOTH: '부스후기' };
 const REVIEWS_PER_PAGE = 4;
+const UPCOMING_PREVIEW = 3;
 
 // 상태는 저장된 값이 아니라 매번 계산(getTicketStatus)
 // 사용완료 = 입장 체크(체크인)를 마침, 환불 = 결제 취소로 QR이 무효화됨, 만료 = 체크인 없이 박람회 기간만 끝남
@@ -57,6 +58,7 @@ const CONSULTATION_STATUS_BADGE = {
   COMPLETED: 'is-approved',
   NO_SHOW: 'is-rejected',
 };
+const ACTIVE_CONSULTATION_STATUSES = new Set(['REQUESTED', 'APPROVED']);
 const CONSULTATION_FILTERS = [
   { key: '전체', label: '전체' },
   { key: '대기', label: '대기' },
@@ -76,6 +78,7 @@ function CustomerMyPage() {
   const [ticketFilter, setTicketFilter] = useState('전체');
   const [consultFilter, setConsultFilter] = useState('전체');
   const [zoomTicket, setZoomTicket] = useState(null);
+  const [expandedExpoIds, setExpandedExpoIds] = useState(() => new Set()); // 사용예정 QR을 모두 펼친 박람회
   const [paymentDetailTicket, setPaymentDetailTicket] = useState(null);
   const [refundTicket, setRefundTicket] = useState(null);
   const [apiTickets, setApiTickets] = useState([]);
@@ -180,8 +183,12 @@ function CustomerMyPage() {
   const allTickets = rawTickets.map((t) => ({ ...t, _status: getTicketStatus(t) }));
   // 회원 탈퇴 모달 "미사용 유료 입장권이 있습니다" 안내 노출 조건 - 환불 신청이 가능한 티켓과 같은 기준.
   const hasUnusedPaidTicket = allTickets.some((t) => isTicketRefundable(t));
+  // 전체 탭엔 지금 쓸 수 있는 QR만 - 만료/환불은 숨기고, 사용완료는 체크인한 당일(=방문일)까지만 보여준다.
+  // 체크인은 방문일 당일에만 되므로 "방문일이 오늘"이면 오늘 사용완료한 것. 다음날부턴 사용완료 탭에서만 보인다.
+  const isActiveInAll = (t) =>
+    t._status === '사용예정' || t._status === '사용가능' || (t._status === '사용완료' && isTicketCheckableToday(t));
   const tickets =
-    ticketFilter === '전체' ? allTickets : allTickets.filter((t) => t._status === ticketFilter);
+    ticketFilter === '전체' ? allTickets.filter(isActiveInAll) : allTickets.filter((t) => t._status === ticketFilter);
    const upcomingCount = allTickets.filter((t) => t._status === '사용예정').length;
   const availableCount = allTickets.filter((t) => t._status === '사용가능').length;
   const usedCount = allTickets.filter((t) => t._status === '사용완료').length;
@@ -215,16 +222,33 @@ function CustomerMyPage() {
     });
 
     return Array.from(groups.values())
-      .map((g) => ({
-        ...g,
-        items: g.items.sort((a, b) => (a.visitDate ?? '').localeCompare(b.visitDate ?? '')),
-        hasToday: g.items.some((t) => t._status === '사용가능' && isTicketCheckableToday(t)),
-      }))
+      .map((g) => {
+        const sorted = g.items.sort((a, b) => (a.visitDate ?? '').localeCompare(b.visitDate ?? ''));
+        // 사용예정 QR은 박람회당 UPCOMING_PREVIEW개(방문일 빠른 순)까지만 보여주고 나머진 "펼치기"로.
+        const upcomingIds = sorted.filter((t) => t._status === '사용예정').map((t) => t.id);
+        const collapsed = !expandedExpoIds.has(g.expoId);
+        const hiddenIds = new Set(collapsed ? upcomingIds.slice(UPCOMING_PREVIEW) : []);
+        return {
+          ...g,
+          items: sorted.filter((t) => !hiddenIds.has(t.id)),
+          hiddenUpcomingCount: hiddenIds.size,
+          canCollapse: upcomingIds.length > UPCOMING_PREVIEW,
+          hasToday: g.items.some((t) => t._status === '사용가능' && isTicketCheckableToday(t)),
+        };
+      })
       .sort((a, b) => {
         if (a.hasToday !== b.hasToday) return a.hasToday ? -1 : 1;
         return (a.items[0]?.visitDate ?? '').localeCompare(b.items[0]?.visitDate ?? '');
       });
-  }, [tickets]);
+  }, [tickets, expandedExpoIds]);
+
+  const toggleExpoExpanded = (expoId) =>
+    setExpandedExpoIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(expoId)) next.delete(expoId);
+      else next.add(expoId);
+      return next;
+    });
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -285,8 +309,14 @@ function CustomerMyPage() {
   const pagedReviews = myReviews.slice((currentReviewPage - 1) * REVIEWS_PER_PAGE, currentReviewPage * REVIEWS_PER_PAGE);
 
   const consultationsWithLabel = consultations.map((c) => ({ ...c, _statusLabel: CONSULTATION_STATUS_LABEL[c.status] ?? c.status }));
+  // 전체 탭엔 앞으로 진행될 상담(대기/승인)만 - 반려·취소·완료·미방문은 숨기고, 대기/승인이라도 방문 희망 일시가 지나면 숨긴다.
+  const isUpcomingConsultation = (c) =>
+    ACTIVE_CONSULTATION_STATUSES.has(c.status) &&
+    new Date(`${c.preferredDate}T${c.preferredTime ?? '23:59:59'}`).getTime() >= Date.now();
   const filteredConsultations =
-    consultFilter === '전체' ? consultationsWithLabel : consultationsWithLabel.filter((c) => c._statusLabel === consultFilter);
+    consultFilter === '전체'
+      ? consultationsWithLabel.filter(isUpcomingConsultation)
+      : consultationsWithLabel.filter((c) => c._statusLabel === consultFilter);
   const consultFilterCount = {
     대기: consultationsWithLabel.filter((c) => c._statusLabel === '대기').length,
     승인: consultationsWithLabel.filter((c) => c._statusLabel === '승인').length,
@@ -462,7 +492,7 @@ function CustomerMyPage() {
               ) : tickets.length === 0 ? (
                 <p className="c-mypage__empty">
                   {ticketFilter === '전체'
-                    ? '아직 발급된 입장권이 없습니다.'
+                    ? '사용할 수 있는 입장권이 없습니다. 사용완료·환불·만료된 입장권은 각 탭에서 확인하세요.'
                     : `${ticketFilter} 상태인 입장권이 없습니다.`}
                 </p>
               ) : (
@@ -567,6 +597,11 @@ function CustomerMyPage() {
                           );
                         })}
                       </div>
+                      {g.canCollapse && (
+                        <button type="button" className="c-ticket-group__more" onClick={() => toggleExpoExpanded(g.expoId)}>
+                          {g.hiddenUpcomingCount > 0 ? `사용예정 ${g.hiddenUpcomingCount}개 더 보기 ▼` : '접기 ▲'}
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -594,7 +629,7 @@ function CustomerMyPage() {
               ) : filteredConsultations.length === 0 ? (
                 <p className="c-mypage__empty">
                   {consultFilter === '전체'
-                    ? '아직 신청한 상담이 없습니다.'
+                    ? '예정된 상담이 없습니다. 지난 상담이나 반려·취소·완료·미방문 건은 각 탭에서 확인하세요.'
                     : `${consultFilter} 상태인 상담이 없습니다.`}
                 </p>
               ) : (

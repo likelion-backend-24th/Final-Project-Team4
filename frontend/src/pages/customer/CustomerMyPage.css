@@ -221,6 +221,23 @@
   border-top: 1px solid #f1f5f9;
 }
 
+.c-ticket-group__more {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  background: none;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.c-ticket-group__more:hover {
+  background: #f8fafc;
+}
+
 .c-ticket-date-row {
   display: flex;
   align-items: center;
