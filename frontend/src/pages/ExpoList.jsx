@@ -7,6 +7,9 @@ import "./ExpoList.css";
 // 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
 const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
 
+// 카드 목록 정렬 시 우선 적용할 진행 단계 우선순위 (숫자가 작을수록 위로)  ← 추가
+const PHASE_ORDER = { 진행중: 0, 모집중: 1, 모집예정: 2, 모집마감: 3, 종료: 4 };
+
 const PAGE_SIZE = 8;
 
 // 부스 참가 신청을 받지 않는 단계. 모집예정은 부스 배치도까진 볼 수 있어야 해서 카드 자체는 막지 않음(ExpoDetail.jsx에서 신청 버튼만 막음)
@@ -92,7 +95,11 @@ function ExpoList() {
           .includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       })
-        .sort((a, b) => dir * (new Date(a[sort.key]) - new Date(b[sort.key])));
+        .sort((a, b) => {
+          const phaseDiff = PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase];
+          if (phaseDiff !== 0) return phaseDiff;
+          return dir * (new Date(a[sort.key]) - new Date(b[sort.key]));
+        });
   }, [cards, filter, keyword, sortOption]);
 
     // 필터/정렬/검색 결과가 바뀌면 페이지를 1로 초기화
