@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getExpoBooths, getExpoList, toAssetUrl } from '../api/expo';
 import HallMap, { HallPlaza } from '../components/HallMap';
-import { getBoothHall } from '../utils/boothType';
+import { getBoothHall, getSelectedKind } from '../utils/boothType';
 import { phaseOf } from '../utils/expoPhase';
 import './ExpoDetail.css';
 
@@ -116,6 +116,7 @@ function ExpoDetail() {
   const visibleHalls = hallFilter === '전체' ? halls : halls.filter((h) => h === hallFilter);
   const selectedBooths = booths.filter((b) => selectedBoothIds.includes(b.boothId ?? b.id));
   const totalFee = selectedBooths.reduce((sum, b) => sum + b.fee, 0);
+  const selectedKind = getSelectedKind(booths, selectedBoothIds); // 먹거리/조립 중 한 종류만 선택 가능
 
   if (loadError) {
     return <p className="expo-detail__status">{loadError}</p>;
@@ -235,6 +236,7 @@ function ExpoDetail() {
                         booths={booths.filter((b) => getBoothHall(b.boothNo) === h)}
                         selectedBoothIds={selectedBoothIds}
                         onSelect={toggleBoothSelection}
+                        selectedKind={selectedKind}
                         reverseFood={i % 2 === 1}
                       />
                     </Fragment>
@@ -338,7 +340,7 @@ function ExpoDetail() {
               </>
             ) : (
               <p className="expo-detail__side-hint">
-                부스를 클릭해서 선택하세요. (여러 개 부스를 함께 선택할 수 있어요)
+                부스를 클릭해서 선택하세요. (같은 종류의 부스는 여러 개 함께 선택할 수 있고, 먹거리 부스와 조립 부스는 따로 신청해야 해요)
               </p>
             )
           ) : (

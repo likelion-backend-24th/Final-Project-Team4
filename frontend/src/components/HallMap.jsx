@@ -14,7 +14,7 @@ const STATUS_LABEL = {
 
 // 부스 칸 아래에 상태 뱃지 텍스트를 보여줄지 여부 - 심사중/중복은 항상 표시,
 // 결제대기/참가확정은 showStatusLabel(관리자 화면 전용)이 true일 때만 표시
-function BoothCell({ booth, selected, onSelect, showStatusLabel = false }) {
+function BoothCell({ booth, selected, onSelect, showStatusLabel = false, selectedKind = null }) {
   const id = booth.boothId ?? booth.id;
   const isPending = booth.status === 'PENDING_REVIEW';
   const isConflict = booth.status === 'PENDING_CONFLICT';
@@ -23,15 +23,22 @@ function BoothCell({ booth, selected, onSelect, showStatusLabel = false }) {
   const isTaken = isReserved || isAssigned;
   const isFood = isFoodBooth(booth.type);
   const showBadge = isPending || isConflict || (showStatusLabel && isTaken);
+  // 이미 고른 부스와 종류(먹거리/조립)가 다르면 선택 못 하게 막음
+  const isBlocked = selectedKind !== null && selectedKind !== (isFood ? 'food' : 'main');
 
   return (
     <button
       type="button"
-      disabled={isTaken || isPending || isConflict}
-      title={`${booth.boothNo} · ${STATUS_LABEL[booth.status] ?? booth.status}`}
+      disabled={isTaken || isPending || isConflict || isBlocked}
+      title={
+        isBlocked
+          ? '먹거리 부스와 조립 부스는 따로 신청해주세요.'
+          : `${booth.boothNo} · ${STATUS_LABEL[booth.status] ?? booth.status}`
+      }
       className={[
         'hall-map__cell',
         isFood && 'hall-map__cell--food',
+        isBlocked && 'hall-map__cell--blocked',
         isPending && 'hall-map__cell--pending',
         isConflict && 'hall-map__cell--conflict',
         isReserved && 'hall-map__cell--reserved',
@@ -59,6 +66,7 @@ function HallMap({
   onSelect,
   reverseFood = false,
   showStatusLabel = false,
+  selectedKind = null,
 }) {
   const foodBooths = booths.filter((b) => isFoodBooth(b.type));
   const mainBooths = booths.filter((b) => !isFoodBooth(b.type));
@@ -72,6 +80,7 @@ function HallMap({
           selected={selectedBoothIds.includes(b.boothId ?? b.id)}
           onSelect={onSelect}
           showStatusLabel={showStatusLabel}
+          selectedKind={selectedKind}
         />
       ))}
     </div>
@@ -90,6 +99,7 @@ function HallMap({
               selected={selectedBoothIds.includes(b.boothId ?? b.id)}
               onSelect={onSelect}
               showStatusLabel={showStatusLabel}
+              selectedKind={selectedKind}
             />
           ))}
         </div>
