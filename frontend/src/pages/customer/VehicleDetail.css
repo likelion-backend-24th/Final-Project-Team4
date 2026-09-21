@@ -542,6 +542,12 @@
   cursor: not-allowed;
 }
 
+.c-consult__calendar-grid button.is-past {
+  color: #cbd5e1;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
 .c-consult__calendar-grid button.is-selected {
   background: #2563eb;
   color: #fff;

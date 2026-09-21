@@ -18,6 +18,11 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* 업체 고정(2·3번) 모달 - 업체 선택 칸이 없으니 1번(820px) 오른쪽 열 폭(362px)+좌우 패딩 64px에 맞춤 */
+.c-bulk-consult--narrow {
+  width: 426px;
+}
+
 .c-bulk-consult__preview {
   box-sizing: border-box;
   width: 280px;

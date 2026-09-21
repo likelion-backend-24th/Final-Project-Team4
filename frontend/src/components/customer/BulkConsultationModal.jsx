@@ -131,6 +131,10 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slotAvailability]);
 
+  const todayIso = toIsoDate(today.getFullYear(), today.getMonth(), today.getDate());
+  // 업체와 날짜를 정해야 시간대별 잔여를 알 수 있어서, 그 전엔 시간 선택을 막고 안내한다.
+  const slotsReady = selectedDay != null && selectedBoothIds.size > 0;
+
   const isSelectedDayToday =
     selectedDay === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
 
@@ -179,6 +183,10 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
   };
 
   const selectDay = (d, hasTicket) => {
+    if (toIsoDate(viewYear, viewMonth, d) < todayIso) {
+      setFieldErrors((prev) => ({ ...prev, date: '이미 지난 날짜는 선택할 수 없습니다.' }));
+      return;
+    }
     if (!hasTicket) {
       setFieldErrors((prev) => ({ ...prev, date: '입장권이 있는 날짜만 선택 가능합니다.' }));
       return;
@@ -324,7 +332,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
           </div>
         )}
 
-        <div className="c-bulk-consult">
+        <div className={`c-bulk-consult${lockedGroup ? ' c-bulk-consult--narrow' : ''}`}>
           <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
             ✕
           </button>
@@ -444,17 +452,19 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                     <div className="c-consult__calendar-grid">
                       {calendarCells.map((d, i) => {
                         const iso = d ? toIsoDate(viewYear, viewMonth, d) : null;
+                        const isPast = d && iso < todayIso;
                         const hasTicket = d && ticketDates.has(iso);
                         const isApplied = d && appliedDates.has(iso);
                         return (
                           <button
                             key={i}
                             type="button"
-                            disabled={!d || isApplied}
+                            disabled={!d || isApplied || isPast}
                             className={[
                               d && d === selectedDay && 'is-selected',
-                              hasTicket && !isApplied && 'has-ticket',
+                              hasTicket && !isApplied && !isPast && 'has-ticket',
                               isApplied && 'is-applied',
+                              isPast && 'is-past',
                             ].filter(Boolean).join(' ')}
                             onClick={() => d && selectDay(d, hasTicket)}
                           >
@@ -477,7 +487,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                         <button
                           key={t}
                           type="button"
-                          disabled={isSlotBlocked(t) || full}
+                          disabled={!slotsReady || isSlotBlocked(t) || full}
                           className={t === selectedTime ? 'is-selected' : ''}
                           onClick={() => {
                             setSelectedTime(t);
@@ -493,6 +503,9 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                       );
                     })}
                   </div>
+                  {!slotsReady && (
+                    <p className="c-bulk-consult__hint">참가업체와 방문 날짜를 선택하면 시간대별 잔여 자리가 표시됩니다.</p>
+                  )}
                   {isSelectedDayToday && (
                     <p className="c-bulk-consult__hint">오늘 방문은 지금으로부터 20분 이후 시간만 선택할 수 있어요.</p>
                   )}
