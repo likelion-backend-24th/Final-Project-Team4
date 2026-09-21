@@ -1,3 +1,79 @@
+.c-review-write__group {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  max-width: 100%;
+  max-height: calc(100vh - 32px);
+}
+
+.c-review-write__field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #172033;
+}
+
+.c-review-write__expand-btn {
+  padding: 3px 9px;
+  border: none;
+  border-radius: 5px;
+  background: #eff5ff;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2f6fed;
+  cursor: pointer;
+}
+
+.c-review-write__expand {
+  box-sizing: border-box;
+  width: 420px;
+  height: min(640px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.c-review-write__expand-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.c-review-write__expand-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #172033;
+}
+
+.c-review-write__expand textarea {
+  flex: 1;
+  min-height: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #dfe5ed;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: none;
+}
+
+/* 좁은 화면에선 옆에 나란히 두지 않고 화면 전체로 띄운다. */
+@media (max-width: 900px) {
+  .c-review-write__expand {
+    position: fixed;
+    inset: 0;
+    z-index: 110;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+}
+
 .c-review-write {
   width: 640px;
   display: flex;

@@ -18,6 +18,12 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
   const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState(false); // 후기 내용 "크게 보기" 패널
+
+  const handleContentChange = (e) => {
+    setContent(e.target.value);
+    setBeforePolish(null);
+  };
 
   const handleAddImages = (e) => {
     const files = Array.from(e.target.files ?? []);
@@ -100,7 +106,8 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
 
   return (
     <div className="c-modal__backdrop" onClick={() => !submitting && onClose()}>
-      <div className="c-modal c-review-write" onClick={(e) => e.stopPropagation()}>
+      <div className="c-review-write__group" onClick={(e) => e.stopPropagation()}>
+      <div className="c-modal c-review-write">
         <button type="button" className="c-modal__close" onClick={onClose} disabled={submitting} aria-label="닫기">
           ✕
         </button>
@@ -157,18 +164,20 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
           </div>
           {draftError && <p className="c-modal__error">{draftError}</p>}
 
-          <label className="c-review-write__field">
-            <span>후기 내용</span>
+          <div className="c-review-write__field">
+            <div className="c-review-write__field-head">
+              <span>후기 내용</span>
+              <button type="button" className="c-review-write__expand-btn" onClick={() => setExpanded(true)}>
+                크게 보기
+              </button>
+            </div>
             <textarea
               rows={5}
               value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
-                setBeforePolish(null);
-              }}
+              onChange={handleContentChange}
               placeholder="상담 또는 방문 경험을 자유롭게 남겨주세요."
             />
-          </label>
+          </div>
 
           {!editing && (
           <div className="c-review-write__field">
@@ -201,6 +210,19 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
             취소
           </button>
         </div>
+      </div>
+
+      {expanded && (
+        <aside className="c-review-write__expand">
+          <div className="c-review-write__expand-head">
+            <h3>후기 내용 (크게 보기)</h3>
+            <button type="button" className="c-review-write__expand-btn" onClick={() => setExpanded(false)}>
+              완료
+            </button>
+          </div>
+          <textarea value={content} onChange={handleContentChange} autoFocus />
+        </aside>
+      )}
       </div>
     </div>
   );
