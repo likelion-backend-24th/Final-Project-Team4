@@ -4,6 +4,7 @@ import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { setAuth } from '../api/auth';
 import TermsAgreement from '../components/TermsAgreement';
+import '../components/Header.css';
 import './Signup.css';
 
 // 소셜 로그인으로 처음 온 회원은 백엔드가 가입을 보류하고 이 화면으로 보냄
@@ -30,9 +31,9 @@ function OAuth2Consent() {
 
   return (
     <div className="signup">
-      <header className="signup__header">
-        <Link to="/login" className="signup__brand">
-          <img src={logoIcon} alt="" className="signup__logo" />
+      <header className="app-header">
+        <Link to="/login" className="app-header__brand">
+          <img src={logoIcon} alt="" className="app-header__logo" />
           <span>MOBILITY EXPO</span>
         </Link>
       </header>

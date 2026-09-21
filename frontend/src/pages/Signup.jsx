@@ -5,6 +5,7 @@ import apiClient from '../api/client';
 import { sendVerificationCode, confirmVerificationCode } from '../api/identity';
 import { formatPhoneNumber } from '../utils/phone';
 import TermsAgreement from '../components/TermsAgreement';
+import '../components/Header.css';
 import './Signup.css';
 
 const handlePhoneInput = (e) => {
@@ -211,9 +212,9 @@ function Signup() {
 
   return (
     <div className="signup">
-      <header className="signup__header">
-        <Link to="/" className="signup__brand">
-          <img src={logoIcon} alt="" className="signup__logo" />
+      <header className="app-header signup__header">
+        <Link to="/" className="app-header__brand">
+          <img src={logoIcon} alt="" className="app-header__logo" />
           <span>MOBILITY EXPO</span>
         </Link>
         <p>
