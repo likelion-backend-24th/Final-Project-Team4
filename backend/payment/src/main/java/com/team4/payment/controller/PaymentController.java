@@ -2,6 +2,7 @@ package com.team4.payment.controller;
 
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
+import com.team4.common.security.GatewayUser;
 import com.team4.payment.dto.BoothRefundResponse;
 import com.team4.payment.dto.PaymentListItemResponse;
 import com.team4.payment.dto.RefundRequest;
@@ -9,6 +10,7 @@ import com.team4.payment.entity.Payment;
 import com.team4.payment.entity.PaymentStatus;
 import com.team4.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +22,10 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping
-    public Payment pay(@RequestBody PaymentRequest request, @RequestHeader("X-User-Id") Long userId) {
+    public Payment pay(@RequestBody PaymentRequest request, @AuthenticationPrincipal GatewayUser user) {
         return paymentService.pay(
                 request.bookingId(),
-                userId,
+                user.getId(),
                 request.amount(),
                 request.payMethod(),
                 request.paymentId()
@@ -41,19 +43,19 @@ public class PaymentController {
 
     // 로그인한 사용자(참가업체)의 결제 내역 전체 조회 - 마이페이지 "참가비 결제 내역" 표에서 사용
     @GetMapping
-    public List<PaymentListItemResponse> getMyPayments(@RequestHeader("X-User-Id") Long userId) {
-        return paymentService.findByUserId(userId).stream()
+    public List<PaymentListItemResponse> getMyPayments(@AuthenticationPrincipal GatewayUser user) {
+        return paymentService.findByUserId(user.getId()).stream()
                 .map(PaymentListItemResponse::from)
                 .toList();
     }
 
     // 부스 신청 환불
     @PostMapping("/{bookingId}/refund")
-    public BoothRefundResponse refund(@RequestHeader("X-User-Id") Long userId,
+    public BoothRefundResponse refund(@AuthenticationPrincipal GatewayUser user,
                                       @PathVariable String bookingId,
                                       @RequestBody RefundRequest refundRequest){
 
-        return paymentService.refund(bookingId, userId, refundRequest.getReason());
+        return paymentService.refund(bookingId, user.getId(), refundRequest.getReason());
     }
 
     public record PaymentRequest(String bookingId, Long amount, String payMethod, String paymentId) {}
