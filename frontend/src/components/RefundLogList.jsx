@@ -6,12 +6,12 @@ function RefundLogList({ logs, limit = 20 }) {
   const rows = logs.slice(0, limit);
 
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
         <TableRow>
-          <TableHead>시간</TableHead>
-          <TableHead>환불 금액</TableHead>
-          <TableHead>사유</TableHead>
+          <TableHead className="w-1/3 text-center">시간</TableHead>
+          <TableHead className="w-1/3 text-center">환불 금액</TableHead>
+          <TableHead className="w-1/3 text-center">사유</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -20,9 +20,9 @@ function RefundLogList({ logs, limit = 20 }) {
         )}
         {rows.map((r, i) => (
           <TableRow key={i}>
-            <TableCell>{r.refundedAt.slice(11, 16)}</TableCell>
-            <TableCell className="text-red-600">{won(r.amount)}</TableCell>
-            <TableCell className="whitespace-normal">{r.refundReason || '-'}</TableCell>
+            <TableCell className="text-center">{r.refundedAt.slice(11, 16)}</TableCell>
+            <TableCell className="text-center text-red-600">{won(r.amount)}</TableCell>
+            <TableCell className="text-center whitespace-normal">{r.refundReason || '-'}</TableCell>
           </TableRow>
         ))}
       </TableBody>
