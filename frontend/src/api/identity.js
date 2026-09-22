@@ -50,3 +50,7 @@ export const getAdminUsers = (params) =>
 // GET /api/admin/users/{id} - 관리자 회원 상세 조회
 export const getAdminUserDetail = (userId) =>
   apiClient.get(`/api/admin/users/${userId}`).then((res) => res.data.data);
+
+// PATCH /api/admin/users/{id}/status - 회원 정지/정지 해제 (status: "ACTIVE" | "LOCKED")
+export const updateAdminUserStatus = (userId, status) =>
+  apiClient.patch(`/api/admin/users/${userId}/status`, { status }).then((res) => res.data.data);

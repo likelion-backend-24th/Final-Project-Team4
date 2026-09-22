@@ -1,8 +1,9 @@
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getAdminUserDetail } from '../../api/identity';
-import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { getAdminUserDetail, updateAdminUserStatus } from '../../api/identity';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,21 +54,34 @@ function AdminMemberDetail() {
 
   const statusLabel = user && (STATUS_LABEL[user.status] ?? user.status);
 
-  return (
-    <div>
-      <PageHero eyebrow="EXHIBITOR MANAGEMENT PORTAL" title="회원 상세">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="mt-4 -ml-2 text-slate-300 hover:bg-white/10 hover:text-white"
-          onClick={() => navigate('/admin/members')}
-        >
-          <ArrowLeft /> 회원 목록
-        </Button>
-      </PageHero>
+  const handleLock = async () => {
+    if (!window.confirm('이 회원 계정을 정지할까요? 정지된 계정은 로그인할 수 없습니다.')) return;
+    try {
+      const updated = await updateAdminUserStatus(userId, 'LOCKED');
+      setUser(updated);
+    } catch (err) {
+      alert(err.response?.data?.error?.message ?? '계정 정지에 실패했습니다.');
+    }
+  };
 
-      <PageContainer className="flex flex-col gap-5">
+  const handleActivate = async () => {
+    if (!window.confirm('이 회원 계정의 정지를 해제할까요?')) return;
+    try {
+      const updated = await updateAdminUserStatus(userId, 'ACTIVE');
+      setUser(updated);
+    } catch (err) {
+      alert(err.response?.data?.error?.message ?? '정지 해제에 실패했습니다.');
+    }
+  };
+
+  return (
+    <AdminSidebarLayout breadcrumb={user ? `회원 관리 / ${user.email}` : '회원 관리 / 회원 상세'}>
+      <Button type="button" variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate('/admin/members')}>
+        <ArrowLeft /> 회원 목록
+      </Button>
+      <PageHeader title="회원 상세" />
+
+      <div className="flex flex-col gap-5">
         {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
         {user && (
@@ -83,6 +97,16 @@ function AdminMemberDetail() {
                 ['최근 수정일', fmtDateTime(user.updatedAt)],
               ]}
             />
+
+            {user.role !== 'ADMIN' && user.status !== 'WITHDRAWN' && (
+              <div className="flex justify-end">
+                {user.status === 'LOCKED' ? (
+                  <Button type="button" variant="outline" onClick={handleActivate}>정지 해제</Button>
+                ) : (
+                  <Button type="button" variant="destructive" onClick={handleLock}>계정 정지</Button>
+                )}
+              </div>
+            )}
 
             {user.role === 'EXHIBITOR' ? (
               <InfoGrid
@@ -109,8 +133,8 @@ function AdminMemberDetail() {
             )}
           </>
         )}
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 

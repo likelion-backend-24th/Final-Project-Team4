@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminUsers } from '../../api/identity';
-import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -54,14 +55,10 @@ function AdminMemberList() {
   };
 
   return (
-    <div>
-      <PageHero
-        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
-        title="회원 관리"
-        description="전체 회원을 검색하고 상세 정보를 확인할 수 있습니다."
-      />
+    <AdminSidebarLayout breadcrumb="회원 관리">
+      <PageHeader title="회원 관리" description="전체 회원을 검색하고 상세 정보를 확인할 수 있습니다." />
 
-      <PageContainer className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <Card>
           <CardContent className="flex flex-wrap items-center gap-2">
             <div className="flex min-w-64 flex-1">
@@ -142,8 +139,8 @@ function AdminMemberList() {
         </Card>
 
         <Pagination page={page + 1} totalPages={result.totalPages} onChange={(p) => setPage(p - 1)} />
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 
