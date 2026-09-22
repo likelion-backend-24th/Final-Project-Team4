@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyBooths } from '../../api/leads';
+import { getMyBooths } from '@/api/leads';
 
 // QR 리드 확보 화면의 박람회/부스 선택 목록 - 내 확정 부스 조회
 export function useMyBooths() {

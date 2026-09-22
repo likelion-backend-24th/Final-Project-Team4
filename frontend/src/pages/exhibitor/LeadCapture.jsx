@@ -7,10 +7,10 @@ import {
   sendLeadInfo,
   summarizeLeadEmail,
   updateLeadEmail,
-} from '../../api/leads';
-import { boothNoValue } from '../../utils/exhibitorGroups';
-import { useMyBooths } from '../../hooks/exhibitor/useMyBooths';
-import { useLeads } from '../../hooks/exhibitor/useLeads';
+} from '@/api/leads';
+import { boothNoValue } from '@/utils/exhibitorGroups';
+import { useMyBooths } from '@/hooks/exhibitor/useMyBooths';
+import { useLeads } from '@/hooks/exhibitor/useLeads';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';

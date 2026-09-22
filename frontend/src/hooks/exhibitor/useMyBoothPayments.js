@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyPayments } from '../../api/payment';
+import { getMyPayments } from '@/api/payment';
 
 // 마이페이지 "참가비 결제 내역" - 내 부스 참가비 결제 목록 조회
 export function useMyBoothPayments() {

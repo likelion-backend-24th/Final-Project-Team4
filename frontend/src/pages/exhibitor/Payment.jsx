@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import * as PortOne from "@portone/browser-sdk/v2";
-import { payGroup } from "../../api/payment";
+import { payGroup } from "@/api/payment";
 import { PageContainer, PageHero } from "@/components/layout/Page";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyReviews } from '../../api/expo';
+import { getMyReviews } from '@/api/expo';
 
 // 마이페이지 "내가 쓴 후기" - 내가 작성한 후기 목록 조회
 export function useMyReviews() {

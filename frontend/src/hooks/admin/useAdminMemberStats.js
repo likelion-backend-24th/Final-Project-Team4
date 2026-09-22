@@ -8,6 +8,7 @@ export function useAdminMemberStats(fetchStats) {
 
   useEffect(() => {
     fetchStats().then(setStats).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return stats;

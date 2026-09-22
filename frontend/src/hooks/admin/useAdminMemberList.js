@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { exportAdminUsers, getAdminUsers } from '../../api/identity';
-import { ALL, periodToRange, toDateParam } from '../../utils/adminMemberList';
+import { exportAdminUsers, getAdminUsers } from '@/api/identity';
+import { ALL, periodToRange, toDateParam } from '@/utils/adminMemberList';
 
 // 관리자 회원 관리(참관객/참가업체) 목록 - 검색/상태/기간 필터, 페이징, 엑셀 다운로드.
 export function useAdminMemberList({ role, filenamePrefix, notFoundMessage }) {

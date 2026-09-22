@@ -1,5 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { won } from '../../utils/statsFormat';
+import { won } from '@/utils/statsFormat.js';
 
 // 취소표(환불) 내역 표. logs: [{ refundedAt, amount, refundReason }]
 function RefundLogList({ logs, limit = 20 }) {

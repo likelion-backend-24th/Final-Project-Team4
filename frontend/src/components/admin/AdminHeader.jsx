@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../api/client';
-import { clearAuth } from '../api/auth';
-import AccountMenu from './AccountMenu';
-import { AppHeader } from './layout/AppHeader';
+import apiClient from '@/api/client';
+import { clearAuth } from '@/api/auth.js';
+import AccountMenu from '@/components/AccountMenu';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 const NAV_ITEMS = [
   { to: '/admin', label: '대시보드', end: true },

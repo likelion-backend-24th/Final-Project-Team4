@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getMyReservations } from '../../api/reservation';
-import { getCustomerExpoList } from '../../api/expo';
+import { getMyReservations } from '@/api/reservation';
+import { getCustomerExpoList } from '@/api/expo';
 
 // 마이페이지 "나의 입장권" - 실제 Reservation 서비스(GET /api/customer/reservations)에서 조회.
 // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAdminUsers } from '../../api/identity';
+import { getAdminUsers } from '@/api/identity';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';

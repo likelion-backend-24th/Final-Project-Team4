@@ -1,4 +1,4 @@
-import { CONTACT_EMAIL, EFFECTIVE_DATE, PRIVACY_OFFICER, SITE_NAME } from '../utils/siteInfo';
+import { CONTACT_EMAIL, EFFECTIVE_DATE, PRIVACY_OFFICER, SITE_NAME } from '@/utils/siteInfo';
 import { LegalPage } from '@/components/layout/LegalPage';
 import { Table as UiTable, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 

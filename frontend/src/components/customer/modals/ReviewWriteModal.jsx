@@ -1,8 +1,8 @@
 import { Maximize2, Plus, Sparkles, Undo2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { addBoothReviewImage, createBoothReview, draftConsultationReview, polishReviewContent, updateBoothReview } from '../../api/expo';
-import { TextareaField, TextField } from '../form/fields';
+import { addBoothReviewImage, createBoothReview, draftConsultationReview, polishReviewContent, updateBoothReview } from '@/api/expo';
+import { TextareaField, TextField } from '@/components/form/fields';
 import { AppDialog } from '@/components/layout/AppDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';

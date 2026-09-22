@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { CONTACT_EMAIL, EFFECTIVE_DATE, SITE_NAME } from '../utils/siteInfo';
+import { CONTACT_EMAIL, EFFECTIVE_DATE, SITE_NAME } from '@/utils/siteInfo';
 import { LegalPage } from '@/components/layout/LegalPage';
 
 // 공정거래위원회 전자상거래 표준약관과 약관의 규제에 관한 법률을 기준으로

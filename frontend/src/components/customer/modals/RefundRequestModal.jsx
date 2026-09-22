@@ -1,9 +1,9 @@
 import { Check, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { getAdmissionTicketPaymentDetail, refundAdmissionTicket } from '../../api/payment';
-import { REFUND_REASONS } from '../../utils/customerData';
-import { SelectField } from '../form/fields';
+import { getAdmissionTicketPaymentDetail, refundAdmissionTicket } from '@/api/payment.js';
+import { REFUND_REASONS } from '@/utils/customerData.js';
+import { SelectField } from '@/components/form/fields';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

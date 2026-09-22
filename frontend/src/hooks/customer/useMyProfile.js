@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyProfile } from '../../api/identity';
+import { getMyProfile } from '@/api/identity';
 
 // 마이페이지 "내 정보" - 로그인한 회원 프로필 조회.
 export function useMyProfile() {

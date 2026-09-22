@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyConsultations } from '../../api/expo';
+import { getMyConsultations } from '@/api/expo';
 
 // 마이페이지 "예약한 상담" - 내 상담 신청 내역 조회
 export function useMyConsultations() {

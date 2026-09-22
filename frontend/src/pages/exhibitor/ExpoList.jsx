@@ -1,8 +1,8 @@
 import { ArrowRight, Calendar, MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { getExpoList, toAssetUrl } from "../../api/expo";
-import { phaseOf } from "../../utils/expoPhase";
+import { getExpoList, toAssetUrl } from "@/api/expo";
+import { phaseOf } from "@/utils/expoPhase";
 import { EmptyState, PageContainer, PageHero, Pagination } from "@/components/layout/Page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

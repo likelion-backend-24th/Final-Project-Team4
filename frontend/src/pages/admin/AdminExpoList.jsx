@@ -1,8 +1,8 @@
 import { Pencil, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAdminExpoList, toAssetUrl } from '../../api/expo';
-import { phaseOf } from '../../utils/expoPhase';
+import { getAdminExpoList, toAssetUrl } from '@/api/expo';
+import { phaseOf } from '@/utils/expoPhase';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';

@@ -1,6 +1,6 @@
 import { Download, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getAdminUserStats } from '../../api/identity';
+import { getAdminUserStats } from '@/api/identity';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { StatCard } from '@/components/admin/StatCard';
 import { EmptyState, PageHeader, Pagination } from '@/components/layout/Page';
@@ -10,9 +10,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useAdminMemberList } from '../../hooks/admin/useAdminMemberList';
-import { useAdminMemberStats } from '../../hooks/admin/useAdminMemberStats';
-import { ALL, PAGE_SIZE_OPTIONS, PERIOD_OPTIONS, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, percent } from '../../utils/adminMemberList';
+import { useAdminMemberList } from '@/hooks/admin/useAdminMemberList';
+import { useAdminMemberStats } from '@/hooks/admin/useAdminMemberStats';
+import { ALL, PAGE_SIZE_OPTIONS, PERIOD_OPTIONS, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, percent } from '@/utils/adminMemberList';
 
 const fetchAttendeeStats = () => getAdminUserStats('USER');
 

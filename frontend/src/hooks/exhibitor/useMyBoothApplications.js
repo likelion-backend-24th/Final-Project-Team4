@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getMyBoothApplications } from '../../api/expo';
+import { getMyBoothApplications } from '@/api/expo';
 
 // STATUS_LABEL(한글 라벨)은 화면 표시 전용이라 페이지 쪽에서 매핑하고,
 // 이 훅은 API 응답을 신청 단위(myApplications)로 펼치는 가공까지만

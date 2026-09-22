@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getRole } from './api/auth';
 import Header from './components/exhibitor/Header';
-import AdminHeader from './components/AdminHeader';
+import AdminHeader from './components/admin/AdminHeader';
 import CustomerHeader from './components/customer/CustomerHeader';
 import Footer from './components/Footer';
 import ExpoList from './pages/exhibitor/ExpoList';

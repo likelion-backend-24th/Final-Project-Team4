@@ -1,10 +1,10 @@
 import { ChevronRight, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
-import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
-import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import { boothNoValue, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
+import BulkConsultPromo from '@/components/customer/BulkConsultPromo';
+import ExpoUnavailableModal from '@/components/customer/modals/ExpoUnavailableModal';
+import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '@/api/expo';
+import { boothNoValue, mergeExhibitorGroups } from '@/utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

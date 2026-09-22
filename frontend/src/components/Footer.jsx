@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import logoIcon from '../assets/logo-icon.png';
-import { getRole, useIsLoggedIn } from '../api/auth';
-import { SITE_NAME } from '../utils/siteInfo';
+import logoIcon from '@/assets/logo-icon.png';
+import { getRole, useIsLoggedIn } from '@/api/auth';
+import { SITE_NAME } from '@/utils/siteInfo';
 
 // 역할별로 헤더에서 자주 쓰는 경로를 바로가기로 보여줌 (비로그인은 참관객 둘러보기 기준)
 const QUICK_LINKS = {

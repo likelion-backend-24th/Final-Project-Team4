@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import apiClient from '../../api/client';
-import { clearAuth, useIsLoggedIn, useProfileVersion } from '../../api/auth';
-import { getMyProfile } from '../../api/identity';
-import { customerNotificationApi } from '../../api/notifications';
+import apiClient from '@/api/client';
+import { clearAuth, useIsLoggedIn, useProfileVersion } from '@/api/auth.js';
+import { getMyProfile } from '@/api/identity.js';
+import { customerNotificationApi } from '@/api/notifications.js';
 import { Button } from '@/components/ui/button';
-import NotificationBell from '../NotificationBell';
-import AccountMenu from '../AccountMenu';
-import { AppHeader } from '../layout/AppHeader';
+import NotificationBell from '@/components/NotificationBell';
+import AccountMenu from '@/components/AccountMenu';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 // 알림 종류별로 클릭 시 이동할 화면 (고객용) - 전부 마이페이지 "예약한 상담" 탭으로 모인다.
 const NOTIFICATION_TARGET = {

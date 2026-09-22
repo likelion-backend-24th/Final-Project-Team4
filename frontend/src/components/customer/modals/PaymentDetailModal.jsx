@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getAdmissionTicketPaymentDetail } from '../../api/payment';
-import { downloadReceiptImage } from '../../utils/downloadImage';
+import { getAdmissionTicketPaymentDetail } from '@/api/payment.js';
+import { downloadReceiptImage } from '@/utils/downloadImage.js';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Button } from '@/components/ui/button';
 
