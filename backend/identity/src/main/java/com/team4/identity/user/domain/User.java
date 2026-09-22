@@ -139,6 +139,16 @@ public class User {
         this.status = UserStatus.WITHDRAWN;
     }
 
+    // 관리자가 계정 정지
+    public void lock() {
+        this.status = UserStatus.LOCKED;
+    }
+
+    // 관리자가 정지 해제
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+    }
+
     public void changeName(String name) {
         this.name = name;
     }
