@@ -130,7 +130,7 @@ function App() {
       <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
       <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
       <Route path="/admin/expos/:expoId/edit" element={<AdminLayout><AdminExpoEdit /></AdminLayout>} />
-      <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
+      <Route path="/admin/applications" element={<AdminExpoList />} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
       <Route path="/admin/stats" element={<AdminLayout><AdminRevenueStats /></AdminLayout>} />
       <Route path="/admin/members" element={<AdminLayout><AdminMemberList /></AdminLayout>} />

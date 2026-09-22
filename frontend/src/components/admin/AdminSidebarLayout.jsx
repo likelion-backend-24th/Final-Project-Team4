@@ -1,0 +1,81 @@
+import { BarChart3, Bell, ClipboardList, FilePlus2 } from 'lucide-react';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
+import logoIcon from '@/assets/logo-icon.png';
+import apiClient from '../../api/client';
+import { clearAuth } from '../../api/auth';
+import AccountMenu from '../AccountMenu';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+// 관리자 화면 좌측 사이드바 레이아웃. 전체 사이드바 개편 전 단계이므로 우선 "참가 신청 관리" 페이지에서만 사용하고,
+// 다른 관리자 페이지(박람회 등록/통계)는 기존 AdminHeader(상단 가로 네비) 그대로 유지함.
+// AdminHeader.jsx의 NAV_ITEMS와 동일한 메뉴 구성 - 세로 배치로만 바뀜.
+const NAV_ITEMS = [
+  { to: '/admin/applications', label: '참가 신청 관리', icon: ClipboardList },
+  { to: '/admin/expos/new', label: '박람회 등록', icon: FilePlus2 },
+  { to: '/admin/stats', label: '통계', icon: BarChart3 },
+];
+
+// breadcrumb: 상단 바에 보여줄 현재 페이지 이름, children: 본문
+export function AdminSidebarLayout({ breadcrumb, children }) {
+  const navigate = useNavigate();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+    try {
+      await apiClient.post('/api/auth/logout');
+    } catch {
+      // 실패해도 로컬 토큰은 비움
+    }
+    clearAuth();
+    navigate('/login');
+  };
+
+  return (
+    <div className="flex min-h-screen bg-muted/30">
+      <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-background">
+        <Link to="/admin" className="flex items-center gap-2.5 px-5 py-5 text-foreground no-underline">
+          <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
+          <span className="font-heading text-sm font-bold tracking-wide">MOBILITY EXPO</span>
+        </Link>
+
+        <nav className="flex flex-col gap-1 px-3 py-2">
+          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors',
+                  isActive
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                )
+              }
+            >
+              <Icon className="size-4" />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-border bg-background/90 px-6 py-3 backdrop-blur">
+          <p className="m-0 text-sm text-muted-foreground">
+            관리자<span className="mx-1.5 text-border">/</span>
+            <span className="font-medium text-foreground">{breadcrumb}</span>
+          </p>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Button type="button" variant="ghost" size="icon-sm" aria-label="알림">
+              <Bell />
+            </Button>
+            <AccountMenu label="최고 관리자" onLogout={handleLogout} />
+          </div>
+        </header>
+
+        <main className="flex-1 p-6 md:p-8">{children}</main>
+      </div>
+    </div>
+  );
+}
