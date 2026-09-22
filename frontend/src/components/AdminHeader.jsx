@@ -38,6 +38,9 @@ function AdminHeader() {
         <NavLink to="/admin/stats" className={({ isActive }) => (isActive ? 'is-active' : '')}>
           통계
         </NavLink>
+        <NavLink to="/admin/members" className={({ isActive }) => (isActive ? 'is-active' : '')}>
+          회원 관리
+        </NavLink>
       </nav>
       <div className="app-header__account">
         {/* 관리자는 마이페이지가 없어 mypageTo 없이 로그아웃만 노출 */}

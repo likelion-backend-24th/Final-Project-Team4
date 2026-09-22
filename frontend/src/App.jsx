@@ -33,6 +33,8 @@ import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
+import AdminMemberList from './pages/admin/AdminMemberList';
+import AdminMemberDetail from './pages/admin/AdminMemberDetail';
 
 // 역할별 헤더만 다르고 본문, 푸터 배치는 공통
 function Layout({ header, children }) {
@@ -131,6 +133,8 @@ function App() {
       <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
       <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
       <Route path="/admin/stats" element={<AdminLayout><AdminRevenueStats /></AdminLayout>} />
+      <Route path="/admin/members" element={<AdminLayout><AdminMemberList /></AdminLayout>} />
+      <Route path="/admin/members/:userId" element={<AdminLayout><AdminMemberDetail /></AdminLayout>} />
     </Routes>
   );
 }
