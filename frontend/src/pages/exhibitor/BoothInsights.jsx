@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getBoothStats, getExhibitorBoothReviews, toAssetUrl } from '../api/expo';
-import { getMyBooths } from '../api/leads';
-import { boothNoLabel } from '../utils/exhibitorGroups';
+import { getBoothStats, getExhibitorBoothReviews, toAssetUrl } from '../../api/expo';
+import { getMyBooths } from '../../api/leads';
+import { boothNoLabel } from '../../utils/exhibitorGroups';
 import { EmptyState, PageContainer } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

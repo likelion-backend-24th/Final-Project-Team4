@@ -1,4 +1,4 @@
-import { BarChart3, Bell, Building2, ClipboardList, FilePlus2, UserCheck, Users } from 'lucide-react';
+import { BarChart3, Bell, Building2, ClipboardList, FilePlus2, LayoutDashboard, UserCheck, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.png';
 import apiClient from '../../api/client';

@@ -10,7 +10,7 @@ import RefundRequestModal from '../../components/customer/RefundRequestModal';
 import VisitedBoothsModal from '../../components/customer/VisitedBoothsModal';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import WritableReviewsModal from '../../components/customer/WritableReviewsModal';
-import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../mock/customerData';
+import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../utils/customerData';
 import { getMyReservations } from '../../api/reservation';
 import { deleteBoothReview, getCustomerExpoList, getMyConsultations, getMyReviews, toAssetUrl } from '../../api/expo';
 import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';

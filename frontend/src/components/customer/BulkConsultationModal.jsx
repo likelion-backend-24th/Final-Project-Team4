@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import ConsultationCompleteModal from './ConsultationCompleteModal';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
-import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
+import { CONSULTATION_TIME_SLOTS } from '../../utils/customerData';
 import { applyConsultation, getConsultationSlotAvailability, getMyConsultations, toAssetUrl } from '../../api/expo';
 import { getMyProfile } from '../../api/identity';
 import { getMyReservations } from '../../api/reservation';

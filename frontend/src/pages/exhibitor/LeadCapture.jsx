@@ -9,8 +9,8 @@ import {
   sendLeadInfo,
   summarizeLeadEmail,
   updateLeadEmail,
-} from '../api/leads';
-import { boothNoValue } from '../utils/exhibitorGroups';
+} from '../../api/leads';
+import { boothNoValue } from '../../utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';

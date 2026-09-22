@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getVisitedBooths } from '../../api/expo';
-import { isReviewWindowOpen } from '../../mock/customerData';
+import { isReviewWindowOpen } from '../../utils/customerData';
 import { AppDialog } from '@/components/layout/AppDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

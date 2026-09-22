@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../api/client';
-import { clearAuth, useIsLoggedIn, useProfileVersion } from '../api/auth';
-import { getMyProfile } from '../api/identity';
-import { exhibitorNotificationApi } from '../api/notifications';
-import NotificationBell from './NotificationBell';
-import AccountMenu from './AccountMenu';
-import { AppHeader } from './layout/AppHeader';
+import apiClient from '../../api/client';
+import { clearAuth, useIsLoggedIn, useProfileVersion } from '../../api/auth';
+import { getMyProfile } from '../../api/identity';
+import { exhibitorNotificationApi } from '../../api/notifications';
+import NotificationBell from '../NotificationBell';
+import AccountMenu from '../AccountMenu';
+import { AppHeader } from '../layout/AppHeader';
 
 // 알림 종류별로 클릭 시 이동할 화면 (참가업체용)
 const NOTIFICATION_TARGET = {

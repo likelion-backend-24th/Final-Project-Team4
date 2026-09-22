@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
 import QrPlaceholder from './QrPlaceholder';
-import { getTicketStatus, isTicketCheckableToday } from '../../mock/customerData';
+import { getTicketStatus, isTicketCheckableToday } from '../../utils/customerData';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import { isLoggedIn } from '../../api/auth';
 import { getMyProfile } from '../../api/identity';

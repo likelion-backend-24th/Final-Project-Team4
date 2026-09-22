@@ -1,10 +1,10 @@
 import { Calendar, CircleUser, Globe, Headset, MapPin, X } from 'lucide-react';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getExpoBooths, getExpoList, toAssetUrl } from '../api/expo';
-import HallMap, { HallPlaza } from '../components/HallMap';
-import { getBoothHall, getSelectedKind } from '../utils/boothType';
-import { phaseOf } from '../utils/expoPhase';
+import { getExpoBooths, getExpoList, toAssetUrl } from '../../api/expo';
+import HallMap, { HallPlaza } from '../../components/HallMap';
+import { getBoothHall, getSelectedKind } from '../../utils/boothType';
+import { phaseOf } from '../../utils/expoPhase';
 import { EmptyState, PageContainer } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

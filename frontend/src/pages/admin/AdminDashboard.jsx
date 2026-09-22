@@ -4,7 +4,7 @@ import { getAdminExpoBooths, getAdminExpoList } from '../../api/expo';
 import { getPaymentStats } from '../../api/payment';
 import { getCheckInLogs, getCheckInStats, getHourlyCheckIns, getTicketStats } from '../../api/reservation';
 import BarChart from '../../components/BarChart';
-import CheckInLogList from '../../components/CheckInLogList';
+import CheckInLogList from '../../components/admin/CheckInLogList';
 import DonutChart from '../../components/DonutChart';
 import LineChart from '../../components/LineChart';
 import { isFoodBooth } from '../../utils/boothType';
