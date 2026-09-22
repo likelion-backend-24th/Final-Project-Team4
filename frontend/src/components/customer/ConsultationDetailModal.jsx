@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
-import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
+import { CONSULTATION_TIME_SLOTS } from '../../utils/customerData';
 import { cancelConsultation, getConsultationSlotAvailability, updateConsultation } from '../../api/expo';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';

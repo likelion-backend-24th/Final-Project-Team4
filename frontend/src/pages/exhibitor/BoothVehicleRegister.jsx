@@ -9,8 +9,8 @@ import {
   registerVehicle,
   toAssetUrl,
   updateVehicle,
-} from '../api/expo';
-import { getMyProfile } from '../api/identity';
+} from '../../api/expo';
+import { getMyProfile } from '../../api/identity';
 import { EmptyState, PageContainer } from '@/components/layout/Page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
