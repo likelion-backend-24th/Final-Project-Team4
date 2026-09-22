@@ -3,7 +3,7 @@ import { Calendar, MapPin, Search, Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
 import { getCustomerExpoList, searchVehicles, toAssetUrl } from '../../api/expo';
-import { phaseOf } from '../../utils/expoPhase';
+import { phaseOf, customerPhaseOf } from '../../utils/expoPhase';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (ExpoList.jsx와 동일해야 함)
-const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
+// customerPhaseOf()가 반환하는 4가지 단계 (부스 모집중/모집마감은 방문객 기준 "예약가능"으로 통합)
+const FILTERS = ["전체", "예약가능", "진행중", "오픈예정", "종료"];
 
 // 관리자가 일정 변경 시 막는 장치가 없어(Expo 쪽 가드는 부스 신청 여부만 봄) 기존 고객 QR이 고아가 될 수 있음.
 // 모집중 이후 구간은 나중에 알림 기능에서 "일정 변경 시 기존 QR 취소 + 알림"으로 별도 처리 해야함.
@@ -49,6 +49,7 @@ const toCard = (e) => ({
   boothCount: e.boothCount,
   bannerImageUrl: e.bannerImageUrl,
   phase: phaseOf(e),
+  customerPhase: customerPhaseOf(e),
 });
 
 function CustomerExpoList() {
@@ -99,7 +100,7 @@ function CustomerExpoList() {
     const dir = sort.dir === 'asc' ? 1 : -1;
     return expos
       .filter((e) => {
-        const matchesFilter = filter === '전체' || e.phase === filter;
+        const matchesFilter = filter === '전체' ? e.customerPhase !== '종료' : e.customerPhase === filter;
         const matchesKeyword = e.title.toLowerCase().includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       })
@@ -243,7 +244,7 @@ function CustomerExpoList() {
                   />
                   <CardContent className="flex flex-1 flex-col gap-3 p-4">
                     <div>
-                      <Badge variant={e.phase === '진행중' ? 'default' : 'secondary'}>{e.phase}</Badge>
+                      <Badge variant={e.customerPhase === '종료' ? 'secondary' : 'default'}>{e.customerPhase}</Badge>
                     </div>
                     <h3 className="m-0 line-clamp-2 text-base font-semibold">{e.title}</h3>
                     <div className="flex flex-col gap-1 text-sm text-muted-foreground">
