@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { getAdminExpoList } from '../../api/expo';
 import { getExpoRevenue, getPaymentStats } from '../../api/payment';
 import { toIsoDate } from '../../utils/calendar';
-import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -57,14 +58,10 @@ function AdminRevenueStats() {
   ];
 
   return (
-    <div>
-      <PageHero
-        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
-        title="결제 통계"
-        description="박람회별 매출 현황과 일별 결제·환불 통계를 확인합니다."
-      />
+    <AdminSidebarLayout breadcrumb="통계">
+      <PageHeader title="결제 통계" description="박람회별 매출 현황과 일별 결제·환불 통계를 확인합니다." />
 
-      <PageContainer className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center gap-2">
           <Select value={expoId} onValueChange={setExpoId}>
             <SelectTrigger className="h-10 w-full sm:w-72">
@@ -137,8 +134,8 @@ function AdminRevenueStats() {
             </Table>
           </CardContent>
         </Card>
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 

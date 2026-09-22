@@ -9,7 +9,8 @@ import {
 } from '../../api/expo';
 import HallMap, { HallPlaza } from '../../components/HallMap';
 import { getBoothHall } from '../../utils/boothType';
-import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -411,18 +412,16 @@ const mapBooths = useMemo(
   ];
 
   return (
-    <div>
-      <PageHero
-        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+    <AdminSidebarLayout breadcrumb={expoBooths ? `참가 신청 관리 / ${expoBooths.title}` : '참가 신청 관리'}>
+      <Button type="button" variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate('/admin/applications')}>
+        <ArrowLeft /> 박람회 목록
+      </Button>
+      <PageHeader
         title={expoBooths ? expoBooths.title : '박람회 참가 신청 관리'}
         description="실시간 부스 배치 현황과 참가 신청 내역을 확인하고 심사합니다."
-      >
-        <Button type="button" variant="ghost" size="sm" className="mt-4 -ml-2 text-slate-300 hover:bg-white/10 hover:text-white" onClick={() => navigate('/admin/applications')}>
-          <ArrowLeft /> 박람회 목록
-        </Button>
-      </PageHero>
+      />
 
-      <PageContainer className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             ['전체 신청 건수', stats.total, ''],
@@ -659,8 +658,8 @@ const mapBooths = useMemo(
             )}
           </CardContent>
         </Card>
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 

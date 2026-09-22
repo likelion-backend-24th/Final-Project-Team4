@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getAdminExpo, updateExpo, deleteExpo, closeExpo, openExpo, uploadExpoBannerImage, toAssetUrl } from '../../api/expo';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { BannerUpload, ExpoBasicFields, expoSchema } from '@/components/admin/ExpoBasicFields';
-import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,18 +104,29 @@ function AdminExpoEdit() {
     }
   };
 
-  if (loadError) return <EmptyState tone="error">{loadError}</EmptyState>;
-  if (!loaded) return <EmptyState>불러오는 중...</EmptyState>;
+  if (loadError) {
+    return (
+      <AdminSidebarLayout breadcrumb="박람회 수정">
+        <EmptyState tone="error">{loadError}</EmptyState>
+      </AdminSidebarLayout>
+    );
+  }
+  if (!loaded) {
+    return (
+      <AdminSidebarLayout breadcrumb="박람회 수정">
+        <EmptyState>불러오는 중...</EmptyState>
+      </AdminSidebarLayout>
+    );
+  }
 
   return (
-    <div>
-      <PageHero
-        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+    <AdminSidebarLayout breadcrumb="박람회 수정">
+      <PageHeader
         title="박람회 수정"
         description="박람회 기본 정보를 수정합니다. 부스 신청이 있는 박람회는 일정을 바꿀 수 없습니다."
       />
 
-      <PageContainer size="lg">
+      <div className="mx-auto w-full max-w-4xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
             <Card>
@@ -151,10 +163,10 @@ function AdminExpoEdit() {
                 <Button type="submit" disabled={submitting}>{submitting ? '저장 중...' : '저장'}</Button>
               </div>
             </div>
-          </form>
+           </form>
         </Form>
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 
