@@ -1,13 +1,18 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import ConsultationLoadingOverlay from './ConsultationLoadingOverlay';
 import { CONSULTATION_TIME_SLOTS } from '../../mock/customerData';
 import { cancelConsultation, getConsultationSlotAvailability, updateConsultation } from '../../api/expo';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
-import './Modal.css';
-import '../../pages/customer/VehicleDetail.css';
-import './ConsultationDetailModal.css';
+import { CheckboxField, TextareaField, TextField } from '../form/fields';
+import { AppDialog, InfoList } from '@/components/layout/AppDialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import { cn } from '@/lib/utils';
 
 const STATUS_LABEL = {
   REQUESTED: '대기',
@@ -17,6 +22,28 @@ const STATUS_LABEL = {
   COMPLETED: '상담 완료',
   NO_SHOW: '미방문 처리됨',
 };
+
+const STATUS_BADGE = {
+  REQUESTED: 'bg-amber-100 text-amber-700',
+  APPROVED: 'bg-emerald-100 text-emerald-700',
+  REJECTED: 'bg-red-100 text-red-700',
+  CANCELED: 'bg-slate-100 text-slate-600',
+  COMPLETED: 'bg-blue-100 text-blue-700',
+  NO_SHOW: 'bg-slate-100 text-slate-600',
+};
+
+function FieldError({ children }) {
+  return children ? <p className="m-0 mt-1 text-sm text-destructive">{children}</p> : null;
+}
+
+function Block({ label, children }) {
+  return (
+    <div className="rounded-lg bg-muted/50 p-3">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <p className="m-0 mt-1 whitespace-pre-wrap text-sm">{children}</p>
+    </div>
+  );
+}
 
 // 고객 마이페이지 - 신청한 상담 1건 상세 조회 + (대기 중일 때만) 수정/취소.
 function ConsultationDetailModal({ consultation, reviewed = false, onClose, onChanged }) {
@@ -31,12 +58,20 @@ function ConsultationDetailModal({ consultation, reviewed = false, onClose, onCh
   };
 
   const initialDate = new Date(`${consultation.preferredDate}T00:00:00`);
-  const [wantsPurchase, setWantsPurchase] = useState(consultation.wantsPurchase);
-  const [wantsTestDrive, setWantsTestDrive] = useState(consultation.wantsTestDrive);
-  const [interestedVehicle, setInterestedVehicle] = useState(consultation.interestedVehicle ?? '');
-  const [hasDriverLicense, setHasDriverLicense] = useState(consultation.hasDriverLicense);
-  const [message, setMessage] = useState(consultation.message ?? '');
-  const [leadConsent, setLeadConsent] = useState(consultation.leadConsent ?? false);
+  const form = useForm({
+    defaultValues: {
+      wantsPurchase: consultation.wantsPurchase,
+      wantsTestDrive: consultation.wantsTestDrive,
+      interestedVehicle: consultation.interestedVehicle ?? '',
+      hasDriverLicense: consultation.hasDriverLicense,
+      message: consultation.message ?? '',
+      leadConsent: consultation.leadConsent ?? false,
+    },
+  });
+  const wantsPurchase = form.watch('wantsPurchase');
+  const wantsTestDrive = form.watch('wantsTestDrive');
+  const leadConsent = form.watch('leadConsent');
+
   const [viewYear, setViewYear] = useState(initialDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(initialDate.getMonth());
   const [selectedDay, setSelectedDay] = useState(initialDate.getDate());
@@ -138,12 +173,12 @@ function ConsultationDetailModal({ consultation, reviewed = false, onClose, onCh
       .finally(() => setSubmitting(false));
   };
 
-  const handleSave = () => {
+  const handleSave = (values) => {
     const errors = {};
-    if (!wantsPurchase && !wantsTestDrive) errors.consultType = '상담 유형을 하나 이상 선택해주세요.';
+    if (!values.wantsPurchase && !values.wantsTestDrive) errors.consultType = '상담 유형을 하나 이상 선택해주세요.';
     if (!selectedDay) errors.date = '방문 희망 날짜를 선택해주세요.';
     else if (!selectedTime) errors.time = '방문 희망 시간을 선택해주세요.';
-    if (!leadConsent) errors.leadConsent = '연락처 제공 동의는 필수입니다.';
+    if (!values.leadConsent) errors.leadConsent = '연락처 제공 동의는 필수입니다.';
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -152,14 +187,14 @@ function ConsultationDetailModal({ consultation, reviewed = false, onClose, onCh
     setSubmitting(true);
     setError(null);
     updateConsultation(consultation.consultationId, {
-      wantsPurchase,
-      wantsTestDrive,
-      interestedVehicle: interestedVehicle.trim() || null,
-      hasDriverLicense,
+      wantsPurchase: values.wantsPurchase,
+      wantsTestDrive: values.wantsTestDrive,
+      interestedVehicle: values.interestedVehicle.trim() || null,
+      hasDriverLicense: values.hasDriverLicense,
       preferredDate: toIsoDate(viewYear, viewMonth, selectedDay),
       preferredTime: `${selectedTime}:00`,
-      message: message.trim() || null,
-      leadConsent,
+      message: values.message.trim() || null,
+      leadConsent: values.leadConsent,
     })
       .then(() => {
         onChanged();
@@ -173,195 +208,216 @@ function ConsultationDetailModal({ consultation, reviewed = false, onClose, onCh
     return <ConsultationLoadingOverlay />;
   }
 
-  return (
-    <div className="c-modal__backdrop" onClick={onClose}>
-      <div className="c-consult-detail" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
-          ✕
-        </button>
+  const typeLabel = [consultation.wantsPurchase && '구매', consultation.wantsTestDrive && '시승'].filter(Boolean).join(' + ');
 
-        <span className={`c-consult-detail__status c-consult-detail__status--${consultation.status.toLowerCase()}`}>
-          {STATUS_LABEL[consultation.status] ?? consultation.status}
-        </span>
-        <h2>{consultation.expoTitle}</h2>
-        <p className="c-consult-detail__sub">{consultation.boothNo} 부스</p>
+  const viewBody = (
+    <>
+      <InfoList
+        items={[
+          { label: '관심 차종', value: consultation.interestedVehicle || '-' },
+          { label: '상담 유형', value: typeLabel },
+          ...(consultation.wantsTestDrive
+            ? [{ label: '운전면허 소지', value: consultation.hasDriverLicense ? '소지' : '미소지' }]
+            : []),
+          { label: '희망 방문일', value: `${consultation.preferredDate} ${consultation.preferredTime?.slice(0, 5) ?? ''}` },
+          { label: 'QR 연락처 제공 동의', value: consultation.leadConsent ? '동의함' : '동의 안 함' },
+        ]}
+      />
 
-        {mode === 'view' ? (
-          <>
-            <dl className="c-modal__info">
-              <div className="c-modal__info-row"><dt>관심 차종</dt><dd>{consultation.interestedVehicle || '-'}</dd></div>
-              <div className="c-modal__info-row">
-                <dt>상담 유형</dt>
-                <dd>{[consultation.wantsPurchase && '구매', consultation.wantsTestDrive && '시승'].filter(Boolean).join(' + ')}</dd>
-              </div>
-              {consultation.wantsTestDrive && (
-                <div className="c-modal__info-row"><dt>운전면허 소지</dt><dd>{consultation.hasDriverLicense ? '소지' : '미소지'}</dd></div>
-              )}
-              <div className="c-modal__info-row">
-                <dt>희망 방문일</dt>
-                <dd>{consultation.preferredDate} {consultation.preferredTime?.slice(0, 5)}</dd>
-              </div>
-              <div className="c-modal__info-row">
-                <dt>QR 연락처 제공 동의</dt>
-                <dd>{consultation.leadConsent ? '동의함' : '동의 안 함'}</dd>
-              </div>
-            </dl>
+      {consultation.message && <Block label="요청사항">{consultation.message}</Block>}
+      {consultation.status === 'REJECTED' && consultation.rejectReason && (
+        <Block label="반려 사유">{consultation.rejectReason}</Block>
+      )}
 
-            {consultation.message && (
-              <div className="c-consult-detail__block">
-                <span className="c-consult-detail__block-label">요청사항</span>
-                <p className="c-consult-detail__block-text">{consultation.message}</p>
-              </div>
-            )}
-            {consultation.status === 'REJECTED' && consultation.rejectReason && (
-              <div className="c-consult-detail__block">
-                <span className="c-consult-detail__block-label">반려 사유</span>
-                <p className="c-consult-detail__block-text">{consultation.rejectReason}</p>
-              </div>
-            )}
+      {consultation.status === 'NO_SHOW' && (
+        <p className="m-0 text-sm text-muted-foreground">참가업체가 미방문으로 처리한 상담입니다.</p>
+      )}
 
-            {consultation.status === 'NO_SHOW' && (
-              <p className="c-consult-detail__notice">참가업체가 미방문으로 처리한 상담입니다.</p>
-            )}
+      {consultation.reviewable && !reviewed && (
+        <Button type="button" onClick={goWriteReview}>
+          후기 작성하러 가기
+        </Button>
+      )}
+      {consultation.reviewable && reviewed && (
+        <p className="m-0 text-sm text-muted-foreground">
+          이미 후기를 작성한 상담입니다. 내정보의 &quot;내가 쓴 후기&quot;에서 확인할 수 있어요.
+        </p>
+      )}
 
-            {consultation.reviewable && !reviewed && (
-              <button type="button" className="c-consult-detail__review-btn" onClick={goWriteReview}>
-                후기 작성하러 가기
-              </button>
-            )}
-            {consultation.reviewable && reviewed && (
-              <p className="c-consult-detail__notice">이미 후기를 작성한 상담입니다. 내정보의 "내가 쓴 후기"에서 확인할 수 있어요.</p>
-            )}
+      {editable ? (
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" className="flex-1" onClick={() => setMode('edit')}>
+            수정
+          </Button>
+          <Button type="button" variant="destructive" className="flex-1" disabled={submitting} onClick={handleCancel}>
+            {submitting ? '처리 중...' : '신청 취소'}
+          </Button>
+        </div>
+      ) : (
+        <p className="m-0 text-sm text-muted-foreground">이미 처리된 상담은 수정·취소할 수 없습니다.</p>
+      )}
+      <FieldError>{error}</FieldError>
+    </>
+  );
 
-            {editable ? (
-              <div className="c-consult-detail__actions">
-                <button type="button" className="c-bulk-consult__back" onClick={() => setMode('edit')}>
-                  수정
-                </button>
-                <button type="button" className="c-consult-detail__cancel-btn" disabled={submitting} onClick={handleCancel}>
-                  {submitting ? '처리 중...' : '신청 취소'}
-                </button>
-              </div>
-            ) : (
-              <p className="c-consult-detail__notice">이미 처리된 상담은 수정·취소할 수 없습니다.</p>
-            )}
-            {error && <p className="c-consult__error">{error}</p>}
-          </>
-        ) : (
-          <>
-            <div className="c-consult__field">
-              <span>상담 유형 <span className="c-consult__required">*</span> (최소 1개 선택)</span>
-              <div className="c-consult__slots">
-                <button type="button" className={wantsPurchase ? 'is-selected' : ''} onClick={() => { setWantsPurchase((v) => !v); clearFieldError('consultType'); }}>
-                  구매 상담
-                </button>
-                <button type="button" className={wantsTestDrive ? 'is-selected' : ''} onClick={() => { setWantsTestDrive((v) => !v); clearFieldError('consultType'); }}>
-                  시승 상담
-                </button>
-              </div>
-              {fieldErrors.consultType && <span className="c-consult__error">{fieldErrors.consultType}</span>}
-            </div>
-
-            <label className="c-consult__field">
-              <span>관심 차종</span>
-              <input value={interestedVehicle} onChange={(e) => setInterestedVehicle(e.target.value)} placeholder="예: EV6, 아이오닉5 (선택)" />
-            </label>
-
-            {wantsTestDrive && (
-              <label className="c-bulk-consult__checkbox-row">
-                <input type="checkbox" checked={hasDriverLicense} onChange={(e) => setHasDriverLicense(e.target.checked)} />
-                <span>시승을 위한 운전면허를 소지하고 있습니다.</span>
-              </label>
-            )}
-
-            <div className="c-consult__field">
-              <span>방문 희망 날짜 <span className="c-consult__required">*</span></span>
-              <p className="c-consult__calendar-legend">
-                <span className="c-consult__legend-dot" /> 보유한 입장권 날짜입니다. 입장권이 없는 날짜는 선택할 수 없습니다.
-              </p>
-              <div className="c-consult__calendar">
-                <div className="c-consult__calendar-head">
-                  <button type="button" onClick={goToPrevMonth} aria-label="이전 달">&lt;</button>
-                  <strong>{viewYear}년 {viewMonth + 1}월</strong>
-                  <button type="button" onClick={goToNextMonth} aria-label="다음 달">&gt;</button>
-                </div>
-                <div className="c-consult__calendar-weekdays">
-                  {WEEKDAYS.map((w) => <span key={w}>{w}</span>)}
-                </div>
-                <div className="c-consult__calendar-grid">
-                  {calendarCells.map((d, i) => {
-                    const iso = d ? toIsoDate(viewYear, viewMonth, d) : null;
-                    const hasTicket = d && (ticketDates.has(iso) || iso === consultation.preferredDate);
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        disabled={!d || !hasTicket}
-                        className={[d && d === selectedDay && 'is-selected', hasTicket && 'has-ticket'].filter(Boolean).join(' ')}
-                        onClick={() => {
-                          if (!d || !hasTicket) return;
-                          setSelectedDay(d);
-                          setSelectedTime(null);
-                          clearFieldError('date');
-                        }}
-                      >
-                        {d ?? ''}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {fieldErrors.date && <span className="c-consult__error">{fieldErrors.date}</span>}
-            </div>
-
-            <div className="c-consult__field">
-              <span>방문 희망 시간 <span className="c-consult__required">*</span></span>
-              <div className="c-consult__slots">
-                {CONSULTATION_TIME_SLOTS.map((t) => {
-                  const remaining = slotRemaining(t);
-                  const full = remaining <= 0;
-                  return (
-                    <button key={t} type="button" disabled={full} className={t === selectedTime ? 'is-selected' : ''} onClick={() => { setSelectedTime(t); clearFieldError('time'); }}>
-                      {t}
-                      {full && <small className="c-consult__slot-note">마감</small>}
-                      {!full && Number.isFinite(remaining) && <small className="c-consult__slot-note">잔여 {remaining}</small>}
-                    </button>
-                  );
-                })}
-              </div>
-              {fieldErrors.time && <span className="c-consult__error">{fieldErrors.time}</span>}
-            </div>
-
-            <label className="c-consult__field">
-              <span>기타 요청사항</span>
-              <textarea className="c-bulk-consult__textarea" rows={3} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="자유롭게 작성해주세요. (선택)" />
-            </label>
-
-            <label className="c-bulk-consult__checkbox-row">
-              <input type="checkbox" checked={leadConsent} onChange={(e) => setLeadConsent(e.target.checked)} />
-              <span>현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (필수)</span>
-            </label>
-            {fieldErrors.leadConsent && <p className="c-consult__error">{fieldErrors.leadConsent}</p>}
-
-            {error && <p className="c-consult__error">{error}</p>}
-
-            <div className="c-consult-detail__actions">
-              <button type="button" className="c-bulk-consult__back" onClick={() => setMode('view')}>
-                취소
-              </button>
-              <button
+  const editBody = (
+    <Form {...form}>
+      <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(handleSave)} noValidate>
+        <div>
+          <p className="m-0 mb-1.5 text-sm font-medium">
+            상담 유형<span className="ml-0.5 text-destructive">*</span> (최소 1개 선택)
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { name: 'wantsPurchase', label: '구매 상담', on: wantsPurchase },
+              { name: 'wantsTestDrive', label: '시승 상담', on: wantsTestDrive },
+            ].map(({ name, label, on }) => (
+              <Button
+                key={name}
                 type="button"
-                className="c-consult__submit"
-                disabled={submitting || !leadConsent}
-                onClick={handleSave}
+                variant={on ? 'default' : 'outline'}
+                onClick={() => {
+                  form.setValue(name, !on);
+                  clearFieldError('consultType');
+                }}
               >
-                {submitting ? '저장 중...' : '저장'}
-              </button>
-            </div>
-          </>
+                {label}
+              </Button>
+            ))}
+          </div>
+          <FieldError>{fieldErrors.consultType}</FieldError>
+        </div>
+
+        <TextField control={form.control} name="interestedVehicle" label="관심 차종" placeholder="예: EV6, 아이오닉5 (선택)" />
+
+        {wantsTestDrive && (
+          <CheckboxField control={form.control} name="hasDriverLicense" label="시승을 위한 운전면허를 소지하고 있습니다." />
         )}
+
+        <div>
+          <p className="m-0 mb-1.5 text-sm font-medium">
+            방문 희망 날짜<span className="ml-0.5 text-destructive">*</span>
+          </p>
+          <p className="m-0 mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className="size-3 rounded bg-blue-100" /> 보유한 입장권 날짜입니다. 입장권이 없는 날짜는 선택할 수 없습니다.
+          </p>
+          <div className="rounded-xl border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <Button type="button" variant="ghost" size="icon-sm" onClick={goToPrevMonth} aria-label="이전 달">
+                <ChevronLeft />
+              </Button>
+              <strong className="text-sm">
+                {viewYear}년 {viewMonth + 1}월
+              </strong>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={goToNextMonth} aria-label="다음 달">
+                <ChevronRight />
+              </Button>
+            </div>
+            <div className="mb-1 grid grid-cols-7 text-center text-[11px] text-muted-foreground">
+              {WEEKDAYS.map((w) => (
+                <span key={w} className="py-1">{w}</span>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-center">
+              {calendarCells.map((d, i) => {
+                const iso = d ? toIsoDate(viewYear, viewMonth, d) : null;
+                const hasTicket = d && (ticketDates.has(iso) || iso === consultation.preferredDate);
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    disabled={!d || !hasTicket}
+                    className={cn(
+                      'aspect-square rounded-md border-0 bg-transparent text-[13px] transition-colors enabled:cursor-pointer',
+                      hasTicket && 'bg-blue-100 font-semibold text-blue-700 enabled:hover:bg-blue-200',
+                      !hasTicket && 'text-muted-foreground',
+                      d && d === selectedDay && 'bg-primary font-bold text-primary-foreground enabled:hover:bg-primary'
+                    )}
+                    onClick={() => {
+                      if (!d || !hasTicket) return;
+                      setSelectedDay(d);
+                      setSelectedTime(null);
+                      clearFieldError('date');
+                    }}
+                  >
+                    {d ?? ''}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <FieldError>{fieldErrors.date}</FieldError>
+        </div>
+
+        <div>
+          <p className="m-0 mb-1.5 text-sm font-medium">
+            방문 희망 시간<span className="ml-0.5 text-destructive">*</span>
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {CONSULTATION_TIME_SLOTS.map((t) => {
+              const remaining = slotRemaining(t);
+              const full = remaining <= 0;
+              return (
+                <Button
+                  key={t}
+                  type="button"
+                  variant={t === selectedTime ? 'default' : 'outline'}
+                  className="h-auto flex-col gap-0 py-2"
+                  disabled={full}
+                  onClick={() => {
+                    setSelectedTime(t);
+                    clearFieldError('time');
+                  }}
+                >
+                  <span className="font-semibold">{t}</span>
+                  {full && <small className="text-[11px] font-normal">마감</small>}
+                  {!full && Number.isFinite(remaining) && <small className="text-[11px] font-normal">잔여 {remaining}</small>}
+                </Button>
+              );
+            })}
+          </div>
+          <FieldError>{fieldErrors.time}</FieldError>
+        </div>
+
+        <TextareaField control={form.control} name="message" label="기타 요청사항" rows={3} placeholder="자유롭게 작성해주세요. (선택)" />
+
+        <div>
+          <CheckboxField
+            control={form.control}
+            name="leadConsent"
+            label="현장 방문 시 참가업체가 제 QR을 스캔해 연락처를 확인하는 데 동의합니다. (필수)"
+          />
+          <FieldError>{fieldErrors.leadConsent}</FieldError>
+        </div>
+
+        <FieldError>{error}</FieldError>
+
+        <div className="flex gap-2">
+          <Button type="button" variant="outline" size="lg" onClick={() => setMode('view')}>
+            취소
+          </Button>
+          <Button type="submit" size="lg" className="flex-1" disabled={submitting || !leadConsent}>
+            {submitting ? '저장 중...' : '저장'}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+
+  return (
+    <AppDialog
+      onClose={onClose}
+      size="md"
+      title={consultation.expoTitle}
+      description={`${consultation.boothNo} 부스`}
+    >
+      <div>
+        <Badge variant="secondary" className={STATUS_BADGE[consultation.status]}>
+          {STATUS_LABEL[consultation.status] ?? consultation.status}
+        </Badge>
       </div>
-    </div>
+      {mode === 'view' ? viewBody : editBody}
+    </AppDialog>
   );
 }
 

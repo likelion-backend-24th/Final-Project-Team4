@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Calendar, MapPin, Search, Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import EntryFlowModal from '../../components/customer/EntryFlowModal';
 import { getCustomerExpoList, searchVehicles, toAssetUrl } from '../../api/expo';
-import { phaseOf } from '../../utils/expoPhase';
+import { phaseOf, customerPhaseOf } from '../../utils/expoPhase';
 import { CUSTOMER_EXPO_GRADIENTS } from '../../mock/customerData';
-import './CustomerExpoList.css';
+import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-// phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (ExpoList.jsx와 동일해야 함)
-const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
+// customerPhaseOf()가 반환하는 4가지 단계 (부스 모집중/모집마감은 방문객 기준 "예약가능"으로 통합)
+const FILTERS = ["전체", "예약가능", "진행중", "오픈예정", "종료"];
 
 // 관리자가 일정 변경 시 막는 장치가 없어(Expo 쪽 가드는 부스 신청 여부만 봄) 기존 고객 QR이 고아가 될 수 있음.
 // 모집중 이후 구간은 나중에 알림 기능에서 "일정 변경 시 기존 QR 취소 + 알림"으로 별도 처리 해야함.
@@ -43,6 +49,7 @@ const toCard = (e) => ({
   boothCount: e.boothCount,
   bannerImageUrl: e.bannerImageUrl,
   phase: phaseOf(e),
+  customerPhase: customerPhaseOf(e),
 });
 
 function CustomerExpoList() {
@@ -93,7 +100,7 @@ function CustomerExpoList() {
     const dir = sort.dir === 'asc' ? 1 : -1;
     return expos
       .filter((e) => {
-        const matchesFilter = filter === '전체' || e.phase === filter;
+        const matchesFilter = filter === '전체' ? e.customerPhase !== '종료' : e.customerPhase === filter;
         const matchesKeyword = e.title.toLowerCase().includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       })
@@ -112,167 +119,159 @@ function CustomerExpoList() {
   );
 
   return (
-    <div className="c-expo-list">
-      <section className="c-expo-list__hero">
-        <p className="c-expo-list__eyebrow">EXHIBITION MANAGEMENT PORTAL</p>
-        <h1>박람회 목록</h1>
-        <p>다양한 모빌리티 박람회를 확인하고, 관심 있는 박람회를 선택해 보세요.</p>
-
-        <form className="c-ai-search" onSubmit={handleAiSearch}>
-          <span className="c-ai-search__icon" aria-hidden="true" />
-          <input
-            className="c-ai-search__input"
+    <div>
+      <PageHero
+        eyebrow="EXHIBITION MANAGEMENT PORTAL"
+        title="박람회 목록"
+        description="다양한 모빌리티 박람회를 확인하고, 관심 있는 박람회를 선택해 보세요."
+      >
+        <form
+          className="mt-6 flex max-w-3xl flex-wrap items-center gap-2 rounded-xl bg-white p-2 shadow-lg"
+          onSubmit={handleAiSearch}
+        >
+          <Sparkles className="ml-2 size-5 shrink-0 text-primary" aria-hidden="true" />
+          <Input
+            className="h-10 min-w-0 flex-1 border-0 bg-transparent text-slate-900 shadow-none focus-visible:ring-0"
             placeholder='어떤 차량을 찾으세요? 예: "3000만원대 가솔린 SUV", "가족끼리 타기 좋은 차"'
             value={aiQuery}
             onChange={(e) => setAiQuery(e.target.value)}
           />
-          <button type="submit" className="c-ai-search__submit" disabled={aiSearching}>
-            {aiSearching ? '검색 중...' : 'AI 검색'}
-          </button>
           {aiResult && (
-            <button type="button" className="c-ai-search__clear" onClick={clearAiSearch}>
-              검색 지우기
-            </button>
+            <Button type="button" variant="ghost" size="sm" className="text-slate-500" onClick={clearAiSearch}>
+              <X /> 검색 지우기
+            </Button>
           )}
+          <Button type="submit" className="h-10" disabled={aiSearching}>
+            {aiSearching ? '검색 중...' : 'AI 검색'}
+          </Button>
         </form>
-      </section>
+      </PageHero>
 
       {aiResult ? (
-        <div className="c-expo-list__grid-wrap">
-          {aiError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{aiError}</p>}
+        <PageContainer>
+          {aiError && <EmptyState tone="error">{aiError}</EmptyState>}
           {aiResult.interpretedSummary && (
-            <p className="c-ai-search__summary">👾 {aiResult.interpretedSummary}</p>
+            <p className="mb-4 rounded-lg bg-primary/5 px-4 py-3 text-sm text-primary">
+              👾 {aiResult.interpretedSummary}
+            </p>
           )}
           {aiResult.results.length === 0 ? (
-            <p style={{ color: '#64748b' }}>조건에 맞는 차량을 찾지 못했어요. 다른 표현으로 검색해보세요.</p>
+            <EmptyState>조건에 맞는 차량을 찾지 못했어요. 다른 표현으로 검색해보세요.</EmptyState>
           ) : (
-            <div className="c-ai-search__grid">
-              {aiResult.results.map(({ expoId, expoTitle, boothId, boothNo, companyName, vehicle }) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {aiResult.results.map(({ expoId, expoTitle, boothNo, companyName, vehicle }) => (
                 <Link
                   key={vehicle.vehicleId}
                   to={`/customer/expos/${expoId}/vehicles/${vehicle.vehicleId}`}
-                  className="c-ai-result-card"
+                  className="no-underline"
                 >
-                  <h3>{vehicle.name}</h3>
-                  <p className="c-ai-result-card__meta">
-                    {expoTitle} · {companyName ?? `${boothNo} 부스`}
-                  </p>
-                  {vehicle.startPrice != null && (
-                    <p className="c-ai-result-card__price">{vehicle.startPrice.toLocaleString()}원~</p>
-                  )}
-                  {vehicle.summary && <p className="c-ai-result-card__summary">{vehicle.summary}</p>}
+                  <Card className="h-full transition-shadow hover:shadow-md">
+                    <CardContent className="flex flex-col gap-1.5">
+                      <h3 className="m-0 text-base font-semibold text-foreground">{vehicle.name}</h3>
+                      <p className="m-0 text-xs text-muted-foreground">
+                        {expoTitle} · {companyName ?? `${boothNo} 부스`}
+                      </p>
+                      {vehicle.startPrice != null && (
+                        <p className="m-0 text-sm font-semibold text-primary">{vehicle.startPrice.toLocaleString()}원~</p>
+                      )}
+                      {vehicle.summary && (
+                        <p className="m-0 line-clamp-2 text-sm text-muted-foreground">{vehicle.summary}</p>
+                      )}
+                    </CardContent>
+                  </Card>
                 </Link>
               ))}
             </div>
           )}
-        </div>
+        </PageContainer>
       ) : (
         <>
-          <div className="c-expo-list__toolbar">
-            <div className="c-expo-list__filters">
-              {FILTERS.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className={f === filter ? 'is-active' : ''}
-                  onClick={() => setFilter(f)}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-            <div className="c-expo-list__toolbar-right">
-              <select
-                className="c-expo-list__sort"
-                value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
-              >
-                {SORTS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
+          <div className="border-b border-border bg-background">
+            <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
+              <div className="flex flex-wrap gap-1.5">
+                {FILTERS.map((f) => (
+                  <Button
+                    key={f}
+                    type="button"
+                    size="sm"
+                    variant={f === filter ? 'default' : 'outline'}
+                    className="rounded-full"
+                    onClick={() => setFilter(f)}
+                  >
+                    {f}
+                  </Button>
                 ))}
-              </select>
-              <div className="c-expo-list__search-wrap">
-                <span className="c-expo-list__search-icon" />
-                <input
-                  className="c-expo-list__search"
-                  placeholder="박람회명 또는 지역을 검색하세요."
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Select value={sortOption} onValueChange={setSortOption}>
+                  <SelectTrigger className="h-9 w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SORTS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="relative">
+                  <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="h-9 w-64 pl-8"
+                    placeholder="박람회명 또는 지역을 검색하세요."
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="c-expo-list__grid-wrap">
-            {loadError && <p style={{ color: '#dc2626', marginBottom: '1rem' }}>{loadError}</p>}
-            {!loadError && filtered.length === 0 && (
-              <p style={{ color: '#64748b', marginBottom: '1rem' }}>표시할 박람회가 없습니다.</p>
-            )}
-            <div className="c-expo-list__grid">
+          <PageContainer>
+            {loadError && <EmptyState tone="error">{loadError}</EmptyState>}
+            {!loadError && filtered.length === 0 && <EmptyState>표시할 박람회가 없습니다.</EmptyState>}
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {paginated.map((e, i) => (
-                <div key={e.expoId} className="c-expo-card">
+                <Card key={e.expoId} className="gap-0 overflow-hidden py-0">
                   <div
-                    className="c-expo-card__thumb"
+                    className="h-36 bg-cover bg-center"
                     style={
                       e.bannerImageUrl
                         ? { backgroundImage: `url(${toAssetUrl(e.bannerImageUrl)})` }
                         : { background: CUSTOMER_EXPO_GRADIENTS[i % CUSTOMER_EXPO_GRADIENTS.length] }
                     }
                   />
-                  <div className="c-expo-card__body">
-                    <div className="c-expo-card__meta">
-                      <span
-                        className={`c-expo-card__badge ${
-                          e.phase === '진행중' ? 'c-expo-card__badge--live' : ''
-                        }`}
-                      >
-                        {e.phase}
-                      </span>
+                  <CardContent className="flex flex-1 flex-col gap-3 p-4">
+                    <div>
+                      <Badge variant={e.customerPhase === '종료' ? 'secondary' : 'default'}>{e.customerPhase}</Badge>
                     </div>
-                    <h3>{e.title}</h3>
-                    <div className="c-expo-card__meta-list">
-                      <p>
-                        <span className="c-expo-card__icon c-expo-card__icon--calendar" />
+                    <h3 className="m-0 line-clamp-2 text-base font-semibold">{e.title}</h3>
+                    <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                      <p className="m-0 flex items-center gap-1.5">
+                        <Calendar className="size-4 shrink-0" />
                         {fmtDate(e.startsAt)} - {fmtDate(e.endsAt)}
                       </p>
-                      <p>
-                        <span className="c-expo-card__icon c-expo-card__icon--pin" />
-                        {e.venue}
+                      <p className="m-0 flex items-center gap-1.5">
+                        <MapPin className="size-4 shrink-0" />
+                        <span className="truncate">{e.venue}</span>
                       </p>
                     </div>
-                     <button
+                    <Button
                       type="button"
-                      className="c-expo-card__cta"
+                      className="mt-auto w-full"
                       disabled={NOT_BOOKABLE.includes(e.phase)}
                       onClick={() => setCheckinExpo(e)}
                     >
                       {CTA_TEXT[e.phase] ?? '선택하기'}
-                    </button>
-                  </div>
-                </div>
+                    </Button>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
-            {totalPages > 1 && (
-              <div className="c-expo-list__pagination">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
-                    {p}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  aria-label="다음"
-                  disabled={page === totalPages}
-                >
-                  &gt;
-                </button>
-              </div>
-            )}
-          </div>
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          </PageContainer>
         </>
       )}
 

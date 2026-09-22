@@ -1,6 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { Bell, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import bellIcon from '../assets/blueBell.svg';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 // 알림 종류별 배지 라벨/색상. 참가업체·고객 알림 타입을 모두 여기서 다룬다.
 const NOTIFICATION_META = {
@@ -10,6 +14,17 @@ const NOTIFICATION_META = {
   CONSULTATION_APPROVED: { label: '확정', tone: 'positive' },
   EXPO_TICKET_CANCELLED: { label: '예약취소', tone: 'negative' },
   EXPO_SCHEDULE_CHANGED: { label: '일정변경', tone: 'info' },
+};
+
+const TONE_BADGE = {
+  positive: 'bg-emerald-100 text-emerald-700',
+  negative: 'bg-red-100 text-red-700',
+  info: 'bg-blue-100 text-blue-700',
+};
+const TONE_DOT = {
+  positive: 'bg-emerald-500',
+  negative: 'bg-red-500',
+  info: 'bg-blue-500',
 };
 
 // "5분 전" 같은 상대 시간 표시. 하루 넘으면 날짜로.
@@ -31,7 +46,6 @@ function NotificationBell({ api, targetMap }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
 
   // 마운트 시 SSE 구독. 새 알림 오면 unreadCount 올리고, 드롭다운 열려있으면 목록 맨 위에 얹음
   useEffect(() => {
@@ -40,22 +54,10 @@ function NotificationBell({ api, targetMap }) {
       setNotifications((prev) => (open ? [notification, ...prev] : prev));
     });
     return () => source.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api]);
 
-  // 알림함 바깥을 클릭하면 닫기
-  useEffect(() => {
-    if (!open) return;
-    const handleOutsideClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [open]);
-
-  const toggle = () => {
-    const next = !open;
+  const handleOpenChange = (next) => {
     setOpen(next);
     if (next) {
       api.getNotifications({ page: 0, size: 20 })
@@ -93,60 +95,74 @@ function NotificationBell({ api, targetMap }) {
   };
 
   return (
-    <div className="app-header__notifications" ref={ref}>
-      <button
-        type="button"
-        className={`app-header__notifications-trigger${unreadCount > 0 ? ' has-unread' : ''}`}
-        onClick={toggle}
-        aria-label="알림"
-      >
-        <img src={bellIcon} alt="" className="app-header__notifications-icon" />
-      </button>
-      {open && (
-        <div className="app-header__notifications-panel">
-          <div className="app-header__notifications-panel-head">
-            <span>알림</span>
-            {unreadCount > 0 && (
-              <button type="button" className="app-header__notifications-read-all" onClick={handleMarkAllRead}>
-                모두 읽음 ({unreadCount})
-              </button>
-            )}
-          </div>
-          {notifications.length === 0 ? (
-            <p className="app-header__notifications-empty">아직 알림이 없습니다.</p>
-          ) : (
-            <ul>
-              {notifications.map((n) => {
-                const meta = NOTIFICATION_META[n.type] ?? { label: '알림', tone: 'info' };
-                return (
-                  <li key={n.id} className={n.read ? '' : 'is-unread'} onClick={() => handleClick(n)}>
-                    <span className={`app-header__notification-dot tone-${meta.tone}`} />
-                    <div className="app-header__notification-body">
-                      <div className="app-header__notification-row">
-                        <span className={`app-header__notification-badge tone-${meta.tone}`}>{meta.label}</span>
-                        <span className="app-header__notification-time">{formatRelativeTime(n.createdAt)}</span>
-                      </div>
-                      <p className="app-header__notification-title">{n.title}</p>
-                      <p className="app-header__notification-message">{n.message}</p>
-                    </div>
-                    {n.read && (
-                      <button
-                        type="button"
-                        className="app-header__notification-delete"
-                        aria-label="알림 삭제"
-                        onClick={(e) => handleDelete(e, n.id)}
-                      >
-                        ×
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="알림" className="relative">
+          <Bell />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1.5 size-2 rounded-full border-2 border-background bg-red-500" />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-[340px] gap-0 p-0">
+        <div className="flex items-center justify-between border-b px-4 py-3">
+          <span className="text-sm font-semibold">알림</span>
+          {unreadCount > 0 && (
+            <Button variant="link" size="xs" className="h-auto p-0" onClick={handleMarkAllRead}>
+              모두 읽음 ({unreadCount})
+            </Button>
           )}
         </div>
-      )}
-    </div>
+
+        {notifications.length === 0 ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">아직 알림이 없습니다.</p>
+        ) : (
+          <ul className="m-0 max-h-96 list-none divide-y overflow-y-auto p-0">
+            {notifications.map((n) => {
+              const meta = NOTIFICATION_META[n.type] ?? { label: '알림', tone: 'info' };
+              return (
+                <li
+                  key={n.id}
+                  onClick={() => handleClick(n)}
+                  className={cn(
+                    'group flex cursor-pointer items-start gap-3 px-4 py-3 transition-colors hover:bg-muted',
+                    !n.read && 'bg-primary/5'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'mt-1.5 size-2 shrink-0 rounded-full bg-transparent',
+                      !n.read && TONE_DOT[meta.tone]
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center gap-2">
+                      <Badge variant="secondary" className={cn('h-5 px-2 text-[11px]', TONE_BADGE[meta.tone])}>
+                        {meta.label}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{formatRelativeTime(n.createdAt)}</span>
+                    </div>
+                    <p className="m-0 truncate text-sm font-medium">{n.title}</p>
+                    <p className="m-0 line-clamp-2 text-xs text-muted-foreground">{n.message}</p>
+                  </div>
+                  {n.read && (
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      aria-label="알림 삭제"
+                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={(e) => handleDelete(e, n.id)}
+                    >
+                      <X />
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 

@@ -1,7 +1,24 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
 import { confirmPasswordReset } from "../api/identity";
-import "./PasswordReset.css";
+import { AuthCard, BackToLogin } from "../components/layout/AuthCard";
+import { PasswordField } from "../components/form/fields";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+
+const schema = z
+  .object({
+    password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
+    confirm: z.string().min(1, "비밀번호를 한번 더 입력해주세요."),
+  })
+  .refine((v) => v.password === v.confirm, {
+    path: ["confirm"],
+    message: "비밀번호가 일치하지 않습니다.",
+  });
 
 // 재설정 링크 진입 화면. ?token=... 을 받아 새 비밀번호를 설정하고 로그인으로 보냄
 function ResetPassword() {
@@ -11,22 +28,9 @@ function ResetPassword() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const form = useForm({ resolver: zodResolver(schema), defaultValues: { password: "", confirm: "" } });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = new FormData(e.target);
-    const password = form.get("password");
-    const confirm = form.get("confirm");
-
-    if (password !== confirm) {
-      setError("비밀번호가 일치하지 않습니다.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("비밀번호는 8자 이상이어야 합니다.");
-      return;
-    }
-
+  const handleSubmit = async ({ password }) => {
     setError("");
     setSubmitting(true);
     try {
@@ -45,51 +49,29 @@ function ResetPassword() {
 
   if (!token) {
     return (
-      <div className="pwreset">
-        <div className="pwreset__card">
-          <h1 className="pwreset__title">잘못된 링크</h1>
-          <p className="pwreset__desc">재설정 토큰이 없습니다. 링크를 다시 확인해주세요.</p>
-          <Link to="/forgot-password" className="pwreset__link">
-            비밀번호 다시 찾기
-          </Link>
-        </div>
-      </div>
+      <AuthCard title="잘못된 링크" description="재설정 토큰이 없습니다. 링크를 다시 확인해주세요.">
+        <BackToLogin to="/forgot-password">비밀번호 다시 찾기</BackToLogin>
+      </AuthCard>
     );
   }
 
   return (
-    <div className="pwreset">
-      <div className="pwreset__card">
-        <h1 className="pwreset__title">새 비밀번호 설정</h1>
-        <p className="pwreset__desc">8자 이상으로 새 비밀번호를 입력해주세요.</p>
-        <form className="pwreset__form" onSubmit={handleSubmit}>
-          <label className="pwreset__label">
-            새 비밀번호
-            <input
-              className="pwreset__input"
-              type="password"
-              name="password"
-              minLength={8}
-              required
-            />
-          </label>
-          <label className="pwreset__label">
-            새 비밀번호 확인
-            <input
-              className="pwreset__input"
-              type="password"
-              name="confirm"
-              minLength={8}
-              required
-            />
-          </label>
-          {error && <p className="pwreset__error">{error}</p>}
-          <button className="pwreset__submit" type="submit" disabled={submitting}>
+    <AuthCard title="새 비밀번호 설정" description="8자 이상으로 새 비밀번호를 입력해주세요.">
+      <Form {...form}>
+        <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+          <PasswordField control={form.control} name="password" label="새 비밀번호" />
+          <PasswordField control={form.control} name="confirm" label="새 비밀번호 확인" />
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Button type="submit" size="lg" className="h-10" disabled={submitting}>
             {submitting ? "변경 중..." : "비밀번호 변경"}
-          </button>
+          </Button>
         </form>
-      </div>
-    </div>
+      </Form>
+    </AuthCard>
   );
 }
 

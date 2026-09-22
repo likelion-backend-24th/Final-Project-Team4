@@ -39,9 +39,9 @@ import AdminMemberDetail from './pages/admin/AdminMemberDetail';
 // 역할별 헤더만 다르고 본문, 푸터 배치는 공통
 function Layout({ header, children }) {
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen flex-col">
       {header}
-      <div className="app-layout__body">{children}</div>
+      <div className="flex-1">{children}</div>
       <Footer />
     </div>
   );

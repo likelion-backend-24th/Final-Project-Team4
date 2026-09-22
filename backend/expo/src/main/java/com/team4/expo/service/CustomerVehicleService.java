@@ -69,10 +69,22 @@ public class CustomerVehicleService {
                 .filter(e -> e.getStatus() == ExpoStatus.OPEN)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        return boothRepository.findByExpo_IdOrderByBoothNo(expo.getId()).stream()
+        List<CustomerBoothVehiclesResponse> all = boothRepository.findByExpo_IdOrderByBoothNo(expo.getId()).stream()
                 .filter(b -> b.getStatus() == BoothStatus.ASSIGNED)
                 .map(this::toBoothVehicles)
-                .filter(r -> !r.getVehicles().isEmpty())
+                .collect(Collectors.toList());
+
+        // 부스 단위로 "전시 차량 없으면 제외"하면, 같은 회사가 부스를 여러 개 가졌을 때 차량을 아직 등록
+        // 안 한 부스만 통째로 빠져서 프론트가 회사 단위로 부스를 묶어도(참가업체 카드/상담 신청 대상) 그
+        // 부스가 나타나지 않는다. 같은 회사 부스 중 하나라도 전시 차량이 있으면 나머지도 함께 내려준다.
+        Set<String> companiesWithVehicles = all.stream()
+                .filter(r -> !r.getVehicles().isEmpty() && r.getCompanyName() != null)
+                .map(CustomerBoothVehiclesResponse::getCompanyName)
+                .collect(Collectors.toSet());
+
+        return all.stream()
+                .filter(r -> !r.getVehicles().isEmpty()
+                        || (r.getCompanyName() != null && companiesWithVehicles.contains(r.getCompanyName())))
                 .collect(Collectors.toList());
     }
 
