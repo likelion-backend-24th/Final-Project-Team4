@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminUsers } from '../../api/identity';
-import './AdminApplications.css';
-import './AdminMemberList.css';
+import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const ROLE_LABEL = { USER: '일반회원', EXHIBITOR: '참가업체', ADMIN: '관리자' };
 const STATUS_LABEL = { ACTIVE: '활성', LOCKED: '정지', WITHDRAWN: '탈퇴' };
-const STATUS_CLASS = { ACTIVE: 'admin-badge--approved', LOCKED: 'admin-badge--rejected', WITHDRAWN: 'admin-badge--pending' };
+const STATUS_TONE = {
+  활성: 'bg-emerald-100 text-emerald-700',
+  정지: 'bg-red-100 text-red-700',
+  탈퇴: 'bg-slate-100 text-slate-600',
+};
 
+const ALL = '__all__';
 const PAGE_SIZE = 20;
 
 // ISO(2026-01-20T10:14:00) → 2026.01.20
@@ -17,8 +27,8 @@ function AdminMemberList() {
   const navigate = useNavigate();
   const [keywordInput, setKeywordInput] = useState('');
   const [keyword, setKeyword] = useState('');
-  const [role, setRole] = useState('');
-  const [status, setStatus] = useState('');
+  const [role, setRole] = useState(ALL);
+  const [status, setStatus] = useState(ALL);
   const [page, setPage] = useState(0);
   const [result, setResult] = useState({ content: [], totalPages: 1, totalElements: 0 });
   const [loadError, setLoadError] = useState(null);
@@ -26,8 +36,8 @@ function AdminMemberList() {
   useEffect(() => {
     getAdminUsers({
       keyword: keyword || undefined,
-      role: role || undefined,
-      status: status || undefined,
+      role: role === ALL ? undefined : role,
+      status: status === ALL ? undefined : status,
       page,
       size: PAGE_SIZE,
     })
@@ -38,101 +48,101 @@ function AdminMemberList() {
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '회원 목록을 불러오지 못했습니다.'));
   }, [keyword, role, status, page]);
 
-  const submitSearch = (e) => {
-    e.preventDefault();
+  const submitSearch = () => {
     setPage(0);
     setKeyword(keywordInput.trim());
   };
 
   return (
-    <div className="admin-applications">
-      <section className="admin-applications__hero">
-        <p className="admin-applications__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>회원 관리</h1>
-        <p>전체 회원을 검색하고 상세 정보를 확인할 수 있습니다.</p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+        title="회원 관리"
+        description="전체 회원을 검색하고 상세 정보를 확인할 수 있습니다."
+      />
 
-      <section className="admin-member-list__filters">
-        <div className="admin-member-list__search">
-          <input
-            type="text"
-            placeholder="이메일, 이름, 회사명 검색"
-            value={keywordInput}
-            onChange={(e) => setKeywordInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && submitSearch(e)}
-          />
-          <button type="button" onClick={submitSearch}>검색</button>
-        </div>
-        <select value={role} onChange={(e) => { setRole(e.target.value); setPage(0); }}>
-          <option value="">전체 역할</option>
-          <option value="USER">일반회원</option>
-          <option value="EXHIBITOR">참가업체</option>
-          <option value="ADMIN">관리자</option>
-        </select>
-        <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(0); }}>
-          <option value="">전체 상태</option>
-          <option value="ACTIVE">활성</option>
-          <option value="LOCKED">정지</option>
-          <option value="WITHDRAWN">탈퇴</option>
-        </select>
-      </section>
+      <PageContainer className="flex flex-col gap-5">
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-64 flex-1">
+              <Input
+                type="text"
+                placeholder="이메일, 이름, 회사명 검색"
+                className="h-10 rounded-r-none"
+                value={keywordInput}
+                onChange={(e) => setKeywordInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && submitSearch()}
+              />
+              <Button type="button" className="h-10 rounded-l-none" onClick={submitSearch}>검색</Button>
+            </div>
+            <Select value={role} onValueChange={(v) => { setRole(v); setPage(0); }}>
+              <SelectTrigger className="h-10 w-36"><SelectValue placeholder="전체 역할" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>전체 역할</SelectItem>
+                <SelectItem value="USER">일반회원</SelectItem>
+                <SelectItem value="EXHIBITOR">참가업체</SelectItem>
+                <SelectItem value="ADMIN">관리자</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+              <SelectTrigger className="h-10 w-32"><SelectValue placeholder="전체 상태" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>전체 상태</SelectItem>
+                <SelectItem value="ACTIVE">활성</SelectItem>
+                <SelectItem value="LOCKED">정지</SelectItem>
+                <SelectItem value="WITHDRAWN">탈퇴</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
 
-      {loadError && <p className="admin-applications__error">{loadError}</p>}
+        {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
-      <div className="admin-applications__table-card">
-        <table className="admin-applications__table">
-          <thead>
-            <tr>
-              <th>이메일</th>
-              <th>이름 / 회사명</th>
-              <th>역할</th>
-              <th>상태</th>
-              <th>가입일</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.content.length === 0 && !loadError && (
-              <tr><td colSpan={5} style={{ color: '#64748b' }}>조건에 맞는 회원이 없습니다.</td></tr>
-            )}
-            {result.content.map((user) => (
-              <tr
-                key={user.id}
-                className="is-open"
-                style={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/admin/members/${user.id}`)}
-              >
-                <td>{user.email}</td>
-                <td>{user.name ?? user.companyName ?? '-'}</td>
-                <td>{ROLE_LABEL[user.role] ?? user.role}</td>
-                <td>
-                  <span className={`admin-badge ${STATUS_CLASS[user.status] ?? ''}`}>
-                    {STATUS_LABEL[user.status] ?? user.status}
-                  </span>
-                </td>
-                <td>{fmtDate(user.createdAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        <Card className="py-0">
+          <CardContent className="overflow-x-auto p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-5">이메일</TableHead>
+                  <TableHead>이름 / 회사명</TableHead>
+                  <TableHead>역할</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="pr-5">가입일</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {result.content.length === 0 && !loadError && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                      조건에 맞는 회원이 없습니다.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {result.content.map((user) => {
+                  const statusLabel = STATUS_LABEL[user.status] ?? user.status;
+                  return (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer"
+                      onClick={() => navigate(`/admin/members/${user.id}`)}
+                    >
+                      <TableCell className="pl-5">{user.email}</TableCell>
+                      <TableCell>{user.name ?? user.companyName ?? '-'}</TableCell>
+                      <TableCell>{ROLE_LABEL[user.role] ?? user.role}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={STATUS_TONE[statusLabel]}>{statusLabel}</Badge>
+                      </TableCell>
+                      <TableCell className="pr-5">{fmtDate(user.createdAt)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-      {result.totalPages > 1 && (
-        <div className="admin-applications__pagination">
-          {Array.from({ length: result.totalPages }, (_, i) => i).map((p) => (
-            <button key={p} type="button" className={p === page ? 'is-active' : ''} onClick={() => setPage(p)}>
-              {p + 1}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setPage((p) => Math.min(result.totalPages - 1, p + 1))}
-            aria-label="다음"
-            disabled={page === result.totalPages - 1}
-          >
-            &gt;
-          </button>
-        </div>
-      )}
+        <Pagination page={page + 1} totalPages={result.totalPages} onChange={(p) => setPage(p - 1)} />
+      </PageContainer>
     </div>
   );
 }
