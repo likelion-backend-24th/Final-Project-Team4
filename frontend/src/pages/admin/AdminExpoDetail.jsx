@@ -441,9 +441,9 @@ const mapBooths = useMemo(
         {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
         <Card>
-          <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+          <CardHeader className="flex-row flex-wrap items-start justify-between gap-2">
             <CardTitle className="text-lg">실시간 부스 배치 현황</CardTitle>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <div className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {LEGEND.map(([cls, label]) => (
                 <span key={label} className="flex items-center gap-1.5">
                   <i className={cn('inline-block size-3 rounded-sm border', cls)} /> {label}
@@ -453,22 +453,35 @@ const mapBooths = useMemo(
           </CardHeader>
           <CardContent>
             {expoBooths ? (
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                {[...new Set(mapBooths.map((b) => getBoothHall(b.boothNo)))]
-                  .sort()
-                  .map((h, i) => (
-                    <Fragment key={h}>
-                      {i > 0 && <HallPlaza />}
-                      <HallMap
-                        hallName={h}
-                        booths={mapBooths.filter((b) => getBoothHall(b.boothNo) === h)}
-                        selectedBoothIds={[]}
-                        onSelect={() => {}}
-                        reverseFood={i % 2 === 1}
-                        showStatusLabel
-                      />
-                    </Fragment>
-                  ))}
+              // 컨테이너 안에서 다 보이면(=overflow 없으면) 가운데 정렬, 넘치면 왼쪽부터 채우고 스크롤로 나머지를 보게 함.
+              // safe center: 넘칠 때 자동으로 start(왼쪽) 정렬로 바뀌어 콘텐츠가 양쪽으로 잘리지 않고 전부 스크롤로 닿을 수 있음.
+              <div className="flex gap-4 overflow-x-auto pb-2 [justify-content:safe_center]">
+                {/* A홀 / B홀 / 중앙광장 */}
+              </div>
+            ) : (
+              !loadError && <EmptyState>불러오는 중...</EmptyState>
+            )}
+          </CardContent>
+          <CardContent>
+            {expoBooths ? (
+              <div className="overflow-x-auto pb-2">
+                <div className="mx-auto flex w-fit gap-4">
+                  {[...new Set(mapBooths.map((b) => getBoothHall(b.boothNo)))]
+                    .sort()
+                    .map((h, i) => (
+                      <Fragment key={h}>
+                        {i > 0 && <HallPlaza />}
+                        <HallMap
+                          hallName={h}
+                          booths={mapBooths.filter((b) => getBoothHall(b.boothNo) === h)}
+                          selectedBoothIds={[]}
+                          onSelect={() => {}}
+                          reverseFood={i % 2 === 1}
+                          showStatusLabel
+                        />
+                      </Fragment>
+                    ))}
+                </div>
               </div>
             ) : (
               !loadError && <EmptyState>불러오는 중...</EmptyState>
