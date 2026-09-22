@@ -128,13 +128,13 @@ function App() {
 
       {/* 대시보드 임시 비활성화: /admin 접속 시 참가신청 관리로 이동 */}
       <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
-      <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
-      <Route path="/admin/expos/:expoId/edit" element={<AdminLayout><AdminExpoEdit /></AdminLayout>} />
+      <Route path="/admin/expos/new" element={<AdminExpoCreate />} />
+      <Route path="/admin/expos/:expoId/edit" element={<AdminExpoEdit />} />
       <Route path="/admin/applications" element={<AdminExpoList />} />
-      <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
-      <Route path="/admin/stats" element={<AdminLayout><AdminRevenueStats /></AdminLayout>} />
-      <Route path="/admin/members" element={<AdminLayout><AdminMemberList /></AdminLayout>} />
-      <Route path="/admin/members/:userId" element={<AdminLayout><AdminMemberDetail /></AdminLayout>} />
+      <Route path="/admin/applications/:expoId" element={<AdminExpoDetail />} />
+      <Route path="/admin/stats" element={<AdminRevenueStats />} />
+      <Route path="/admin/members" element={<AdminMemberList />} />
+      <Route path="/admin/members/:userId" element={<AdminMemberDetail />} />
     </Routes>
   );
 }

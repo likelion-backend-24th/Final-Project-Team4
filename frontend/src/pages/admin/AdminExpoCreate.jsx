@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { registerExpo, openExpo, uploadExpoBannerImage, draftExpoDescription } from '../../api/expo';
 import { getBoothHall, isFoodBooth } from '../../utils/boothType';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { BannerUpload, ExpoBasicFields, expoSchema } from '@/components/admin/ExpoBasicFields';
-import { PageContainer, PageHero } from '@/components/layout/Page';
+import { PageHeader } from '@/components/layout/Page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -203,14 +204,13 @@ function AdminExpoCreate() {
   };
 
   return (
-    <div>
-      <PageHero
-        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+    <AdminSidebarLayout breadcrumb="박람회 등록">
+      <PageHeader
         title="박람회 등록"
         description="박람회 기본 정보와 부스를 입력해 새 박람회를 생성합니다. 공개하면 참가업체가 신청할 수 있습니다."
       />
 
-      <PageContainer size="lg">
+      <div className="mx-auto w-full max-w-4xl">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
             <Card>
@@ -348,8 +348,8 @@ function AdminExpoCreate() {
             </div>
           </form>
         </Form>
-      </PageContainer>
-    </div>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 
