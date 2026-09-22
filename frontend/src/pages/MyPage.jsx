@@ -405,16 +405,6 @@ function MyPage() {
                       <span key={app.applicationId} className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
                         {app.boothNo}
                         <StatusBadge status={STATUS_LABEL[app.status] ?? app.status} />
-                        {app.status === 'CONFIRMED' && (
-                          <button
-                            type="button"
-                            className="cursor-pointer border-0 bg-transparent p-0"
-                            title="방문 통계·후기 보기"
-                            onClick={() => navigate(`/mypage/booths/${app.boothId}/insights`)}
-                          >
-                            <ChartColumn className="size-3.5 text-primary" />
-                          </button>
-                        )}
                       </span>
                     ))}
                   </div>
@@ -431,6 +421,16 @@ function MyPage() {
                       <Badge variant="secondary" className={reviewComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
                         {reviewComplete ? '심사 완료' : `심사 중 (${totalCount - pendingCount}/${totalCount} 완료)`}
                       </Badge>
+                      {confirmedApps.length > 0 && (
+                        <button
+                          type="button"
+                          className="flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-medium text-primary"
+                          title="방문 통계·후기 보기 (참가 확정된 부스 전체 합산)"
+                          onClick={() => navigate(`/mypage/booths/${confirmedApps[0].boothId}/insights`)}
+                        >
+                          <ChartColumn className="size-3.5" /> 통계
+                        </button>
+                      )}
                     </div>
                     {boothSection('조립 부스', assemblyApps)}
                     {boothSection('먹거리 부스', foodApps)}

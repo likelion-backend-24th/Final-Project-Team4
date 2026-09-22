@@ -10,6 +10,7 @@ import { applyConsultation, getConsultationSlotAvailability, getMyConsultations,
 import { getMyProfile } from '../../api/identity';
 import { getMyReservations } from '../../api/reservation';
 import { buildCalendar, toIsoDate, WEEKDAYS } from '../../utils/calendar';
+import { boothNoLabel, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
 import { formatPhoneNumber } from '../../utils/phone';
 import { CheckboxField, TextareaField, TextField } from '../form/fields';
 import { AppDialog } from '@/components/layout/AppDialog';
@@ -55,7 +56,12 @@ function SectionLabel({ children, required }) {
 // defaultVehicle: 차량 상세에서 열었을 때 관심 차종 입력란에 미리 채워둘 차량명.
 function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, onClose }) {
   const today = useMemo(() => new Date(), []);
-  const lockedGroup = lockedBoothId != null ? groups.find((g) => String(g.boothId) === String(lockedBoothId)) : null;
+  // 같은 신청(applicationGroupId)으로 접수한 부스는 참가업체 하나로 묶어서 선택/상담 신청한다.
+  const exhibitorGroups = useMemo(() => mergeExhibitorGroups(groups), [groups]);
+  const lockedGroup =
+    lockedBoothId != null
+      ? exhibitorGroups.find((g) => g.boothIds.some((id) => String(id) === String(lockedBoothId)))
+      : null;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -76,7 +82,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
 
   const [step, setStep] = useState(1);
   const [selectedBoothIds, setSelectedBoothIds] = useState(
-    () => new Set(lockedGroup ? [lockedGroup.boothId] : [])
+    () => new Set(lockedGroup ? lockedGroup.boothIds : [])
   );
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -198,11 +204,12 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
       return next;
     });
 
-  const toggleBooth = (boothId) =>
+  // 참가업체 단위 토글 - 부스를 여러 개 가진 업체를 선택하면 그 업체의 부스 전부를 한 번에 담는다.
+  const toggleExhibitorGroup = (group) =>
     setSelectedBoothIds((prev) => {
       const next = new Set(prev);
-      if (next.has(boothId)) next.delete(boothId);
-      else next.add(boothId);
+      const allSelected = group.boothIds.every((id) => next.has(id));
+      group.boothIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
       return next;
     });
 
@@ -292,8 +299,8 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
     })
       .then(() => {
         const dateLabel = `${viewYear}년 ${viewMonth + 1}월 ${selectedDay}일(${WEEKDAYS[new Date(viewYear, viewMonth, selectedDay).getDay()]})`;
-        const exhibitorNames = groups
-          .filter((g) => selectedBoothIds.has(g.boothId))
+        const exhibitorNames = exhibitorGroups
+          .filter((g) => g.boothIds.some((id) => selectedBoothIds.has(id)))
           .map((g) => g.title)
           .join(', ');
         setComplete({
@@ -344,7 +351,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
         <div className="grid gap-1.5">
           <Label>참가업체</Label>
           <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
-            {lockedGroup.title} ({lockedGroup.boothNo})
+            {lockedGroup.title} ({boothNoLabel(lockedGroup.boothNos)})
           </div>
         </div>
       )}
@@ -452,13 +459,13 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
       </div>
       <FieldError>{fieldErrors.booths}</FieldError>
       <div className="flex max-h-[28rem] flex-col gap-2 overflow-y-auto pr-1">
-        {groups.map((g) => (
-          <div key={g.boothId} className="flex items-center justify-between gap-2 rounded-lg border p-3">
+        {exhibitorGroups.map((g) => (
+          <div key={g.key} className="flex items-center justify-between gap-2 rounded-lg border p-3">
             <Label className="min-w-0 flex-1 cursor-pointer">
               <Checkbox
-                checked={selectedBoothIds.has(g.boothId)}
+                checked={g.boothIds.every((id) => selectedBoothIds.has(id))}
                 onCheckedChange={() => {
-                  toggleBooth(g.boothId);
+                  toggleExhibitorGroup(g);
                   clearFieldError('booths');
                 }}
               />
@@ -466,7 +473,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
                 {g.title.slice(0, 1)}
               </span>
               <span className="min-w-0 flex-1 truncate">{g.title}</span>
-              <Badge variant="secondary">{g.boothNo}</Badge>
+              <Badge variant="secondary">{boothNoLabel(g.boothNos)}</Badge>
             </Label>
             <Button
               type="button"

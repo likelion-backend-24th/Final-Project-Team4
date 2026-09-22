@@ -5,6 +5,7 @@ import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import ReviewDetailModal from '../../components/customer/ReviewDetailModal';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import { boothNoLabel, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,31 +34,36 @@ function ExhibitorVehicleList() {
     setSearchParams(next, { replace: true });
   };
 
-  const loadReviews = () =>
-    getBoothReviews(boothId)
-      .then(setReviews)
-      .catch(() => setReviews({ totalCount: 0, consultReviews: [], boothReviews: [] }));
+  // group.boothIds 전체(같은 신청으로 묶인 부스)의 후기를 합쳐서 보여준다.
+  const loadReviews = (boothIds) =>
+    Promise.all(boothIds.map((id) => getBoothReviews(id).catch(() => null)))
+      .then((results) => {
+        const ok = results.filter(Boolean);
+        setReviews({
+          totalCount: ok.reduce((sum, r) => sum + (r.totalCount ?? 0), 0),
+          consultReviews: ok.flatMap((r) => r.consultReviews ?? []),
+          boothReviews: ok.flatMap((r) => r.boothReviews ?? []),
+        });
+      });
 
   useEffect(() => {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
       .then(([expoRes, groupsRes]) => {
         setExpo(expoRes);
         setGroups(groupsRes);
-        const found = groupsRes.find((g) => String(g.boothId) === boothId);
+        const merged = mergeExhibitorGroups(groupsRes);
+        const found = merged.find((g) => g.boothIds.some((id) => String(id) === boothId));
         if (!found) {
           setLoadError('참가업체 정보를 찾을 수 없습니다.');
           return;
         }
         setGroup(found);
+        loadReviews(found.boothIds);
       })
       .catch((err) =>
         setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
       );
   }, [expoId, boothId]);
-
-  useEffect(() => {
-    loadReviews();
-  }, [boothId]);
 
   const filteredVehicles = useMemo(
     () => group?.vehicles.filter((v) => v.name.toLowerCase().includes(keyword.toLowerCase())) ?? [],
@@ -108,7 +114,7 @@ function ExhibitorVehicleList() {
                   {group.title.slice(0, 1)}
                 </span>
                 <h2 className="m-0 text-xl font-bold">{group.title}</h2>
-                <Badge variant="secondary">부스 {group.boothNo}</Badge>
+                <Badge variant="secondary">부스 {boothNoLabel(group.boothNos)}</Badge>
               </div>
 
               {filteredVehicles.length === 0 && <EmptyState>조건에 맞는 차량이 없습니다.</EmptyState>}
