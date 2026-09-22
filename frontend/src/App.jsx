@@ -27,7 +27,6 @@ import ExhibitorList from './pages/customer/ExhibitorList';
 import ExhibitorVehicleList from './pages/customer/ExhibitorVehicleList';
 import VehicleDetail from './pages/customer/VehicleDetail';
 import CustomerMyPage from './pages/customer/CustomerMyPage';
-// import AdminDashboard from './pages/admin/AdminDashboard'; // 대시보드 탭 임시 비활성화
 import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
