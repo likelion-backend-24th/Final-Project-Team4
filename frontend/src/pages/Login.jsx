@@ -106,10 +106,8 @@ function Login() {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="gap-1.5">
-                  <FormLabel>
-                    이메일 <span className="text-destructive">*</span>
-                  </FormLabel>
+                <FormItem>
+                  <FormLabel>이메일</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
@@ -128,10 +126,8 @@ function Login() {
               control={form.control}
               name="password"
               render={({ field }) => (
-                <FormItem className="gap-1.5">
-                  <FormLabel>
-                    비밀번호 <span className="text-destructive">*</span>
-                  </FormLabel>
+                <FormItem>
+                  <FormLabel>비밀번호</FormLabel>
                   <div className="relative">
                     <FormControl>
                       <Input
@@ -162,8 +158,9 @@ function Login() {
               <FormField
                 control={form.control}
                 name="rememberMe"
+                // FormItem 기본값(grid)이 "flex-row"만으론 안 깨져서 체크박스와 라벨이 줄바꿈됐음 - flex를 명시
                 render={({ field }) => (
-                  <FormItem className="flex-row items-center gap-2">
+                  <FormItem className="flex items-center gap-2">
                     <FormControl>
                       <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
@@ -201,7 +198,7 @@ function Login() {
                   className={`h-10 w-full gap-2 font-semibold ${className}`}
                 >
                   <a href={`${apiBaseUrl}/oauth2/authorization/${provider}`}>
-                    <img src={icon} alt="" className="size-5 object-contain" />
+                    <img src={icon} alt="" className="size-4 object-contain" />
                     {label}
                   </a>
                 </Button>

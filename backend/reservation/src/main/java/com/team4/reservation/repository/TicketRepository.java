@@ -2,6 +2,7 @@ package com.team4.reservation.repository;
 
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.domain.TicketStatus;
+import com.team4.reservation.domain.TicketType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -58,4 +59,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             + "WHERE t.customerId IN :customerIds AND t.status = com.team4.reservation.domain.TicketStatus.USED "
             + "GROUP BY t.customerId")
     List<CustomerLastCheckInProjection> findLastCheckInByCustomerIds(@Param("customerIds") List<Long> customerIds);
+    // 통계용 - 유형별 유효 발급 수(취소된 티켓 제외), 체크인 완료(USED) 수
+    long countByExpoIdAndTicketTypeAndStatusNot(Long expoId, TicketType ticketType, TicketStatus status);
+
+    long countByExpoIdAndStatus(Long expoId, TicketStatus status);
+
 }

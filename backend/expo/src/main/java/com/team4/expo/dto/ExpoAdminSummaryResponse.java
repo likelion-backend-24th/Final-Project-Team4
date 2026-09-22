@@ -23,4 +23,5 @@ public class ExpoAdminSummaryResponse {
     private final int pendingCount;   // SUBMITTED (심사 대기)
     private final int approvedCount;  // PAYMENT_PENDING + CONFIRMED
     private final int rejectedCount;  // REJECTED
+    private final int paymentPendingCount; // PAYMENT_PENDING (승인됐고 결제 대기 중)
 }

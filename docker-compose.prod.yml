@@ -94,6 +94,7 @@ services:
       DB_PORT: "3306"
       DB_USER: app
       EXPO_BASE_URL: http://expo:8082
+      IDENTITY_BASE_URL: http://identity:8081
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:

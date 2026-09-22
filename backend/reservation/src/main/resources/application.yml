@@ -5,7 +5,7 @@ spring:
   application:
     name: reservation
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/reservation?serverTimezone=Asia%2FSeoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/reservation?serverTimezone=Asia%2FSeoul&preserveInstants=false&characterEncoding=UTF-8&rewriteBatchedStatements=true
     username: ${DB_USER:app}
     password: ${DB_PASSWORD:app_local_only}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,6 +25,11 @@ spring:
 # 방문 예약 신청 시 대상 박람회 공개 상태·시작일 확인용 (Reservation -> Expo 내부 호출)
 expo:
   base-url: ${EXPO_BASE_URL:http://localhost:8082}
+  service-token: ${SVC_TOKEN_RESERVATION:local_dev_reservation_token}
+
+# 관리자 입장 현황 목록에 보여줄 고객 이름 조회용 (Reservation -> Identity 내부 호출)
+identity:
+  base-url: ${IDENTITY_BASE_URL:http://localhost:8081}
   service-token: ${SVC_TOKEN_RESERVATION:local_dev_reservation_token}
 
 # 내부 서비스 간 호출(/internal/**) 인증용. Gateway·OpenAPI에 미노출.

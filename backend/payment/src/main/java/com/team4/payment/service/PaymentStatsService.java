@@ -1,11 +1,14 @@
 package com.team4.payment.service;
 
 import com.team4.payment.dto.PaymentStatsEntryResponse;
+import com.team4.payment.dto.RefundLogResponse;
 import com.team4.payment.repository.AdmissionPaymentRepository;
 import com.team4.payment.repository.AdmissionPaymentTicketRepository;
 import com.team4.payment.repository.DailyAmountCount;
 import com.team4.payment.repository.PaymentRepository;
+import com.team4.payment.repository.RefundLog;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,9 @@ import java.util.TreeMap;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PaymentStatsService {
+
+    // 취소표 내역 목록에 한 번에 보여줄 최대 줄 수
+    private static final int REFUND_LOG_LIMIT = 20;
 
     private static final String BOOTH_FEE = "BOOTH_FEE";
     private static final String DAY_TICKET = "DAY_TICKET";
@@ -52,6 +58,20 @@ public class PaymentStatsService {
         result.sort(Comparator.comparing(PaymentStatsEntryResponse::getDate).thenComparing(PaymentStatsEntryResponse::getSource));
 
         return result;
+    }
+
+    // 하루치 취소표(당일 입장권 환불) 내역 목록, 최근 환불순
+    public List<RefundLogResponse> getRefundLogs(Long expoId, LocalDate date) {
+        List<RefundLog> rows = admissionPaymentTicketRepository.findRecentRefundedByExpoId(
+                expoId,
+                date.atStartOfDay(),
+                date.plusDays(1).atStartOfDay(),
+                PageRequest.of(0, REFUND_LOG_LIMIT)
+        );
+
+        return rows.stream()
+                .map(r -> new RefundLogResponse(r.getRefundedAt(), r.getAmount(), r.getRefundReason()))
+                .toList();
     }
 
     // paid/refund 두 쿼리 결과를 날짜 기준으로 합쳐 하나의 시계열로 만듦

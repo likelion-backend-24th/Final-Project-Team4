@@ -13,7 +13,9 @@ import { cn } from '@/lib/utils';
 // AdminHeader.jsx의 NAV_ITEMS와 동일한 메뉴 구성 - 세로 배치로만 바뀜.
 // 회원 관리는 참관객 관리/참가업체 관리로 나뉘는 상위 메뉴라 children으로 묶음.
 // 부모 링크는 두 하위 화면 중 기본으로 보여줄 참관객 관리와 같은 경로로 연결.
+// 관리자 화면 좌측 사이드바 레이아웃. 모든 관리자 페이지가 이 레이아웃으로 자체 래핑한다.
 const NAV_ITEMS = [
+  { to: '/admin', label: '대시보드', icon: LayoutDashboard, end: true },
   {
     to: '/admin/applications',
     label: '참가 신청 관리',
@@ -71,7 +73,7 @@ export function AdminSidebarLayout({ breadcrumb, children }) {
         <nav className="flex flex-col gap-1 px-3 py-2">
         {NAV_ITEMS.map((item) => (
             <div key={item.to} className="flex flex-col gap-1">
-            <NavLink to={item.to} className={navLinkClass}>
+            <NavLink to={item.to} end={item.end} className={navLinkClass}>
                 <item.icon className="size-4" />
                 {item.label}
             </NavLink>

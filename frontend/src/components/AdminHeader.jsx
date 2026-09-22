@@ -5,7 +5,7 @@ import AccountMenu from './AccountMenu';
 import { AppHeader } from './layout/AppHeader';
 
 const NAV_ITEMS = [
-  // { to: '/admin', label: '대시보드', end: true }, // 대시보드 탭 임시 비활성화
+  { to: '/admin', label: '대시보드', end: true },
   { to: '/admin/applications', label: '참가신청 관리' },
   { to: '/admin/expos/new', label: '박람회 등록' },
   { to: '/admin/stats', label: '통계' },

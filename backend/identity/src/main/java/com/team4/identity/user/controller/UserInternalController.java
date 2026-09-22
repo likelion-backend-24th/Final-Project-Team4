@@ -9,6 +9,9 @@ import com.team4.identity.user.dto.InternalMailRequest;
 import com.team4.identity.user.dto.InternalUserResponse;
 import com.team4.identity.user.repository.UserRepository;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +28,9 @@ public class UserInternalController {
 
     @Value("${service.token.review}")
     private String reviewServiceToken;
+
+    @Value("${service.token.reservation}")
+    private String reservationServiceToken;
 
     public UserInternalController(UserRepository userRepository, MailSender mailSender) {
         this.userRepository = userRepository;
@@ -43,6 +49,23 @@ public class UserInternalController {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다. userId=" + userId));
 
         return ResponseEntity.ok(ApiResponse.success(InternalUserResponse.from(user)));
+    }
+
+    // Reservation -> Identity. 관리자 입장 현황 목록에 보여줄 고객 이름 일괄 조회
+    @GetMapping("/users/names")
+    public ResponseEntity<ApiResponse<Map<Long, String>>> getUserNames(@RequestHeader("Authorization") String authorization,
+                                                                       @RequestParam List<Long> ids) {
+
+        requireKnownService(authorization);
+
+        Map<Long, String> names = new HashMap<>();
+        for (User user : userRepository.findAllById(ids)) {
+            if (user.getName() != null) {
+                names.put(user.getId(), user.getName());
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(names));
     }
 
     // Expo -> Identity. 참가업체 리드 이메일 발송(TASK 11-4) - 기존 비밀번호 재설정과 같은 MailSender(app.mail.provider) 재사용.
@@ -67,7 +90,9 @@ public class UserInternalController {
 
     private void requireKnownService(String authorization) {
         if (authorization == null
-                || (!authorization.equals("Bearer " + expoServiceToken) && !authorization.equals("Bearer " + reviewServiceToken))) {
+                || (!authorization.equals("Bearer " + expoServiceToken)
+                && !authorization.equals("Bearer " + reviewServiceToken)
+                && !authorization.equals("Bearer " + reservationServiceToken))) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "내부 서비스 인증에 실패했습니다.");
         }
     }
