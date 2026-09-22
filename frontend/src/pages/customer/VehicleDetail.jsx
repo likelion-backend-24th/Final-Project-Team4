@@ -1,11 +1,14 @@
+import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import './VehicleDetail.css';
-import '../customer/ExhibitorList.css';
-
-const TABS = ['차량 소개', '주요 특징', '컬러'];
+import { EmptyState, PageContainer } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 // 주요 제원 그리드에 뿌릴 항목 - 값이 없는 항목(선택 입력이라 비어있을 수 있음)은 자동으로 건너뛴다.
 const SPEC_FIELDS = [
@@ -43,13 +46,41 @@ const splitLines = (text) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+function FeatureList({ lines }) {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+      {lines.map((line, i) => (
+        <li key={i} className="flex items-start gap-2.5 text-sm">
+          <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Check className="size-3" />
+          </span>
+          {line}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ColorGrid({ lines }) {
+  return (
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(90px,1fr))] gap-4">
+      {lines.map((name) => (
+        <div key={name} className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground">
+          <span className="size-10 rounded-full border border-border" style={{ background: colorToHex(name) }} />
+          <span>{name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function VehicleDetail() {
   const { expoId, vehicleId } = useParams();
   const [groups, setGroups] = useState([]);
   const [found, setFound] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
-  const [tab, setTab] = useState('차량 소개');
+  const [tab, setTab] = useState('intro');
 
   useEffect(() => {
     getCustomerExpoVehicles(expoId)
@@ -70,16 +101,16 @@ function VehicleDetail() {
   }, [expoId, vehicleId]);
 
   if (loadError) {
-    return <p className="c-vehicle-detail__status">{loadError}</p>;
+    return <EmptyState tone="error">{loadError}</EmptyState>;
   }
   if (!found) {
-    return <p className="c-vehicle-detail__status">불러오는 중...</p>;
+    return <EmptyState>불러오는 중...</EmptyState>;
   }
 
   const { vehicle, group } = found;
   const images = vehicle.images;
   const imageCount = images.length;
-   const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
+  const mainImageUrl = images[activeImageIdx] ? toAssetUrl(images[activeImageIdx].imageUrl) : null;
   const brandName = vehicle.brand || group.title;
   const brandLogoUrl = group.bannerImageUrl ? toAssetUrl(group.bannerImageUrl) : null;
 
@@ -91,180 +122,167 @@ function VehicleDetail() {
   const colorLines = splitLines(vehicle.colors);
 
   return (
-    <div className="c-vehicle-detail">
-      <div className="c-vehicle-detail__crumb">
-        <Link to="/customer">홈</Link> &gt; <Link to={`/customer/expos/${expoId}`}>전시 차량</Link> &gt;{' '}
-        <Link to={`/customer/expos/${expoId}/booths/${group.boothId}`}>{group.title}</Link> &gt; <span>{vehicle.name}</span>
-      </div>
+    <PageContainer>
+      <nav className="mb-5 flex flex-wrap items-center gap-1 text-xs text-muted-foreground" aria-label="breadcrumb">
+        <Link to="/customer" className="text-muted-foreground no-underline hover:text-foreground">홈</Link>
+        <ChevronRight className="size-3" />
+        <Link to={`/customer/expos/${expoId}`} className="text-muted-foreground no-underline hover:text-foreground">전시 차량</Link>
+        <ChevronRight className="size-3" />
+        <Link to={`/customer/expos/${expoId}/booths/${group.boothId}`} className="text-muted-foreground no-underline hover:text-foreground">
+          {group.title}
+        </Link>
+        <ChevronRight className="size-3" />
+        <span className="text-foreground">{vehicle.name}</span>
+      </nav>
 
-      <div className="c-vehicle-detail__layout">
-        <div className="c-vehicle-detail__main">
-          <div className="c-vehicle-detail__gallery">
-            <div className="c-vehicle-detail__gallery-main">
-              {mainImageUrl && <img src={mainImageUrl} alt={vehicle.name} />}
+      <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <div>
+            <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-muted">
+              {mainImageUrl && <img src={mainImageUrl} alt={vehicle.name} className="size-full object-cover" />}
               {imageCount > 1 && (
                 <>
-                  <button type="button" className="c-vehicle-detail__gallery-arrow c-vehicle-detail__gallery-arrow--prev" onClick={goPrevImage} aria-label="이전 사진">
-                    ‹
-                  </button>
-                  <button type="button" className="c-vehicle-detail__gallery-arrow c-vehicle-detail__gallery-arrow--next" onClick={goNextImage} aria-label="다음 사진">
-                    ›
-                  </button>
-                  <span className="c-vehicle-detail__gallery-counter">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-1/2 left-3 -translate-y-1/2 rounded-full opacity-90"
+                    onClick={goPrevImage}
+                    aria-label="이전 사진"
+                  >
+                    <ChevronLeft />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon"
+                    className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full opacity-90"
+                    onClick={goNextImage}
+                    aria-label="다음 사진"
+                  >
+                    <ChevronRight />
+                  </Button>
+                  <span className="absolute right-3 bottom-3 rounded-full bg-black/60 px-2.5 py-0.5 text-xs font-medium text-white">
                     {activeImageIdx + 1} / {imageCount}
                   </span>
                 </>
               )}
             </div>
             {imageCount > 0 && (
-              <div className="c-vehicle-detail__gallery-thumbs">
+              <div className="mt-3 grid grid-cols-4 gap-2.5">
                 {images.map((img, i) => (
                   <button
                     key={img.imageId}
                     type="button"
-                    className={`c-vehicle-detail__gallery-thumb${i === activeImageIdx ? ' is-active' : ''}`}
+                    className={cn(
+                      'aspect-[3/2] cursor-pointer overflow-hidden rounded-lg border-2 bg-muted p-0 transition-colors',
+                      i === activeImageIdx ? 'border-primary' : 'border-transparent hover:border-border'
+                    )}
                     onClick={() => setActiveImageIdx(i)}
                   >
-                    <img src={toAssetUrl(img.imageUrl)} alt={`${vehicle.name} ${i + 1}`} />
+                    <img src={toAssetUrl(img.imageUrl)} alt={`${vehicle.name} ${i + 1}`} className="size-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-           <div className="c-vehicle-detail__brand">
-            {brandLogoUrl ? (
-              <img className="c-vehicle-detail__brand-logo" src={brandLogoUrl} alt={brandName} />
-            ) : (
-              <span className="c-vehicle-detail__brand-badge">{brandName.slice(0, 1)}</span>
-            )}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              {brandLogoUrl ? (
+                <img className="h-7 max-w-36 rounded object-contain" src={brandLogoUrl} alt={brandName} />
+              ) : (
+                <span className="flex size-6 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
+                  {brandName.slice(0, 1)}
+                </span>
+              )}
+              <span className="text-sm font-semibold text-muted-foreground">{brandName}</span>
+            </div>
+            <h1 className="m-0 text-3xl font-bold tracking-tight">{vehicle.name}</h1>
+            <p className="mt-2 mb-3 text-sm text-muted-foreground">{vehicle.summary}</p>
+            <div className="mb-4 flex flex-wrap gap-1.5">
+              {vehicle.tags.map((t) => (
+                <Badge key={t} variant="secondary">{t}</Badge>
+              ))}
+            </div>
+            <p className="m-0 text-sm text-muted-foreground">
+              시작 가격 <strong className="ml-1 text-2xl font-extrabold text-foreground">{vehicle.startPrice.toLocaleString()}원</strong>
+            </p>
           </div>
-
-          <h1>{vehicle.name}</h1>
-          <p className="c-vehicle-detail__summary">{vehicle.summary}</p>
-          <div className="c-vehicle-detail__tags">
-            {vehicle.tags.map((t) => (
-              <span key={t}>{t}</span>
-            ))}
-          </div>
-
-          <p className="c-vehicle-detail__price">
-            시작 가격 <strong>{vehicle.startPrice.toLocaleString()}원</strong>
-          </p>
 
           {specs.length > 0 && (
-            <section className="c-vehicle-detail__card">
-              <h2 className="c-vehicle-detail__card-title">
-                <span className="c-vehicle-detail__card-icon">📋</span> 주요 제원
-              </h2>
-              <div className="c-vehicle-detail__specs">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">📋 주요 제원</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {specs.map((f) => (
-                  <div key={f.key} className="c-vehicle-detail__spec">
-                    <span className="c-vehicle-detail__spec-icon">{f.icon}</span>
+                  <div key={f.key} className="flex items-start gap-3 rounded-lg border p-3.5">
+                    <span className="text-lg leading-none">{f.icon}</span>
                     <div>
-                      <span className="c-vehicle-detail__spec-label">{f.label}</span>
-                      <span className="c-vehicle-detail__spec-value">
+                      <span className="block text-xs text-muted-foreground">{f.label}</span>
+                      <span className="mt-1 block text-sm font-bold">
                         {vehicle[f.key]}
                         {f.suffix ?? ''}
                       </span>
                     </div>
                   </div>
                 ))}
-              </div>
-            </section>
+              </CardContent>
+            </Card>
           )}
 
-          <section className="c-vehicle-detail__card">
-            <nav className="c-vehicle-detail__tabs">
-              {TABS.map((t) => (
-                <button key={t} type="button" className={tab === t ? 'is-active' : ''} onClick={() => setTab(t)}>
-                  {t}
-                </button>
-              ))}
-            </nav>
+          <Card>
+            <CardContent>
+              <Tabs value={tab} onValueChange={setTab}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="intro">차량 소개</TabsTrigger>
+                  <TabsTrigger value="features">주요 특징</TabsTrigger>
+                  <TabsTrigger value="colors">컬러</TabsTrigger>
+                </TabsList>
 
-            <div className="c-vehicle-detail__tabcontent">
-              {tab === '차량 소개' && (
-                <div className="c-vehicle-detail__intro">
-                  <div className="c-vehicle-detail__intro-text">
-                    {vehicle.description
-                      ? vehicle.description.split('\n').map((line, i) => <p key={i}>{line}</p>)
-                      : <p>등록된 차량 소개가 없습니다.</p>}
-                  </div>
-                  {images[1] && (
-                    <div className="c-vehicle-detail__intro-image">
-                      <img src={toAssetUrl(images[1].imageUrl)} alt={vehicle.name} />
+                <TabsContent value="intro">
+                  <div className="flex flex-col items-start gap-5 sm:flex-row">
+                    <div className="min-w-0 flex-1 text-sm leading-relaxed">
+                      {vehicle.description ? (
+                        vehicle.description.split('\n').map((line, i) => (
+                          <p key={i} className="mt-0 mb-2">{line}</p>
+                        ))
+                      ) : (
+                        <p className="m-0 text-muted-foreground">등록된 차량 소개가 없습니다.</p>
+                      )}
                     </div>
+                    {images[1] && (
+                      <img
+                        src={toAssetUrl(images[1].imageUrl)}
+                        alt={vehicle.name}
+                        className="w-full shrink-0 rounded-lg object-cover sm:w-56"
+                      />
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="features">
+                  {featureLines.length > 0 ? (
+                    <FeatureList lines={featureLines} />
+                  ) : (
+                    <p className="m-0 text-sm text-muted-foreground">등록된 주요 특징 정보가 없습니다.</p>
                   )}
-                </div>
-              )}
-              {tab === '주요 특징' &&
-                (featureLines.length > 0
-                  ? (
-                    <ul className="c-vehicle-detail__feature-list">
-                      {featureLines.map((line, i) => (
-                        <li key={i}>{line}</li>
-                      ))}
-                    </ul>
-                  )
-                  : <p>등록된 주요 특징 정보가 없습니다.</p>)}
-              {tab === '컬러' &&
-                (colorLines.length > 0
-                  ? (
-                    <div className="c-vehicle-detail__color-grid">
-                      {colorLines.map((name) => (
-                        <div key={name} className="c-vehicle-detail__color-item">
-                          <span className="c-vehicle-detail__color-dot" style={{ background: colorToHex(name) }} />
-                          <span>{name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                  : <p>등록된 컬러 정보가 없습니다.</p>)}
-            </div>
-          </section>
-
-          {(featureLines.length > 0 || colorLines.length > 0) && (
-            <div className="c-vehicle-detail__preview-row">
-              {featureLines.length > 0 && (
-                <section className="c-vehicle-detail__card">
-                  <h2 className="c-vehicle-detail__card-title">
-                    <span className="c-vehicle-detail__card-icon">🔵</span> 주요 특징
-                  </h2>
-                  <ul className="c-vehicle-detail__feature-list">
-                    {featureLines.map((line, i) => (
-                      <li key={i}>{line}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {colorLines.length > 0 && (
-                <section className="c-vehicle-detail__card">
-                  <div className="c-vehicle-detail__card-header">
-                    <h2 className="c-vehicle-detail__card-title">
-                      <span className="c-vehicle-detail__card-icon c-vehicle-detail__color-wheel-icon" /> 컬러
-                    </h2>
-                    <button type="button" className="c-vehicle-detail__color-link" onClick={() => setTab('컬러')}>
-                      전체 컬러 보기 &gt;
-                    </button>
-                  </div>
-                  <div className="c-vehicle-detail__color-grid">
-                    {colorLines.map((name) => (
-                      <div key={name} className="c-vehicle-detail__color-item">
-                        <span className="c-vehicle-detail__color-dot" style={{ background: colorToHex(name) }} />
-                        <span>{name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </div>
-          )}
+                </TabsContent>
+                <TabsContent value="colors">
+                  {colorLines.length > 0 ? (
+                    <ColorGrid lines={colorLines} />
+                  ) : (
+                    <p className="m-0 text-sm text-muted-foreground">등록된 컬러 정보가 없습니다.</p>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
 
         <BulkConsultPromo expoId={expoId} groups={groups} lockedBoothId={group.boothId} defaultVehicle={vehicle.name} />
       </div>
-    </div>
+    </PageContainer>
   );
 }
 

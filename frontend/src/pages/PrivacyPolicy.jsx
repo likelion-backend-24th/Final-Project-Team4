@@ -1,45 +1,43 @@
 import { CONTACT_EMAIL, EFFECTIVE_DATE, PRIVACY_OFFICER, SITE_NAME } from '../utils/siteInfo';
-import './Legal.css';
+import { LegalPage } from '@/components/layout/LegalPage';
+import { Table as UiTable, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 // 개인정보 보호법 제30조 필수 기재사항과 개인정보보호위원회 표준 개인정보 처리방침 목차를 기준으로,
 // 이 서비스가 실제로 수집, 이용하는 항목(회원가입, 소셜 로그인, 상담, 리드, 결제, AI)에 맞춰 작성함
 function Table({ head, rows }) {
   return (
-    <div className="legal__table-wrap">
-      <table>
-        <thead>
-          <tr>
+    <div className="my-2 mb-3 overflow-x-auto rounded-lg border">
+      <UiTable className="min-w-[560px] text-[13px]">
+        <TableHeader>
+          <TableRow>
             {head.map((h) => (
-              <th key={h}>{h}</th>
+              <TableHead key={h} className="whitespace-nowrap">{h}</TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {rows.map((row) => (
-            <tr key={row[0]}>
+            <TableRow key={row[0]}>
               {row.map((cell, i) => (
-                <td key={i}>{cell}</td>
+                <TableCell key={i} className="whitespace-normal align-top">{cell}</TableCell>
               ))}
-            </tr>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </UiTable>
     </div>
   );
 }
 
 function PrivacyPolicy() {
   return (
-    <main className="legal">
-      <h1>개인정보처리방침</h1>
-      <p className="legal__meta">시행일 {EFFECTIVE_DATE}</p>
-
-      <p className="legal__intro">
+    <LegalPage title="개인정보처리방침">
+      <p className="mb-8 rounded-lg bg-muted p-4">
         {SITE_NAME}(이하 &quot;회사&quot;)는 「개인정보 보호법」 등 관련 법령에 따라 이용자의 개인정보를
         보호하고 관련한 고충을 신속하게 처리하기 위해 다음과 같이 개인정보처리방침을 수립하여 공개합니다.
       </p>
 
-      <section className="legal__section">
+      <section>
         <h2>1. 개인정보의 처리 목적</h2>
         <p>회사는 다음의 목적을 위해 개인정보를 처리하며, 목적이 바뀌면 별도의 동의를 받는 등 필요한 조치를 합니다.</p>
         <ul>
@@ -53,7 +51,7 @@ function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>2. 처리하는 개인정보의 항목</h2>
         <Table
           head={['구분', '수집 시점', '항목']}
@@ -95,7 +93,7 @@ function PrivacyPolicy() {
         <p>이메일 인증 과정에서 입력한 인증번호는 인증에 필요한 시간 동안만 임시로 보관합니다.</p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>3. 개인정보의 처리 및 보유기간</h2>
         <p>
           회사는 법령에 따른 보존 기간 또는 정보주체로부터 동의받은 보유 기간 안에서 개인정보를 처리하고
@@ -115,7 +113,7 @@ function PrivacyPolicy() {
         />
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>4. 개인정보의 제3자 제공</h2>
         <p>
           회사는 정보주체의 개인정보를 처리 목적 범위 안에서만 이용하며, 정보주체의 동의가 있거나 법률에
@@ -141,7 +139,7 @@ function PrivacyPolicy() {
         <p>정보주체는 제공에 동의하지 않을 권리가 있으며, 동의하지 않는 경우 상담 신청 등 해당 기능을 이용하는 데 제한이 있을 수 있습니다.</p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>5. 개인정보 처리의 위탁</h2>
         <p>회사는 원활한 서비스 제공을 위해 다음과 같이 개인정보 처리 업무를 위탁하고 있습니다.</p>
         <Table
@@ -157,7 +155,7 @@ function PrivacyPolicy() {
         <p>회사는 위탁 계약 시 개인정보가 안전하게 관리되도록 필요한 사항을 정하고 수탁자를 관리, 감독합니다. 수탁자가 바뀌면 이 방침을 통해 알립니다.</p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>6. 개인정보의 국외 이전</h2>
         <p>서비스 제공을 위해 다음과 같이 개인정보가 국외로 이전됩니다.</p>
         <Table
@@ -185,7 +183,7 @@ function PrivacyPolicy() {
         </p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>7. 개인정보의 파기 절차와 방법</h2>
         <p>
           회사는 개인정보 보유 기간이 지나거나 처리 목적이 달성되어 개인정보가 불필요하게 되었을 때 지체
@@ -198,7 +196,7 @@ function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>8. 정보주체와 법정대리인의 권리, 의무 및 행사 방법</h2>
         <ul>
           <li>정보주체는 회사에 언제든지 개인정보 열람, 정정, 삭제, 처리정지, 동의 철회를 요구할 수 있습니다.</li>
@@ -209,12 +207,12 @@ function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>9. 만 14세 미만 아동의 개인정보</h2>
         <p>회사는 만 14세 미만 아동을 회원으로 받지 않으며, 만 14세 미만 아동의 개인정보를 수집하지 않습니다.</p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>10. 개인정보의 안전성 확보 조치</h2>
         <ul>
           <li>비밀번호는 복호화할 수 없는 방식(단방향 암호화)으로 저장합니다.</li>
@@ -225,7 +223,7 @@ function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>11. 개인정보 자동 수집 장치(쿠키)의 설치, 운영 및 거부</h2>
         <Table
           head={['이름 또는 저장소', '용도', '보관 기간']}
@@ -241,7 +239,7 @@ function PrivacyPolicy() {
         </p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>12. 개인정보 보호책임자</h2>
         <p>
           회사는 개인정보 처리에 관한 업무를 총괄하고, 개인정보 처리와 관련한 정보주체의 불만 처리와 피해
@@ -258,7 +256,7 @@ function PrivacyPolicy() {
         <p>정보주체는 서비스를 이용하면서 생긴 모든 개인정보 보호 관련 문의, 불만 처리, 피해 구제 요청을 위 담당자에게 할 수 있습니다.</p>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>13. 개인정보 열람청구 접수 및 처리 부서</h2>
         <p>정보주체는 「개인정보 보호법」 제35조에 따른 개인정보 열람 청구를 아래 부서에 할 수 있습니다.</p>
         <Table
@@ -270,7 +268,7 @@ function PrivacyPolicy() {
         />
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>14. 권익침해 구제방법</h2>
         <p>정보주체는 개인정보 침해로 인한 구제를 받기 위해 아래 기관에 분쟁 해결이나 상담을 신청할 수 있습니다.</p>
         <ul>
@@ -281,7 +279,7 @@ function PrivacyPolicy() {
         </ul>
       </section>
 
-      <section className="legal__section">
+      <section>
         <h2>15. 개인정보처리방침의 변경</h2>
         <p>
           이 개인정보처리방침은 {EFFECTIVE_DATE}부터 적용됩니다. 내용이 추가, 삭제 또는 수정되는 경우에는
@@ -289,7 +287,7 @@ function PrivacyPolicy() {
           전부터 알립니다.
         </p>
       </section>
-    </main>
+    </LegalPage>
   );
 }
 

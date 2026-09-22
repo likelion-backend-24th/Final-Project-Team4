@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CONTACT_EMAIL, EFFECTIVE_DATE, SITE_NAME } from '../utils/siteInfo';
-import './Legal.css';
+import { LegalPage } from '@/components/layout/LegalPage';
 
 // 공정거래위원회 전자상거래 표준약관과 약관의 규제에 관한 법률을 기준으로
 // 이 서비스의 실제 기능(예약, QR, 결제, 부스 신청, 상담, 리드, AI)에 맞춰 작성함
@@ -164,12 +164,10 @@ function Terms() {
   }, [hash]);
 
   return (
-    <main className="legal">
-      <h1>이용약관</h1>
-      <p className="legal__meta">시행일 {EFFECTIVE_DATE}</p>
+    <LegalPage title="이용약관">
 
       {ARTICLES.map((article, i) => (
-        <section className="legal__section" id={`article-${i + 1}`} key={article.title}>
+        <section id={`article-${i + 1}`} key={article.title}>
           <h2>{article.title}</h2>
           {article.body.map((line) => (
             <p key={line}>{line}</p>
@@ -177,11 +175,11 @@ function Terms() {
         </section>
       ))}
 
-      <section className="legal__section">
+      <section>
         <h2>부칙</h2>
         <p>이 약관은 {EFFECTIVE_DATE}부터 시행합니다.</p>
       </section>
-    </main>
+    </LegalPage>
   );
 }
 

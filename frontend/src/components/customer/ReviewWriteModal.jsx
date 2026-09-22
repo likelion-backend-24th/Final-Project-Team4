@@ -1,7 +1,13 @@
+import { Maximize2, Plus, Sparkles, Undo2, X } from 'lucide-react';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { addBoothReviewImage, createBoothReview, draftConsultationReview, polishReviewContent, updateBoothReview } from '../../api/expo';
-import './Modal.css';
-import './ReviewWriteModal.css';
+import { TextareaField, TextField } from '../form/fields';
+import { AppDialog } from '@/components/layout/AppDialog';
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 // 후기 작성 모달 - 예약한 상담(마이페이지)에서 "후기 작성하러 가기"로 진입하거나,
 // 부스 상세 화면에서 직접 열림. 작성 자격(상담 완료 후 5일 이내)은 서버가 최종 검증한다.
@@ -13,11 +19,26 @@ const MAX_IMAGES = 5;
 
 function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', defaultVehicleName = '', lockType = false, editing, onClose, onCreated }) {
   const [reviewType, setReviewType] = useState(editing?.reviewType ?? defaultType);
-  const [vehicleName, setVehicleName] = useState(editing?.vehicleName ?? defaultVehicleName);
-  const [content, setContent] = useState(editing?.content ?? '');
   const [images, setImages] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [expanded, setExpanded] = useState(false); // 후기 내용 "크게 보기" 패널
+  const [drafting, setDrafting] = useState(false);
+  const [draftError, setDraftError] = useState(null);
+  // 문장 다듬기 - 내가 쓴 글을 AI가 다시 쓰므로 마음에 안 들면 원문으로 되돌릴 수 있게 다듬기 직전 글을 보관한다.
+  const [polishing, setPolishing] = useState(false);
+  const [beforePolish, setBeforePolish] = useState(null);
+
+  const form = useForm({
+    defaultValues: {
+      vehicleName: editing?.vehicleName ?? defaultVehicleName,
+      content: editing?.content ?? '',
+    },
+  });
+  const content = form.watch('content');
+  const vehicleName = form.watch('vehicleName');
+
+  const setContent = (value) => form.setValue('content', value, { shouldDirty: true });
 
   const handleAddImages = (e) => {
     const files = Array.from(e.target.files ?? []);
@@ -26,13 +47,6 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
   };
 
   const removeImage = (idx) => setImages((prev) => prev.filter((_, i) => i !== idx));
-
-  const [drafting, setDrafting] = useState(false);
-  const [draftError, setDraftError] = useState(null);
-
-  // 문장 다듬기 - 내가 쓴 글을 AI가 다시 쓰므로 마음에 안 들면 원문으로 되돌릴 수 있게 다듬기 직전 글을 보관한다.
-  const [polishing, setPolishing] = useState(false);
-  const [beforePolish, setBeforePolish] = useState(null);
 
   const handlePolish = () => {
     setPolishing(true);
@@ -65,12 +79,12 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
       .finally(() => setDrafting(false));
   };
 
-  const handleSubmit = () => {
-    if (reviewType === 'CONSULT' && !vehicleName.trim()) {
+  const handleSubmit = (values) => {
+    if (reviewType === 'CONSULT' && !values.vehicleName.trim()) {
       setError('차량명을 입력해주세요.');
       return;
     }
-    if (!content.trim()) {
+    if (!values.content.trim()) {
       setError('후기 내용을 입력해주세요.');
       return;
     }
@@ -80,8 +94,8 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
       reviewType,
       // 상담후기는 상담 1건당 1개라 어느 상담에 대한 후기인지 함께 보낸다(수정 시에는 서버가 기존 값을 유지).
       consultationId: reviewType === 'CONSULT' && consultationId ? Number(consultationId) : null,
-      vehicleName: reviewType === 'CONSULT' ? vehicleName.trim() : null,
-      content: content.trim(),
+      vehicleName: reviewType === 'CONSULT' ? values.vehicleName.trim() : null,
+      content: values.content.trim(),
     };
     (editing ? updateBoothReview(boothId, editing.reviewId, payload) : createBoothReview(boothId, payload))
       .then((review) =>
@@ -98,111 +112,142 @@ function ReviewWriteModal({ boothId, consultationId, defaultType = 'CONSULT', de
       .finally(() => setSubmitting(false));
   };
 
+  const busy = drafting || polishing;
+
   return (
-    <div className="c-modal__backdrop" onClick={() => !submitting && onClose()}>
-      <div className="c-modal c-review-write" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="c-modal__close" onClick={onClose} disabled={submitting} aria-label="닫기">
-          ✕
-        </button>
-
-        <div className="c-review-write__body">
-          <h2>{editing ? '후기 수정' : '후기 작성'}</h2>
-
-          {lockType || editing ? (
-            <p className="c-review-write__locked-type">{TYPE_LABEL[reviewType]}</p>
-          ) : (
-            <div className="c-review-write__type">
-              <button type="button" className={reviewType === 'CONSULT' ? 'is-selected' : ''} onClick={() => setReviewType('CONSULT')}>
-                상담후기
-              </button>
-              <button type="button" className={reviewType === 'BOOTH' ? 'is-selected' : ''} onClick={() => setReviewType('BOOTH')}>
-                부스후기
-              </button>
-            </div>
-          )}
-
-          {reviewType === 'CONSULT' && (
-            <label className="c-review-write__field">
-              <span>차량명</span>
-              <input value={vehicleName} onChange={(e) => setVehicleName(e.target.value)} placeholder="예: EV6" />
-            </label>
-          )}
-
-          <div className="c-review-write__tools">
-            {consultationId && !editing && (
-              <button type="button" className="c-review-write__tool-btn c-review-write__tool-btn--ai" onClick={handleAiDraft} disabled={drafting || polishing}>
-                {drafting ? 'AI 작성 중...' : 'AI로 후기 작성하기'}
-              </button>
+    <>
+      <AppDialog
+        onClose={() => !submitting && onClose()}
+        dismissible={!submitting}
+        size="md"
+        title={editing ? '후기 수정' : '후기 작성'}
+      >
+        <Form {...form}>
+          <form className="flex flex-col gap-4" onSubmit={form.handleSubmit(handleSubmit)} noValidate>
+            {lockType || editing ? (
+              <p className="m-0 text-sm font-semibold text-primary">{TYPE_LABEL[reviewType]}</p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(TYPE_LABEL).map(([value, label]) => (
+                  <Button key={value} type="button" variant={reviewType === value ? 'default' : 'outline'} onClick={() => setReviewType(value)}>
+                    {label}
+                  </Button>
+                ))}
+              </div>
             )}
-            <button
-              type="button"
-              className="c-review-write__tool-btn c-review-write__tool-btn--ai"
-              onClick={handlePolish}
-              disabled={!content.trim() || drafting || polishing}
-            >
-              {polishing ? 'AI 다듬는 중...' : 'AI로 문장 다듬기'}
-            </button>
-            {beforePolish !== null && (
-              <button
+
+            {reviewType === 'CONSULT' && (
+              <TextField control={form.control} name="vehicleName" label="차량명" placeholder="예: EV6" />
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {consultationId && !editing && (
+                <Button type="button" variant="outline" size="sm" className="flex-1 border-primary text-primary" onClick={handleAiDraft} disabled={busy}>
+                  <Sparkles /> {drafting ? 'AI 작성 중...' : 'AI로 후기 작성하기'}
+                </Button>
+              )}
+              <Button
                 type="button"
-                className="c-review-write__tool-btn"
-                onClick={() => {
-                  setContent(beforePolish);
-                  setBeforePolish(null);
-                }}
+                variant="outline"
+                size="sm"
+                className="flex-1 border-primary text-primary"
+                onClick={handlePolish}
+                disabled={!content.trim() || busy}
               >
-                원래 문장으로 되돌리기
-              </button>
-            )}
-          </div>
-          {draftError && <p className="c-modal__error">{draftError}</p>}
-
-          <label className="c-review-write__field">
-            <span>후기 내용</span>
-            <textarea
-              rows={5}
-              value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
-                setBeforePolish(null);
-              }}
-              placeholder="상담 또는 방문 경험을 자유롭게 남겨주세요."
-            />
-          </label>
-
-          {!editing && (
-          <div className="c-review-write__field">
-            <span>사진 (선택, 최대 {MAX_IMAGES}장)</span>
-            <div className="c-review-write__images">
-              {images.map((file, i) => (
-                <div key={i} className="c-review-write__thumb">
-                  <img src={URL.createObjectURL(file)} alt={`첨부 이미지 ${i + 1}`} />
-                  <button type="button" onClick={() => removeImage(i)} aria-label="사진 삭제">
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {images.length < MAX_IMAGES && (
-                <label className="c-review-write__add-thumb">
-                  +
-                  <input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={handleAddImages} />
-                </label>
+                <Sparkles /> {polishing ? 'AI 다듬는 중...' : 'AI로 문장 다듬기'}
+              </Button>
+              {beforePolish !== null && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setContent(beforePolish);
+                    setBeforePolish(null);
+                  }}
+                >
+                  <Undo2 /> 원래 문장으로 되돌리기
+                </Button>
               )}
             </div>
+            {draftError && <p className="m-0 text-sm text-destructive">{draftError}</p>}
+
+            <div className="grid gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">후기 내용</span>
+                <Button type="button" variant="ghost" size="xs" className="text-primary" onClick={() => setExpanded(true)}>
+                  <Maximize2 /> 크게 보기
+                </Button>
+              </div>
+              <TextareaField
+                control={form.control}
+                name="content"
+                rows={5}
+                placeholder="상담 또는 방문 경험을 자유롭게 남겨주세요."
+                onValueChange={() => setBeforePolish(null)}
+              />
+            </div>
+
+            {!editing && (
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium">사진 (선택, 최대 {MAX_IMAGES}장)</span>
+                <div className="flex flex-wrap gap-2">
+                  {images.map((file, i) => (
+                    <div key={i} className="relative size-16 overflow-hidden rounded-lg border">
+                      <img src={URL.createObjectURL(file)} alt={`첨부 이미지 ${i + 1}`} className="size-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        aria-label="사진 삭제"
+                        className="absolute top-0.5 right-0.5 flex size-[18px] cursor-pointer items-center justify-center rounded-full border-0 bg-black/70 p-0 text-white"
+                      >
+                        <X className="size-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < MAX_IMAGES && (
+                    <label className="flex size-16 cursor-pointer items-center justify-center rounded-lg border border-dashed text-muted-foreground transition-colors hover:bg-muted">
+                      <Plus />
+                      <input type="file" accept="image/png,image/jpeg,image/webp" multiple hidden onChange={handleAddImages} />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {error && <p className="m-0 text-sm text-destructive">{error}</p>}
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+                취소
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (editing ? '수정 중...' : '등록 중...') : editing ? '수정' : '등록'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </AppDialog>
+
+      {expanded && (
+        <AppDialog onClose={() => setExpanded(false)} title="후기 내용 (크게 보기)" size="lg" className={cn('sm:h-[80vh]')}>
+          <Textarea
+            autoFocus
+            value={content}
+            onChange={(e) => {
+              setContent(e.target.value);
+              setBeforePolish(null);
+            }}
+            className="min-h-64 flex-1 resize-none"
+          />
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setExpanded(false)}>
+              완료
+            </Button>
           </div>
-          )}
-
-          {error && <p className="c-modal__error">{error}</p>}
-
-          <button type="button" className="c-modal__primary" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? (editing ? '수정 중...' : '등록 중...') : editing ? '수정' : '등록'}
-          </button>
-          <button type="button" className="c-modal__secondary" onClick={onClose} disabled={submitting}>
-            취소
-          </button>
-        </div>
-      </div>
-    </div>
+        </AppDialog>
+      )}
+    </>
   );
 }
 

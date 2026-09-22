@@ -1,5 +1,5 @@
 import { isFoodBooth } from '../utils/boothType';
-import './HallMap.css';
+import { cn } from '@/lib/utils';
 
 const STATUS_LABEL = {
   AVAILABLE: '미배정',
@@ -14,7 +14,7 @@ const STATUS_LABEL = {
 
 // 부스 칸 아래에 상태 뱃지 텍스트를 보여줄지 여부 - 심사중/중복은 항상 표시,
 // 결제대기/참가확정은 showStatusLabel(관리자 화면 전용)이 true일 때만 표시
-function BoothCell({ booth, selected, onSelect, showStatusLabel = false }) {
+function BoothCell({ booth, selected, onSelect, showStatusLabel = false, selectedKind = null }) {
   const id = booth.boothId ?? booth.id;
   const isPending = booth.status === 'PENDING_REVIEW';
   const isConflict = booth.status === 'PENDING_CONFLICT';
@@ -23,28 +23,34 @@ function BoothCell({ booth, selected, onSelect, showStatusLabel = false }) {
   const isTaken = isReserved || isAssigned;
   const isFood = isFoodBooth(booth.type);
   const showBadge = isPending || isConflict || (showStatusLabel && isTaken);
+  // 이미 고른 부스와 종류(먹거리/조립)가 다르면 선택 못 하게 막음
+  const isBlocked = selectedKind !== null && selectedKind !== (isFood ? 'food' : 'main');
 
   return (
     <button
       type="button"
-      disabled={isTaken || isPending || isConflict}
-      title={`${booth.boothNo} · ${STATUS_LABEL[booth.status] ?? booth.status}`}
-      className={[
-        'hall-map__cell',
-        isFood && 'hall-map__cell--food',
-        isPending && 'hall-map__cell--pending',
-        isConflict && 'hall-map__cell--conflict',
-        isReserved && 'hall-map__cell--reserved',
-        isAssigned && 'hall-map__cell--assigned',
-        selected && 'hall-map__cell--selected',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      disabled={isTaken || isPending || isConflict || isBlocked}
+      title={
+        isBlocked
+          ? '먹거리 부스와 조립 부스는 따로 신청해주세요.'
+          : `${booth.boothNo} · ${STATUS_LABEL[booth.status] ?? booth.status}`
+      }
+      className={cn(
+        'flex h-[72px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg border text-xs font-semibold transition-colors',
+        'border-blue-100 bg-blue-50 text-slate-800 enabled:cursor-pointer enabled:hover:border-primary',
+        isFood && 'border-orange-200 bg-orange-50',
+        isBlocked && 'border-slate-200 bg-slate-100 text-slate-400 opacity-60',
+        isPending && 'border-yellow-300 bg-yellow-100 text-amber-900',
+        isConflict && 'border-red-600 bg-yellow-100 text-amber-900',
+        isReserved && 'border-slate-200 bg-slate-100 text-slate-400',
+        isAssigned && 'border-slate-900 bg-slate-900 text-white',
+        selected && 'border-primary bg-primary text-primary-foreground'
+      )}
       onClick={() => onSelect(id)}
     >
-      {isFood && <span className="hall-map__cell-icon" aria-hidden="true">🍴</span>}
-      <span className="hall-map__cell-no">{booth.boothNo}</span>
-      {showBadge && <span className="hall-map__cell-status">{STATUS_LABEL[booth.status]}</span>}
+      {isFood && <span aria-hidden="true">🍴</span>}
+      <span>{booth.boothNo}</span>
+      {showBadge && <span className="text-[10px] font-medium opacity-90">{STATUS_LABEL[booth.status]}</span>}
     </button>
   );
 }
@@ -59,12 +65,13 @@ function HallMap({
   onSelect,
   reverseFood = false,
   showStatusLabel = false,
+  selectedKind = null,
 }) {
   const foodBooths = booths.filter((b) => isFoodBooth(b.type));
   const mainBooths = booths.filter((b) => !isFoodBooth(b.type));
 
   const foodCol = foodBooths.length > 0 && (
-    <div className="hall-map__food-col">
+    <div className="flex w-14 shrink-0 flex-col gap-1.5">
       {foodBooths.map((b) => (
         <BoothCell
           key={b.boothId ?? b.id}
@@ -72,17 +79,18 @@ function HallMap({
           selected={selectedBoothIds.includes(b.boothId ?? b.id)}
           onSelect={onSelect}
           showStatusLabel={showStatusLabel}
+          selectedKind={selectedKind}
         />
       ))}
     </div>
   );
 
   return (
-    <div className="hall-map">
-      <div className="hall-map__label">{hallName}홀</div>
-      <div className={`hall-map__body ${reverseFood ? 'hall-map__body--reverse' : ''}`}>
+    <div className="min-w-[260px] max-w-[340px] rounded-xl border bg-card p-3">
+      <div className="mb-3 w-fit rounded-md bg-slate-900 px-2.5 py-1 text-xs font-bold text-white">{hallName}홀</div>
+      <div className={cn('flex gap-1.5', reverseFood && 'flex-row-reverse')}>
         {foodCol}
-        <div className="hall-map__grid">
+        <div className="grid flex-1 grid-cols-4 gap-1.5 max-[480px]:grid-cols-3">
           {mainBooths.map((b) => (
             <BoothCell
               key={b.boothId ?? b.id}
@@ -90,14 +98,15 @@ function HallMap({
               selected={selectedBoothIds.includes(b.boothId ?? b.id)}
               onSelect={onSelect}
               showStatusLabel={showStatusLabel}
+              selectedKind={selectedKind}
             />
           ))}
         </div>
       </div>
-      <div className={`hall-map__footer ${reverseFood ? 'hall-map__footer--reverse' : ''}`}>
-        <span className="hall-map__fixture hall-map__fixture--rest">🛋️ 휴게 공간</span>
-        <span className="hall-map__fixture hall-map__fixture--gate">↑ 출입구</span>
-        <span className="hall-map__fixture hall-map__fixture--desk">ⓘ 안내데스크</span>
+      <div className={cn('mt-3 flex flex-wrap gap-1.5 text-[11px]', reverseFood && 'flex-row-reverse')}>
+        <span className="rounded bg-green-100 px-2 py-1 text-green-700">🛋️ 휴게 공간</span>
+        <span className="rounded bg-slate-100 px-2 py-1 text-slate-500">↑ 출입구</span>
+        <span className="rounded bg-slate-100 px-2 py-1 text-slate-500">ⓘ 안내데스크</span>
       </div>
     </div>
   );
@@ -106,9 +115,9 @@ function HallMap({
 // 두 홀 사이의 중앙광장 장식 요소(실제 데이터 없음, 고정 라벨).
 export function HallPlaza() {
   return (
-    <div className="hall-map-plaza">
-      <span className="hall-map-plaza__icon" aria-hidden="true">🌳🪑</span>
-      <span className="hall-map-plaza__label">중앙광장</span>
+    <div className="flex min-w-24 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-green-300 bg-green-50 px-3 py-6 text-green-700">
+      <span aria-hidden="true">🌳🪑</span>
+      <span className="text-xs font-semibold">중앙광장</span>
     </div>
   );
 }

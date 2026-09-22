@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import logoIcon from '../../assets/logo-icon.png';
 import apiClient from '../../api/client';
 import { clearAuth, useIsLoggedIn, useProfileVersion } from '../../api/auth';
 import { getMyProfile } from '../../api/identity';
 import { customerNotificationApi } from '../../api/notifications';
+import { Button } from '@/components/ui/button';
 import NotificationBell from '../NotificationBell';
 import AccountMenu from '../AccountMenu';
-import '../Header.css';
+import { AppHeader } from '../layout/AppHeader';
 
 // 알림 종류별로 클릭 시 이동할 화면 (고객용) - 전부 마이페이지 "예약한 상담" 탭으로 모인다.
 const NOTIFICATION_TARGET = {
@@ -43,33 +43,25 @@ function CustomerHeader() {
   };
 
   return (
-    <header className="app-header">
-      <Link to="/customer" className="app-header__brand">
-        <img src={logoIcon} alt="" className="app-header__logo" />
-        <span>MOBILITY EXPO</span>
-      </Link>
-      <div className="app-header__account">
-        {loggedIn ? (
-          <>
-            <NotificationBell api={customerNotificationApi} targetMap={NOTIFICATION_TARGET} />
-            <AccountMenu
-              label={name ? `${name} (참관객)` : '내 정보'}
-              mypageTo="/customer/mypage"
-              onLogout={handleLogout}
-            />
-          </>
-        ) : (
-          <>
-            <Link to="/login" className="app-header__user">
-              <span>비회원</span>
-            </Link>
-            <Link to="/login" className="app-header__logout">
-              로그인
-            </Link>
-          </>
-        )}
-      </div>
-    </header>
+    <AppHeader brandTo="/customer">
+      {loggedIn ? (
+        <>
+          <NotificationBell api={customerNotificationApi} targetMap={NOTIFICATION_TARGET} />
+          <AccountMenu
+            label={name ? `${name} (참관객)` : '내 정보'}
+            mypageTo="/customer/mypage"
+            onLogout={handleLogout}
+          />
+        </>
+      ) : (
+        <>
+          <span className="text-sm text-muted-foreground">비회원</span>
+          <Button asChild size="sm">
+            <Link to="/login">로그인</Link>
+          </Button>
+        </>
+      )}
+    </AppHeader>
   );
 }
 

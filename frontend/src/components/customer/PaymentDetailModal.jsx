@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getAdmissionTicketPaymentDetail } from '../../api/payment';
-import { downloadReceiptImage } from '../../utils/downloadImage'
-import './Modal.css';
+import { downloadReceiptImage } from '../../utils/downloadImage';
+import { AppDialog, InfoList } from '@/components/layout/AppDialog';
+import { Button } from '@/components/ui/button';
 
 const fmtDateTime = (iso) => (iso ? iso.replace('T', ' ').slice(0, 16) : '-');
 const fmtWon = (n) => (typeof n === 'number' ? `${n.toLocaleString()}원` : '-');
@@ -28,83 +29,68 @@ function PaymentDetailModal({ ticket, onClose }) {
   }, [ticket.ticketId]);
 
   const handleDownload = () => {
-  if (!detail) return;
-  const lines = [
-    `예매번호 ${ticket.bookingNo}`,
-    `결제 금액 ${fmtWon(detail.amount)}`,
-    `결제 상태 ${STATUS_LABEL[detail.status] ?? detail.status}`,
-    `결제 일시 ${fmtDateTime(detail.paidAt)}`,
-    `결제 수단 ${detail.payMethod ?? '-'}`,
-    `결제 번호 ${detail.paymentNo ?? '-'}`,
-    ...(detail.refundedAt ? [`환불 일시 ${fmtDateTime(detail.refundedAt)}`] : []),
-  ];
-  downloadReceiptImage(ticket.expoTitle || '결제 내역', lines, `결제내역_${ticket.bookingNo}`);
-};
-  
-  return (
-    <div className="c-modal__backdrop" onClick={onClose}>
-      <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
-          ✕
-        </button>
-        <h2>결제 내역</h2>
+    if (!detail) return;
+    const lines = [
+      `예매번호 ${ticket.bookingNo}`,
+      `결제 금액 ${fmtWon(detail.amount)}`,
+      `결제 상태 ${STATUS_LABEL[detail.status] ?? detail.status}`,
+      `결제 일시 ${fmtDateTime(detail.paidAt)}`,
+      `결제 수단 ${detail.payMethod ?? '-'}`,
+      `결제 번호 ${detail.paymentNo ?? '-'}`,
+      ...(detail.refundedAt ? [`환불 일시 ${fmtDateTime(detail.refundedAt)}`] : []),
+    ];
+    downloadReceiptImage(ticket.expoTitle || '결제 내역', lines, `결제내역_${ticket.bookingNo}`);
+  };
 
-        <div className="c-modal__qr" style={{ width: 96, height: 96 }}>
+  const items = detail
+    ? [
+        { label: '결제 금액', value: fmtWon(detail.amount) },
+        { label: '결제 상태', value: STATUS_LABEL[detail.status] ?? detail.status },
+        { label: '결제 일시', value: fmtDateTime(detail.paidAt) },
+        { label: '결제 수단', value: detail.payMethod ?? '-' },
+        { label: '결제 번호', value: detail.paymentNo ?? '-' },
+        ...(detail.refundedAt ? [{ label: '환불 일시', value: fmtDateTime(detail.refundedAt) }] : []),
+      ]
+    : [];
+
+  return (
+    <AppDialog
+      onClose={onClose}
+      title="결제 내역"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            닫기
+          </Button>
+          <Button onClick={handleDownload} disabled={!detail}>
+            다운받기
+          </Button>
+        </>
+      }
+    >
+      <div className="flex items-center gap-4">
+        <div className="size-24 shrink-0 overflow-hidden rounded-lg border bg-muted">
           {ticket.qrImageBase64 && (
-            <img src={`data:image/png;base64,${ticket.qrImageBase64}`} alt="입장 QR 코드" />
+            <img src={`data:image/png;base64,${ticket.qrImageBase64}`} alt="입장 QR 코드" className="size-full" />
           )}
         </div>
-        <p className="c-modal__desc" style={{ margin: '0 0 20px' }}>
-          {ticket.expoTitle}
+        <p className="m-0 text-sm leading-relaxed text-muted-foreground">
+          <span className="font-medium text-foreground">{ticket.expoTitle}</span>
           <br />
           {ticket.holderName}님 당일 입장권 · 1인
           <br />
           예매번호 {ticket.bookingNo}
         </p>
-
-        {error ? (
-          <p className="c-modal__error">{error}</p>
-        ) : !detail ? (
-          <p className="c-modal__desc">불러오는 중...</p>
-        ) : (
-          <dl className="c-modal__info">
-            <div className="c-modal__info-row">
-              <dt>결제 금액</dt>
-              <dd>{fmtWon(detail.amount)}</dd>
-            </div>
-            <div className="c-modal__info-row">
-              <dt>결제 상태</dt>
-              <dd>{STATUS_LABEL[detail.status] ?? detail.status}</dd>
-            </div>
-            <div className="c-modal__info-row">
-              <dt>결제 일시</dt>
-              <dd>{fmtDateTime(detail.paidAt)}</dd>
-            </div>
-            <div className="c-modal__info-row">
-              <dt>결제 수단</dt>
-              <dd>{detail.payMethod ?? '-'}</dd>
-            </div>
-            <div className="c-modal__info-row">
-              <dt>결제 번호</dt>
-              <dd>{detail.paymentNo ?? '-'}</dd>
-            </div>
-            {detail.refundedAt && (
-              <div className="c-modal__info-row">
-                <dt>환불 일시</dt>
-                <dd>{fmtDateTime(detail.refundedAt)}</dd>
-              </div>
-            )}
-          </dl>
-        )}
-
-        <button type="button" className="c-modal__primary" onClick={handleDownload} disabled={!detail}>
-          다운받기
-        </button>
-        <button type="button" className="c-modal__secondary" onClick={onClose}>
-          닫기
-        </button>
       </div>
-    </div>
+
+      {error ? (
+        <p className="m-0 text-sm text-destructive">{error}</p>
+      ) : !detail ? (
+        <p className="m-0 text-sm text-muted-foreground">불러오는 중...</p>
+      ) : (
+        <InfoList items={items} />
+      )}
+    </AppDialog>
   );
 }
 

@@ -8,7 +8,16 @@ import {
   regenerateConsultationAiSummary,
   rejectConsultation,
 } from '../api/expo';
-import './ConsultationRequests.css';
+import { Search, Sparkles } from 'lucide-react';
+import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const STATUS_LABEL = {
   REQUESTED: '승인 대기',
@@ -19,12 +28,12 @@ const STATUS_LABEL = {
   NO_SHOW: '미방문',
 };
 const STATUS_BADGE = {
-  REQUESTED: 'crm-badge--pending',
-  APPROVED: 'crm-badge--approved',
-  REJECTED: 'crm-badge--rejected',
-  CANCELED: 'crm-badge--rejected',
-  COMPLETED: 'crm-badge--approved',
-  NO_SHOW: 'crm-badge--rejected',
+  REQUESTED: 'bg-amber-100 text-amber-700',
+  APPROVED: 'bg-emerald-100 text-emerald-700',
+  REJECTED: 'bg-red-100 text-red-700',
+  CANCELED: 'bg-slate-100 text-slate-600',
+  COMPLETED: 'bg-blue-100 text-blue-700',
+  NO_SHOW: 'bg-slate-100 text-slate-600',
 };
 const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
 
@@ -140,8 +149,9 @@ function ConsultationRequests() {
   const currentPage = Math.min(page, totalPages - 1);
   const pageItems = filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
+  // Select(onValueChange는 값을 바로 넘김)와 Input(onChange는 이벤트를 넘김) 둘 다 받는다.
   const setFilterAndResetPage = (setter) => (e) => {
-    setter(e.target.value);
+    setter(e?.target ? e.target.value : e);
     setPage(0);
   };
 
@@ -236,277 +246,309 @@ function ConsultationRequests() {
       .finally(() => setSubmitting(false));
   };
 
+  const FILTERS = [
+    [filterExpo, setFilterExpo, expoOptions, '전체 박람회'],
+    [filterStatus, setFilterStatus, ['전체 상태', '승인 대기', '승인', '반려', '고객 취소', '상담 완료', '미방문']],
+    [filterType, setFilterType, ['전체 상담 유형', '구매', '시승', '구매 + 시승']],
+    [filterVisitDate, setFilterVisitDate, ['전체 방문일', '오늘', '내일', '이번 주']],
+  ];
+
   return (
-    <div className="crm">
-      <section className="crm-hero">
-        <div className="crm-hero__eyebrow">EXHIBITOR MANAGEMENT PORTAL</div>
-        <h1>상담 관리</h1>
-        <p>참가한 박람회의 상담 신청을 확인하고 고객 상담 일정을 관리할 수 있습니다.</p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+        title="상담 관리"
+        description="참가한 박람회의 상담 신청을 확인하고 고객 상담 일정을 관리할 수 있습니다."
+      />
 
-      <main className="crm-container">
-        <section className="crm-stats">
-          <div className="crm-stat">
-            <div className="crm-stat__label">전체 상담 신청</div>
-            <div className="crm-stat__value">{stats.total}<small>건</small></div>
-          </div>
-          <div className="crm-stat">
-            <div className="crm-stat__label">승인 대기</div>
-            <div className="crm-stat__value">{stats.pending}<small>건</small></div>
-          </div>
-          <div className="crm-stat">
-            <div className="crm-stat__label">승인 완료</div>
-            <div className="crm-stat__value">{stats.approved}<small>건</small></div>
-          </div>
-          <div className="crm-stat">
-            <div className="crm-stat__label">오늘 방문 예정</div>
-            <div className="crm-stat__value">{stats.today}<small>건</small></div>
+      <PageContainer className="flex flex-col gap-5">
+        <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            ['전체 상담 신청', stats.total],
+            ['승인 대기', stats.pending],
+            ['승인 완료', stats.approved],
+            ['오늘 방문 예정', stats.today],
+          ].map(([label, value]) => (
+            <Card key={label}>
+              <CardContent>
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="mt-1 text-3xl font-extrabold">
+                  {value}
+                  <small className="ml-1 text-sm font-medium text-muted-foreground">건</small>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+
+        <section className="flex flex-wrap items-center gap-2">
+          {FILTERS.map(([value, setter, options], i) => (
+            <Select key={i} value={value} onValueChange={setFilterAndResetPage(setter)}>
+              <SelectTrigger className="h-10 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ))}
+          <div className="relative min-w-56 flex-1">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-10 pl-8"
+              placeholder="고객명 / 연락처 / 차량 검색"
+              value={search}
+              onChange={setFilterAndResetPage(setSearch)}
+            />
           </div>
         </section>
 
-        <section className="crm-toolbar">
-          <select value={filterExpo} onChange={setFilterAndResetPage(setFilterExpo)}>
-            {expoOptions.map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select value={filterStatus} onChange={setFilterAndResetPage(setFilterStatus)}>
-            {['전체 상태', '승인 대기', '승인', '반려', '고객 취소', '상담 완료', '미방문'].map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select value={filterType} onChange={setFilterAndResetPage(setFilterType)}>
-            {['전체 상담 유형', '구매', '시승', '구매 + 시승'].map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <select value={filterVisitDate} onChange={setFilterAndResetPage(setFilterVisitDate)}>
-            {['전체 방문일', '오늘', '내일', '이번 주'].map((v) => <option key={v}>{v}</option>)}
-          </select>
-          <input
-            className="crm-search"
-            placeholder="고객명 / 연락처 / 차량 검색"
-            value={search}
-            onChange={setFilterAndResetPage(setSearch)}
-          />
-        </section>
+        {actionError && <EmptyState tone="error" className="my-0">{actionError}</EmptyState>}
+        {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
-        {actionError && <p className="crm-error">{actionError}</p>}
-        {loadError && <p className="crm-error">{loadError}</p>}
-
-        <section className="crm-content">
-          <div className="crm-content__head">
-            <div className="crm-content__title">상담 신청 <span>{filtered.length}</span>건</div>
-          </div>
-
-          <div className="crm-table-scroll">
-            <table className="crm-table">
-              <thead>
-                <tr>
-                  <th>고객</th>
-                  <th>박람회</th>
-                  <th>관심 차종</th>
-                  <th>상담 유형</th>
-                  <th>희망 방문일</th>
-                  <th>신청일</th>
-                  <th>상태</th>
-                  <th>관리</th>
-                </tr>
-              </thead>
-              <tbody>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              상담 신청 <span className="text-primary">{filtered.length}</span>건
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>고객</TableHead>
+                  <TableHead>박람회</TableHead>
+                  <TableHead>관심 차종</TableHead>
+                  <TableHead>상담 유형</TableHead>
+                  <TableHead>희망 방문일</TableHead>
+                  <TableHead>신청일</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="text-right">관리</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {loading && (
-                  <tr><td colSpan={8} className="crm-empty-cell">불러오는 중...</td></tr>
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">불러오는 중...</TableCell>
+                  </TableRow>
                 )}
                 {!loading && pageItems.length === 0 && (
-                  <tr><td colSpan={8} className="crm-empty-cell">조건에 맞는 상담 신청이 없습니다.</td></tr>
+                  <TableRow>
+                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                      조건에 맞는 상담 신청이 없습니다.
+                    </TableCell>
+                  </TableRow>
                 )}
                 {pageItems.map((row) => (
-                  <tr key={row.consultationId} onClick={() => openDrawer(row)}>
-                    <td>
-                      <span className="crm-customer">{row.customerName ?? `고객 #${row.customerId}`}</span>
-                      <span className="crm-sub">{row.customerPhone ?? '-'}</span>
-                    </td>
-                    <td>
-                      <span className="crm-expo">{row.expoTitle}</span>
-                      <span className="crm-sub">{row.boothNo}</span>
-                    </td>
-                    <td><span className="crm-vehicle">{row.interestedVehicle || '-'}</span></td>
-                    <td>
-                      <div className="crm-type-badges">
-                        {row.wantsPurchase && <span className="crm-badge crm-badge--purchase">구매</span>}
-                        {row.wantsTestDrive && <span className="crm-badge crm-badge--drive">시승</span>}
+                  <TableRow key={row.consultationId} className="cursor-pointer" onClick={() => openDrawer(row)}>
+                    <TableCell>
+                      <span className="block font-medium">{row.customerName ?? `고객 #${row.customerId}`}</span>
+                      <span className="text-xs text-muted-foreground">{row.customerPhone ?? '-'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="block">{row.expoTitle}</span>
+                      <span className="text-xs text-muted-foreground">{row.boothNo}</span>
+                    </TableCell>
+                    <TableCell>{row.interestedVehicle || '-'}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {row.wantsPurchase && <Badge className="bg-blue-100 text-blue-700">구매</Badge>}
+                        {row.wantsTestDrive && <Badge className="bg-violet-100 text-violet-700">시승</Badge>}
                       </div>
-                    </td>
-                    <td className="crm-date">
-                      <strong>{fmtShortDate(row.preferredDate)} {row.preferredTime?.slice(0, 5)}</strong>
-                      <span>{WEEKDAYS[new Date(`${row.preferredDate}T00:00:00`).getDay()]}</span>
-                    </td>
-                    <td>{fmtDateTime(row.createdAt)}</td>
-                    <td><span className={`crm-badge ${STATUS_BADGE[row.status] ?? ''}`}>{row.statusLabel}</span></td>
-                    <td>
-                      <button type="button" className="crm-action" onClick={(e) => { e.stopPropagation(); openDrawer(row); }}>
+                    </TableCell>
+                    <TableCell>
+                      <strong className="block">
+                        {fmtShortDate(row.preferredDate)} {row.preferredTime?.slice(0, 5)}
+                      </strong>
+                      <span className="text-xs text-muted-foreground">
+                        {WEEKDAYS[new Date(`${row.preferredDate}T00:00:00`).getDay()]}
+                      </span>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">{fmtDateTime(row.createdAt)}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={STATUS_BADGE[row.status]}>{row.statusLabel}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openDrawer(row);
+                        }}
+                      >
                         상세보기
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
+            <Pagination page={currentPage + 1} totalPages={totalPages} onChange={(p) => setPage(p - 1)} />
+          </CardContent>
+        </Card>
+      </PageContainer>
 
-          {totalPages > 1 && (
-            <div className="crm-pagination">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  className={`crm-page ${currentPage === i ? 'is-active' : ''}`}
-                  onClick={() => setPage(i)}
-                >
-                  {i + 1}
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      </main>
+      <Sheet open={!!selected} onOpenChange={(open) => !open && closeDrawer()}>
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-lg">
+          {selected && (
+            <>
+              <SheetHeader className="border-b p-5">
+                <SheetTitle className="text-lg">{selected.customerName ?? `고객 #${selected.customerId}`}</SheetTitle>
+                <SheetDescription>
+                  {selected.customerPhone ?? '-'} · {selected.customerEmail ?? '-'}
+                </SheetDescription>
+              </SheetHeader>
 
-      {selected && (
-        <div className="crm-drawer-backdrop" onClick={closeDrawer}>
-          <aside className="crm-drawer" onClick={(e) => e.stopPropagation()}>
-            <div className="crm-drawer__head">
-              <div className="crm-drawer__head-info">
-                <h2>{selected.customerName ?? `고객 #${selected.customerId}`}</h2>
-                <p>{selected.customerPhone ?? '-'} · {selected.customerEmail ?? '-'}</p>
+              <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-5">
+                {selected.aiSummary && (
+                  <Alert>
+                    <Sparkles />
+                    <AlertTitle>AI 요약</AlertTitle>
+                    <AlertDescription>
+                      <p className="m-0 whitespace-pre-wrap">{selected.aiSummary}</p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {!selected.aiSummary && summaryLoading && (
+                  <Alert>
+                    <Sparkles />
+                    <AlertTitle>AI 요약</AlertTitle>
+                    <AlertDescription>요약 생성 중...</AlertDescription>
+                  </Alert>
+                )}
+
+                <DetailSection
+                  title="상담 정보"
+                  action={
+                    !selected.aiSummary && selected.aiSummaryRetryable ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        disabled={summaryLoading}
+                        onClick={() => handleRegenerateSummary(selected)}
+                      >
+                        {summaryLoading ? '생성 중...' : 'AI 요약'}
+                      </Button>
+                    ) : null
+                  }
+                  rows={[
+                    ['박람회', selected.expoTitle],
+                    ['부스', selected.boothNo],
+                    ['관심 차종', selected.interestedVehicle || '-'],
+                    ['상담 유형', selected.typeLabel],
+                    ...(selected.wantsTestDrive ? [['운전면허 소지', selected.hasDriverLicense ? '소지' : '미소지']] : []),
+                    [
+                      '희망 방문일',
+                      `${selected.preferredDate} ${selected.preferredTime?.slice(0, 5)} (${WEEKDAYS[new Date(`${selected.preferredDate}T00:00:00`).getDay()]})`,
+                    ],
+                  ]}
+                />
+
+                <DetailSection
+                  title="고객 정보"
+                  rows={[
+                    ['이름', selected.customerName ?? '-'],
+                    ['연락처', selected.customerPhone ?? '-'],
+                    ['이메일', selected.customerEmail ?? '-'],
+                  ]}
+                />
+
+                <div>
+                  <h3 className="m-0 mb-2 text-sm font-semibold">추가 문의사항</h3>
+                  <p className="m-0 whitespace-pre-wrap rounded-lg bg-muted/50 p-3 text-sm">{selected.message || '-'}</p>
+                </div>
+
+                {selected.status === 'REJECTED' && (
+                  <div>
+                    <h3 className="m-0 mb-2 text-sm font-semibold">반려 사유</h3>
+                    <p className="m-0 rounded-lg bg-muted/50 p-3 text-sm">{selected.rejectReason}</p>
+                  </div>
+                )}
               </div>
-              <button type="button" className="crm-drawer__close" onClick={closeDrawer} aria-label="닫기">×</button>
-            </div>
 
-            <div className="crm-drawer__body">
-              {selected.aiSummary && (
-                <section className="crm-detail-section">
-                  <div className="crm-ai-summary">
-                    <span className="crm-ai-summary__badge">AI 요약</span>
-                    <p style={{ whiteSpace: 'pre-wrap' }}>{selected.aiSummary}</p>
-                  </div>
-                </section>
-              )}
-
-              {!selected.aiSummary && summaryLoading && (
-                <section className="crm-detail-section">
-                  <div className="crm-ai-summary crm-ai-summary--loading">
-                    <span className="crm-ai-summary__badge">AI 요약</span>
-                    <p>요약 생성 중...</p>
-                  </div>
-                </section>
-              )}
-
-              <section className="crm-detail-section">
-                <div className="crm-detail-title crm-detail-title--row">
-                  상담 정보
-                  {!selected.aiSummary && selected.aiSummaryRetryable && (
-                    <button
-                      type="button"
-                      className="crm-ai-summary-retry"
-                      disabled={summaryLoading}
-                      onClick={() => handleRegenerateSummary(selected)}
-                    >
-                      {summaryLoading ? '생성 중...' : 'AI 요약'}
-                    </button>
-                  )}
-                </div>
-                <div className="crm-detail-box">
-                  <div className="crm-detail-row"><span className="crm-label">박람회</span><span className="crm-value">{selected.expoTitle}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">부스</span><span className="crm-value">{selected.boothNo}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">관심 차종</span><span className="crm-value">{selected.interestedVehicle || '-'}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">상담 유형</span><span className="crm-value">{selected.typeLabel}</span></div>
-                  {selected.wantsTestDrive && (
-                    <div className="crm-detail-row">
-                      <span className="crm-label">운전면허 소지</span>
-                      <span className="crm-value">{selected.hasDriverLicense ? '소지' : '미소지'}</span>
+              <SheetFooter className="border-t p-5">
+                {selected.status === 'APPROVED' ? (
+                  isPastVisitDate(selected.preferredDate) ? (
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="flex-1 text-destructive" disabled={submitting} onClick={() => handleNoShow(selected)}>
+                        미방문 처리
+                      </Button>
+                      <Button type="button" className="flex-1" disabled={submitting} onClick={() => handleComplete(selected)}>
+                        상담 완료
+                      </Button>
                     </div>
-                  )}
-                  <div className="crm-detail-row">
-                    <span className="crm-label">희망 방문일</span>
-                    <span className="crm-value">
-                      {selected.preferredDate} {selected.preferredTime?.slice(0, 5)} ({WEEKDAYS[new Date(`${selected.preferredDate}T00:00:00`).getDay()]})
-                    </span>
+                  ) : (
+                    <p className="m-0 text-sm text-muted-foreground">
+                      방문 예정일({selected.preferredDate}) 다음날부터 완료/미방문 처리할 수 있습니다.
+                    </p>
+                  )
+                ) : selected.status !== 'REQUESTED' ? (
+                  <p className="m-0 text-sm text-muted-foreground">이미 처리된 신청입니다.</p>
+                ) : isRejecting ? (
+                  <div className="flex flex-col gap-2">
+                    <Input
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="반려 사유를 입력하세요 (필수)"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="flex-1" onClick={() => setIsRejecting(false)}>
+                        취소
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="flex-1"
+                        disabled={!rejectReason.trim() || submitting}
+                        onClick={() => handleReject(selected)}
+                      >
+                        반려 확정
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </section>
-
-              <section className="crm-detail-section">
-                <div className="crm-detail-title">고객 정보</div>
-                <div className="crm-detail-box">
-                  <div className="crm-detail-row"><span className="crm-label">이름</span><span className="crm-value">{selected.customerName ?? '-'}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">연락처</span><span className="crm-value">{selected.customerPhone ?? '-'}</span></div>
-                  <div className="crm-detail-row"><span className="crm-label">이메일</span><span className="crm-value">{selected.customerEmail ?? '-'}</span></div>
-                </div>
-              </section>
-
-              <section className="crm-detail-section">
-                <div className="crm-detail-title">추가 문의사항</div>
-                <div className="crm-detail-box">
-                  <p className="crm-message">{selected.message || '-'}</p>
-                </div>
-              </section>
-
-              {selected.status === 'REJECTED' && (
-                <section className="crm-detail-section">
-                  <div className="crm-detail-title">반려 사유</div>
-                  <div className="crm-detail-box">
-                    <p className="crm-message">{selected.rejectReason}</p>
-                  </div>
-                </section>
-              )}
-            </div>
-
-            <div className="crm-drawer__actions">
-              {selected.status === 'APPROVED' ? (
-                isPastVisitDate(selected.preferredDate) ? (
-                  <>
-                    <button type="button" className="crm-btn crm-btn--reject" disabled={submitting} onClick={() => handleNoShow(selected)}>
-                      미방문 처리
-                    </button>
-                    <button type="button" className="crm-btn crm-btn--approve" disabled={submitting} onClick={() => handleComplete(selected)}>
-                      상담 완료
-                    </button>
-                  </>
                 ) : (
-                  <p className="crm-drawer__done-note">방문 예정일({selected.preferredDate}) 다음날부터 완료/미방문 처리할 수 있습니다.</p>
-                )
-              ) : selected.status !== 'REQUESTED' ? (
-                <p className="crm-drawer__done-note">이미 처리된 신청입니다.</p>
-              ) : isRejecting ? (
-                <div className="crm-reject-inline">
-                  <input
-                    className="crm-reject-inline__input"
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="반려 사유를 입력하세요 (필수)"
-                    autoFocus
-                  />
-                  <div className="crm-reject-inline__buttons">
-                    <button type="button" className="crm-btn crm-btn--cancel" onClick={() => setIsRejecting(false)}>
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      className="crm-btn crm-btn--reject-confirm"
-                      disabled={!rejectReason.trim() || submitting}
-                      onClick={() => handleReject(selected)}
-                    >
-                      반려 확정
-                    </button>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" className="flex-1 text-destructive" disabled={submitting} onClick={() => setIsRejecting(true)}>
+                      반려
+                    </Button>
+                    <Button type="button" className="flex-1" disabled={submitting} onClick={() => handleApprove(selected)}>
+                      승인
+                    </Button>
                   </div>
-                </div>
-              ) : (
-                <>
-                  <button type="button" className="crm-btn crm-btn--reject" disabled={submitting} onClick={() => setIsRejecting(true)}>
-                    반려
-                  </button>
-                  <button type="button" className="crm-btn crm-btn--approve" disabled={submitting} onClick={() => handleApprove(selected)}>
-                    승인
-                  </button>
-                </>
-              )}
-            </div>
-          </aside>
-        </div>
-      )}
+                )}
+              </SheetFooter>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function DetailSection({ title, rows, action }) {
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <h3 className="m-0 text-sm font-semibold">{title}</h3>
+        {action}
+      </div>
+      <dl className="m-0 divide-y rounded-lg border text-sm">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-4 px-3 py-2">
+            <dt className="shrink-0 text-muted-foreground">{label}</dt>
+            <dd className="m-0 text-right font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

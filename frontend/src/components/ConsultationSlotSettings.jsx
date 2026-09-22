@@ -1,7 +1,12 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getConsultationSlotSettings, getCustomerExpo, saveConsultationSlotSettings } from '../api/expo';
 import { CONSULTATION_TIME_SLOTS } from '../mock/customerData';
 import { buildCalendar, expoDateRange, toIsoDate, WEEKDAYS } from '../utils/calendar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const fmtDate = (iso) => `${iso.slice(5).replace('-', '.')}(${WEEKDAYS[new Date(`${iso}T00:00:00Z`).getUTCDay()]})`;
 const monthIndex = (iso) => Number(iso.slice(0, 4)) * 12 + Number(iso.slice(5, 7)) - 1;
@@ -84,13 +89,15 @@ function ConsultationSlotSettings({ boothId, expoId }) {
       .finally(() => setSaving(false));
   };
 
-  if (loadError) return <p className="booth-manage__error">{loadError}</p>;
+  if (loadError) return <p className="m-0 text-sm text-destructive">{loadError}</p>;
 
   return (
-    <>
-      <label className="booth-manage__field booth-manage__slot-default">
-        <span>기본 접수 건수 (시간대당)</span>
-        <input
+    <div className="flex flex-col gap-5">
+      <div className="grid max-w-xs gap-1.5">
+        <Label htmlFor="slot-default">기본 접수 건수 (시간대당)</Label>
+        <Input
+          id="slot-default"
+          className="h-10"
           inputMode="numeric"
           value={defaultCapacity}
           onChange={(e) => {
@@ -98,25 +105,25 @@ function ConsultationSlotSettings({ boothId, expoId }) {
             setDefaultCapacity(e.target.value.replace(/\D/g, '').slice(0, 3));
           }}
         />
-      </label>
+      </div>
 
       {view && (
-        <div className="booth-manage__slot-layout">
-          <div className="booth-manage__slot-calendar">
-            <div className="booth-manage__slot-cal-head">
-              <button type="button" onClick={() => moveMonth(-1)} disabled={!canMove(-1)} aria-label="이전 달">
-                &lt;
-              </button>
-              <strong>
+        <div className="grid gap-6 md:grid-cols-[320px_1fr]">
+          <div className="rounded-xl border p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveMonth(-1)} disabled={!canMove(-1)} aria-label="이전 달">
+                <ChevronLeft />
+              </Button>
+              <strong className="text-sm">
                 {view.year}년 {view.month + 1}월
               </strong>
-              <button type="button" onClick={() => moveMonth(1)} disabled={!canMove(1)} aria-label="다음 달">
-                &gt;
-              </button>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => moveMonth(1)} disabled={!canMove(1)} aria-label="다음 달">
+                <ChevronRight />
+              </Button>
             </div>
-            <div className="booth-manage__slot-cal-grid">
+            <div className="grid grid-cols-7 gap-1 text-center">
               {WEEKDAYS.map((w) => (
-                <span key={w} className="booth-manage__slot-cal-weekday">
+                <span key={w} className="py-1 text-[11px] text-muted-foreground">
                   {w}
                 </span>
               ))}
@@ -124,7 +131,7 @@ function ConsultationSlotSettings({ boothId, expoId }) {
                 const iso = d ? toIsoDate(view.year, view.month, d) : null;
                 if (!d || !dateSet.has(iso)) {
                   return (
-                    <span key={i} className="booth-manage__slot-cal-cell is-off">
+                    <span key={i} className="flex aspect-square items-center justify-center text-[13px] text-slate-300">
                       {d ?? ''}
                     </span>
                   );
@@ -134,37 +141,48 @@ function ConsultationSlotSettings({ boothId, expoId }) {
                   <button
                     key={i}
                     type="button"
-                    className={`booth-manage__slot-cal-cell${iso === selectedDate ? ' is-selected' : ''}`}
+                    className={cn(
+                      'flex aspect-square cursor-pointer flex-col items-center justify-center rounded-md border-0 bg-blue-50 text-[13px] font-medium transition-colors hover:bg-blue-100',
+                      iso === selectedDate && 'bg-primary text-primary-foreground hover:bg-primary'
+                    )}
                     onClick={() => setSelectedDate(iso)}
                   >
                     {d}
-                    {closed > 0 && <small className="is-closed">마감 {closed}</small>}
-                    {closed === 0 && changed > 0 && <small className="is-changed">변경 {changed}</small>}
+                    {closed > 0 && <small className="text-[9px] leading-none opacity-80">마감 {closed}</small>}
+                    {closed === 0 && changed > 0 && <small className="text-[9px] leading-none opacity-80">변경 {changed}</small>}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="booth-manage__slot-day">
-            <h3>{fmtDate(selectedDate)} 시간대별 접수 건수</h3>
-            <div className="booth-manage__slot-times">
+          <div>
+            <h3 className="m-0 mb-3 text-sm font-semibold">{fmtDate(selectedDate)} 시간대별 접수 건수</h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {CONSULTATION_TIME_SLOTS.map((t) => {
                 const key = `${selectedDate}|${t}`;
                 const v = cells[key] ?? '';
-                const state =
-                  v === '' ? '' : Number(v) === 0 ? ' is-closed' : Number(v) !== Number(defaultCapacity) ? ' is-changed' : '';
+                const closed = v !== '' && Number(v) === 0;
+                const changed = v !== '' && !closed && Number(v) !== Number(defaultCapacity);
                 return (
-                  <label key={t} className={`booth-manage__slot-time${state}`}>
-                    <span>{t}</span>
-                    <input
+                  <label
+                    key={t}
+                    className={cn(
+                      'flex items-center gap-2 rounded-lg border p-2 text-sm',
+                      changed && 'border-primary/50 bg-primary/5',
+                      closed && 'border-slate-300 bg-slate-100 text-muted-foreground'
+                    )}
+                  >
+                    <span className="w-11 shrink-0 font-medium">{t}</span>
+                    <Input
+                      className="h-8"
                       inputMode="numeric"
                       value={v}
                       placeholder={defaultCapacity}
                       onChange={(e) => setCell(key, e.target.value)}
                       aria-label={`${selectedDate} ${t} 접수 건수`}
                     />
-                    {state === ' is-closed' && <em>마감</em>}
+                    {closed && <em className="text-xs not-italic">마감</em>}
                   </label>
                 );
               })}
@@ -173,17 +191,17 @@ function ConsultationSlotSettings({ boothId, expoId }) {
         </div>
       )}
 
-      <p className="booth-manage__section-desc">
+      <p className="m-0 text-sm text-muted-foreground">
         빈 칸은 기본 접수 건수가 적용되고, 0을 입력하면 그 시간대는 접수가 마감됩니다. 기본값과 다르게 지정한 칸은 파란색, 마감은
         회색으로 표시됩니다. 이미 접수된 상담은 건수를 줄여도 유지됩니다.
       </p>
 
-      {error && <p className="booth-manage__error">{error}</p>}
-      {message && <p className="booth-manage__success">{message}</p>}
-      <button type="button" disabled={saving} onClick={handleSave}>
+      {error && <p className="m-0 text-sm text-destructive">{error}</p>}
+      {message && <p className="m-0 text-sm text-emerald-600">{message}</p>}
+      <Button type="button" className="w-fit" disabled={saving} onClick={handleSave}>
         {saving ? '저장 중...' : '저장'}
-      </button>
-    </>
+      </Button>
+    </div>
   );
 }
 
