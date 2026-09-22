@@ -47,7 +47,7 @@ function FormItem({ className, ...props }) {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div data-slot="form-item" className={cn("grid gap-2", className)} {...props} />
+      <div data-slot="form-item" className={cn("grid gap-3", className)} {...props} />
     </FormItemContext.Provider>
   )
 }

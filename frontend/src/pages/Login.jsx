@@ -106,10 +106,8 @@ function Login() {
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="gap-1.5">
-                  <FormLabel>
-                    이메일 <span className="text-destructive">*</span>
-                  </FormLabel>
+                <FormItem>
+                  <FormLabel>이메일</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
@@ -128,10 +126,8 @@ function Login() {
               control={form.control}
               name="password"
               render={({ field }) => (
-                <FormItem className="gap-1.5">
-                  <FormLabel>
-                    비밀번호 <span className="text-destructive">*</span>
-                  </FormLabel>
+                <FormItem>
+                  <FormLabel>비밀번호</FormLabel>
                   <div className="relative">
                     <FormControl>
                       <Input
