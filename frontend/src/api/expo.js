@@ -22,24 +22,6 @@ export const applyBooth = (payload) =>
     .post('/api/exhibitor/booth-applications', payload)
     .then((res) => res.data.data);
 
-// PATCH /api/exhibitor/booth-applications/groups/{groupId} — 임시저장 그룹 수정
-export const updateBoothApplicationDraft = (groupId, payload) =>
-  apiClient
-    .patch(`/api/exhibitor/booth-applications/groups/${groupId}`, payload)
-    .then((res) => res.data.data);
-
-// POST /api/exhibitor/booth-applications/groups/{groupId}/submit — 임시저장 최종 제출
-export const submitBoothApplicationDraft = (groupId) =>
-  apiClient
-    .post(`/api/exhibitor/booth-applications/groups/${groupId}/submit`)
-    .then((res) => res.data.data);
-
-// DELETE /api/exhibitor/booth-applications/groups/{groupId} — 신청 취소
-export const deleteBoothApplicationGroup = (groupId) =>
-  apiClient
-    .delete(`/api/exhibitor/booth-applications/groups/${groupId}`)
-    .then((res) => res.data.data);
-
 // GET /api/exhibitor/booth-applications — 마이페이지: 내 부스 신청 내역 (그룹 단위)
 export const getMyBoothApplications = (params) =>
   apiClient.get('/api/exhibitor/booth-applications', { params }).then((res) => res.data.data);
@@ -192,12 +174,6 @@ export const addVehicleImage = (boothId, vehicleId, file) => {
     })
     .then((res) => res.data.data);
 };
-
-// DELETE /api/exhibitor/booths/{boothId}/vehicles/{vehicleId}/images/{imageId} — 차량 이미지 삭제
-export const deleteVehicleImage = (boothId, vehicleId, imageId) =>
-  apiClient
-    .delete(`/api/exhibitor/booths/${boothId}/vehicles/${vehicleId}/images/${imageId}`)
-    .then((res) => res.data.data);
 
 // POST /api/exhibitor/booths/{boothId}/vehicles/analyze-image — 차량 사진(정면/측면/후면 등 1~3장)을
 // AI(Gemini)로 함께 분석해 이름/브랜드/배터리/주행거리 등 스펙 초안을 돌려줌 (DB 저장 없음, 폼 자동입력 용도).
