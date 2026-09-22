@@ -1,4 +1,4 @@
-import { BarChart3, Bell, ClipboardList, FilePlus2, Users } from 'lucide-react';
+import { BarChart3, Bell, ClipboardList, FilePlus2, LayoutDashboard, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.png';
 import apiClient from '../../api/client';
@@ -8,10 +8,9 @@ import Footer from '../Footer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-// 관리자 화면 좌측 사이드바 레이아웃. 전체 사이드바 개편 전 단계이므로 우선 "참가 신청 관리" 페이지에서만 사용하고,
-// 다른 관리자 페이지(박람회 등록/통계)는 기존 AdminHeader(상단 가로 네비) 그대로 유지함.
-// AdminHeader.jsx의 NAV_ITEMS와 동일한 메뉴 구성 - 세로 배치로만 바뀜.
+// 관리자 화면 좌측 사이드바 레이아웃. 모든 관리자 페이지가 이 레이아웃으로 자체 래핑한다.
 const NAV_ITEMS = [
+  { to: '/admin', label: '대시보드', icon: LayoutDashboard, end: true },
   {
     to: '/admin/applications',
     label: '참가 신청 관리',
@@ -60,7 +59,7 @@ export function AdminSidebarLayout({ breadcrumb, children }) {
         <nav className="flex flex-col gap-1 px-3 py-2">
         {NAV_ITEMS.map((item) => (
             <div key={item.to} className="flex flex-col gap-1">
-            <NavLink to={item.to} className={navLinkClass}>
+            <NavLink to={item.to} end={item.end} className={navLinkClass}>
                 <item.icon className="size-4" />
                 {item.label}
             </NavLink>

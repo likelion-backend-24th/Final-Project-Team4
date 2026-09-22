@@ -27,15 +27,19 @@ import ExhibitorList from './pages/customer/ExhibitorList';
 import ExhibitorVehicleList from './pages/customer/ExhibitorVehicleList';
 import VehicleDetail from './pages/customer/VehicleDetail';
 import CustomerMyPage from './pages/customer/CustomerMyPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminExpoList from './pages/admin/AdminExpoList';
 import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
+import AdminStats from './pages/admin/AdminStats';
 import AdminMemberList from './pages/admin/AdminMemberList';
 import AdminMemberDetail from './pages/admin/AdminMemberDetail';
 
-// 역할별 헤더만 다르고 본문, 푸터 배치는 공통
+// 역할별 헤더만 다르고 본문, 푸터 배치는 공통.
+// 관리자 페이지는 각자 AdminSidebarLayout으로 자체 래핑하므로 이 Layout/AdminHeader는
+// 관리자 화면에서는 쓰이지 않고, 로그인한 관리자가 약관/개인정보 처리방침(LegalLayout)을 볼 때만 쓰인다.
 function Layout({ header, children }) {
   return (
     <div className="flex min-h-screen flex-col">
@@ -72,7 +76,7 @@ function LegalLayout({ children }) {
 function ExhibitorHome() {
   const role = getRole();
   if (role === 'USER') return <Navigate to="/customer" replace />;
-  if (role === 'ADMIN') return <Navigate to="/admin/applications" replace />;
+  if (role === 'ADMIN') return <Navigate to="/admin" replace />;
   return (
     <ExhibitorLayout>
       <ExpoList />
@@ -125,13 +129,14 @@ function App() {
       />
       <Route path="/customer/mypage" element={<CustomerLayout><CustomerMyPage /></CustomerLayout>} />
 
-      {/* 대시보드 임시 비활성화: /admin 접속 시 참가신청 관리로 이동 */}
-      <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
+      {/* 관리자 페이지는 전부 AdminSidebarLayout으로 자체 래핑 - 여기선 Layout/AdminHeader를 안 씀 */}
+      <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/admin/expos/new" element={<AdminExpoCreate />} />
       <Route path="/admin/expos/:expoId/edit" element={<AdminExpoEdit />} />
       <Route path="/admin/applications" element={<AdminExpoList />} />
       <Route path="/admin/applications/:expoId" element={<AdminExpoDetail />} />
-      <Route path="/admin/stats" element={<AdminRevenueStats />} />
+      <Route path="/admin/stats" element={<AdminStats />} />
+      <Route path="/admin/stats/payments" element={<AdminRevenueStats />} />
       <Route path="/admin/members" element={<AdminMemberList />} />
       <Route path="/admin/members/:userId" element={<AdminMemberDetail />} />
     </Routes>

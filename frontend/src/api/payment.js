@@ -65,3 +65,9 @@ export const getPaymentStats = ({ expoId, from, to }) =>
   apiClient
     .get('/api/admin/stats/payments', { params: { expoId, from, to } })
     .then((res) => res.data);
+
+// GET /api/admin/stats/payments/refunds - 관리자: 하루치 취소표(당일 입장권 환불) 내역, 최근 환불순 최대 20건
+export const getRefundLogs = ({ expoId, date }) =>
+  apiClient
+    .get('/api/admin/stats/payments/refunds', { params: { expoId, date } })
+    .then((res) => res.data);

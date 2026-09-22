@@ -2,6 +2,7 @@ package com.team4.reservation.repository;
 
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.domain.TicketStatus;
+import com.team4.reservation.domain.TicketType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -51,4 +52,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             + "WHERE t.expoId = :expoId AND t.status = com.team4.reservation.domain.TicketStatus.ISSUED "
             + "AND (t.visitDate < :newStart OR t.visitDate > :newEnd)")
     int cancelOutOfRangeByExpoId(@Param("expoId") Long expoId, @Param("newStart") LocalDate newStart, @Param("newEnd") LocalDate newEnd);
+
+    // 통계용 - 유형별 유효 발급 수(취소된 티켓 제외), 체크인 완료(USED) 수
+    long countByExpoIdAndTicketTypeAndStatusNot(Long expoId, TicketType ticketType, TicketStatus status);
+
+    long countByExpoIdAndStatus(Long expoId, TicketStatus status);
+
 }

@@ -4,9 +4,11 @@ import com.team4.payment.entity.AdmissionPaymentTicket;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface AdmissionPaymentTicketRepository extends JpaRepository<AdmissionPaymentTicket, Long> {
 
@@ -26,4 +28,12 @@ public interface AdmissionPaymentTicketRepository extends JpaRepository<Admissio
             "AND t.refunded_at >= :from AND t.refunded_at < :toExclusive " +
             "GROUP BY DATE(t.refunded_at)", nativeQuery = true)
     List<DailyAmountCount> findDailyRefundedByExpoId(Long expoId, LocalDateTime from, LocalDateTime toExclusive);
+
+    // 통계용 - 취소표(환불) 내역 목록, 최근 환불순
+    @Query("SELECT t.refundedAt AS refundedAt, t.amount AS amount, t.refundReason AS refundReason " +
+            "FROM AdmissionPaymentTicket t " +
+            "WHERE t.admissionPayment.expoId = :expoId AND t.refundedAt IS NOT NULL " +
+            "AND t.refundedAt >= :from AND t.refundedAt < :toExclusive " +
+            "ORDER BY t.refundedAt DESC")
+    List<RefundLog> findRecentRefundedByExpoId(@Param("expoId") Long expoId, @Param("from") LocalDateTime from, @Param("toExclusive") LocalDateTime toExclusive, Pageable pageable);
 }
