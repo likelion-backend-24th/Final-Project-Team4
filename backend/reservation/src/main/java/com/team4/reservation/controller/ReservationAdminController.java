@@ -1,6 +1,7 @@
 package com.team4.reservation.controller;
 
 import com.team4.common.response.ApiResponse;
+import com.team4.reservation.dto.CheckInLogResponse;
 import com.team4.reservation.dto.DailyCheckInResponse;
 import com.team4.reservation.dto.HourlyCheckInResponse;
 import com.team4.reservation.dto.TicketStatsResponse;
@@ -37,6 +38,14 @@ public class ReservationAdminController {
                                                                                       @RequestParam LocalDate date) {
 
         return ResponseEntity.ok(ApiResponse.success(statsService.getHourlyCheckIns(expoId, date)));
+    }
+
+    // 하루치 입장 현황 목록(최근 체크인순 - 최대 20줄)
+    @GetMapping("/check-in-logs")
+    public ResponseEntity<ApiResponse<List<CheckInLogResponse>>> getCheckInLogs(@RequestParam Long expoId,
+                                                                                @RequestParam LocalDate date) {
+
+        return ResponseEntity.ok(ApiResponse.success(statsService.getCheckInLogs(expoId, date)));
     }
 
     // 입장권 현황(무료/유료 발급 수, 체크인 완료 수)
