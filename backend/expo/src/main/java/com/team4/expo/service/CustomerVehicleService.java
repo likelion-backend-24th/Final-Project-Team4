@@ -14,6 +14,7 @@ import com.team4.expo.domain.Expo;
 import com.team4.expo.domain.ExpoStatus;
 import com.team4.expo.domain.Post;
 import com.team4.expo.domain.Vehicle;
+import com.team4.expo.domain.VehicleImage;
 import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.VehicleResponse;
 import com.team4.expo.dto.VehicleSearchCandidate;
@@ -26,8 +27,10 @@ import com.team4.expo.repository.PostRepository;
 import com.team4.expo.repository.VehicleImageRepository;
 import com.team4.expo.repository.VehicleRepository;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,14 +67,48 @@ public class CustomerVehicleService {
         this.vehicleSearchInterpreter = vehicleSearchInterpreter;
     }
 
+    // 원래 부스 하나당 post/vehicle/신청건/참가업체명 조회가 각각 따로 나가던 N+1 쿼리였음(트러블슈팅: docs/troubleshooting.md
+    // "참가업체 목록 조회 N+1" 참고) - 박람회 하나 안의 데이터는 부스 개수와 무관하게 고정된 쿼리 몇 번으로 한 번에 불러온다.
     public List<CustomerBoothVehiclesResponse> getExpoVehicles(Long expoId) {
         Expo expo = expoRepository.findById(expoId)
                 .filter(e -> e.getStatus() == ExpoStatus.OPEN)
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "박람회를 찾을 수 없습니다."));
 
-        List<CustomerBoothVehiclesResponse> all = boothRepository.findByExpo_IdOrderByBoothNo(expo.getId()).stream()
+        List<Booth> booths = boothRepository.findByExpo_IdOrderByBoothNo(expo.getId()).stream()
                 .filter(b -> b.getStatus() == BoothStatus.ASSIGNED)
-                .map(this::toBoothVehicles)
+                .toList();
+        List<Long> boothIds = booths.stream().map(Booth::getId).toList();
+
+        Map<Long, BoothApplication> confirmedByBoothId = boothApplicationRepository.findByBooth_Expo_Id(expoId).stream()
+                .filter(a -> a.getStatus() == ApplicationStatus.CONFIRMED)
+                .collect(Collectors.toMap(a -> a.getBooth().getId(), a -> a, (a, b) -> a));
+
+        Map<Long, Post> postByBoothId = postRepository.findByBooth_IdIn(boothIds).stream()
+                .collect(Collectors.toMap(p -> p.getBooth().getId(), p -> p, (a, b) -> a));
+
+        List<Vehicle> vehicles = vehicleRepository.findByBooth_IdInOrderByCreatedAtAsc(boothIds);
+        Map<Long, List<VehicleImage>> imagesByVehicleId = vehicleImageRepository
+                .findByVehicle_IdInOrderBySortOrderAsc(vehicles.stream().map(Vehicle::getId).toList()).stream()
+                .collect(Collectors.groupingBy(img -> img.getVehicle().getId()));
+        Map<Long, List<VehicleResponse>> vehiclesByBoothId = vehicles.stream()
+                .collect(Collectors.groupingBy(v -> v.getBooth().getId(), Collectors.mapping(
+                        v -> VehicleResponse.from(v, imagesByVehicleId.getOrDefault(v.getId(), List.of())),
+                        Collectors.toList())));
+
+        // 같은 참가업체가 부스를 여러 개 가지면 exhibitorId가 겹치므로 Identity 조회도 exhibitorId당 한 번만.
+        Map<Long, String> companyNameByExhibitorId = new HashMap<>();
+
+        List<CustomerBoothVehiclesResponse> all = booths.stream()
+                .map(booth -> {
+                    BoothApplication application = confirmedByBoothId.get(booth.getId());
+                    String companyName = application == null ? null
+                            : companyNameByExhibitorId.computeIfAbsent(application.getExhibitorId(),
+                                    id -> identityClient.getExhibitorProfile(id).map(ExhibitorProfile::companyName).orElse(null));
+                    String applicationGroupId = application != null && application.getGroup() != null
+                            ? String.valueOf(application.getGroup().getId()) : null;
+                    return CustomerBoothVehiclesResponse.of(booth, postByBoothId.get(booth.getId()), companyName,
+                            applicationGroupId, vehiclesByBoothId.getOrDefault(booth.getId(), List.of()));
+                })
                 .collect(Collectors.toList());
 
         // 부스 단위로 "전시 차량 없으면 제외"하면, 같은 회사가 부스를 여러 개 가졌을 때 차량을 아직 등록
@@ -86,16 +123,6 @@ public class CustomerVehicleService {
                 .filter(r -> !r.getVehicles().isEmpty()
                         || (r.getCompanyName() != null && companiesWithVehicles.contains(r.getCompanyName())))
                 .collect(Collectors.toList());
-    }
-
-    private CustomerBoothVehiclesResponse toBoothVehicles(Booth booth) {
-        Post post = postRepository.findByBooth_Id(booth.getId()).orElse(null);
-
-        List<VehicleResponse> vehicles = vehicleRepository.findByBooth_IdOrderByCreatedAtAsc(booth.getId()).stream()
-                .map(this::toVehicleResponse)
-                .collect(Collectors.toList());
-
-        return CustomerBoothVehiclesResponse.of(booth, post, companyNameOf(booth), applicationGroupIdOf(booth), vehicles);
     }
 
     // post(부스 소개 콘텐츠)를 아직 등록하지 않은 업체를 위한 제목 대체용. 실패해도 null로 넘어가 boothNo 폴백을 쓴다.

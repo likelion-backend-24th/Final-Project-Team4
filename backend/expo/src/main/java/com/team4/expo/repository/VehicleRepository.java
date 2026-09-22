@@ -8,4 +8,6 @@ import java.util.List;
 public interface VehicleRepository extends JpaRepository<Vehicle, Long> {
 
     List<Vehicle> findByBooth_IdOrderByCreatedAtAsc(Long boothId);
+
+    List<Vehicle> findByBooth_IdInOrderByCreatedAtAsc(List<Long> boothIds);
 }
