@@ -128,3 +128,8 @@ identity:
 reservation:
   base-url: ${RESERVATION_BASE_URL:http://localhost:8084}
   service-token: ${SVC_TOKEN_IDENTITY:local_dev_identity_token}
+
+# 관리자 회원(참가업체) 목록/엑셀/통계 화면 - 참가 신청 건수·참가 여부 조회용 - Identity -> Expo
+expo:
+  base-url: ${EXPO_BASE_URL:http://localhost:8082}
+  service-token: ${SVC_TOKEN_IDENTITY:local_dev_identity_token}

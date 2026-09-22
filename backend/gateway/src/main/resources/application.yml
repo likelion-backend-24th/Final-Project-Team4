@@ -95,9 +95,11 @@ spring:
               - "http://localhost:5173"
               - "http://localhost:5174"
               - "http://localhost:3000"
-            allowedMethods: [GET, POST, PUT, PATCH, DELETE, OPTIONS]
+            allowedMethods: [ GET, POST, PUT, PATCH, DELETE, OPTIONS ]
             allowedHeaders: "*"
             allowCredentials: true
+            # Content-Disposition은 기본 안전목록에 없어서 노출 안 하면 프론트가 서버가 내려준 파일명을 못 읽음
+            exposedHeaders: [ Content-Disposition ]
 
 springdoc:
   swagger-ui:

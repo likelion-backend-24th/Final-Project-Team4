@@ -7,16 +7,15 @@ import com.team4.reservation.client.ExpoInfo;
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.domain.TicketStatus;
 import com.team4.reservation.domain.TicketType;
-import com.team4.reservation.dto.AdmissionContextResponse;
-import com.team4.reservation.dto.ScheduleChangeAffectedTicket;
-import com.team4.reservation.dto.ScheduleChangeResponse;
-import com.team4.reservation.dto.TicketExistsResponse;
-import com.team4.reservation.dto.TicketResolveResponse;
-import com.team4.reservation.dto.TicketResponse;
-import com.team4.reservation.dto.VisitApplicationResponse;
+import com.team4.reservation.dto.*;
+import com.team4.reservation.repository.CustomerLastCheckInProjection;
 import com.team4.reservation.repository.TicketRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Transactional;
@@ -242,5 +241,29 @@ public class TicketService {
         ticketRepository.cancelOutOfRangeByExpoId(expoId, newStartsAt, newEndsAt);
 
         return new ScheduleChangeResponse(affected);
+
     }
-}
+        // Identity -> Reservation. 관리자 회원(참관객) 목록 화면 - 여러 고객의 체크인 여부/최종 입장일을 한 번에 조회.
+        // 빈 목록을 넘기면 그대로 빈 응답. 체크인 이력이 없는 고객도 checkedIn=false로 결과에 포함해서 돌려준다
+        // (호출부가 "결과에 없으면 미체크인"으로 추론하지 않아도 되게).
+        @Transactional(readOnly = true)
+        public List<CustomerCheckInStatusResponse> getCheckInStatuses(List<Long> customerIds) {
+            if (customerIds == null || customerIds.isEmpty()) {
+                return List.of();
+            }
+
+            Map<Long, LocalDateTime> lastCheckedInByCustomerId = ticketRepository.findLastCheckInByCustomerIds(customerIds)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            CustomerLastCheckInProjection::getCustomerId,
+                            CustomerLastCheckInProjection::getLastCheckedInAt));
+
+            return customerIds.stream()
+                    .distinct()
+                    .map(customerId -> {
+                        LocalDateTime lastCheckedInAt = lastCheckedInByCustomerId.get(customerId);
+                        return new CustomerCheckInStatusResponse(customerId, lastCheckedInAt != null, lastCheckedInAt);
+                    })
+                    .toList();
+        }
+    }

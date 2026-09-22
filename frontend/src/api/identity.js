@@ -43,9 +43,17 @@ export const confirmVerificationCode = (email, code) =>
     { skipAuthRefresh: true },
   );
 
-// GET /api/admin/users - 관리자 회원 목록 조회(검색/필터/페이징)
+// GET /api/admin/users - 관리자 회원 목록 조회(검색/필터/가입일 기간/페이징)
 export const getAdminUsers = (params) =>
   apiClient.get("/api/admin/users", { params }).then((res) => res.data.data);
+
+// GET /api/admin/users/stats?role= - 참관객 화면 상단 통계 카드(전체/활성/오늘 가입/탈퇴). role은 필수(현재는 USER 전용).
+export const getAdminUserStats = (role) =>
+  apiClient.get("/api/admin/users/stats", { params: { role } }).then((res) => res.data.data);
+
+// GET /api/admin/users/exhibitors/stats - 참가업체 화면 상단 통계 카드(전체 업체/활성 업체/참가중 업체/미참가 업체).
+export const getAdminExhibitorStats = () =>
+  apiClient.get("/api/admin/users/exhibitors/stats").then((res) => res.data.data);
 
 // GET /api/admin/users/{id} - 관리자 회원 상세 조회
 export const getAdminUserDetail = (userId) =>
@@ -54,3 +62,10 @@ export const getAdminUserDetail = (userId) =>
 // PATCH /api/admin/users/{id}/status - 회원 정지/정지 해제 (status: "ACTIVE" | "LOCKED")
 export const updateAdminUserStatus = (userId, status) =>
   apiClient.patch(`/api/admin/users/${userId}/status`, { status }).then((res) => res.data.data);
+
+// GET /api/admin/users/export - 조건에 맞는 회원 목록 CSV(엑셀에서 바로 열림) 다운로드.
+// ApiResponse 포맷이 아니라 파일이 그대로 내려오므로 res.data(blob)와 응답 헤더를 함께 반환한다.
+export const exportAdminUsers = (params) =>
+  apiClient
+    .get("/api/admin/users/export", { params, responseType: "blob" })
+    .then((res) => ({ blob: res.data, headers: res.headers }));

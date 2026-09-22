@@ -1,4 +1,4 @@
-import { BarChart3, Bell, ClipboardList, FilePlus2, Users } from 'lucide-react';
+import { BarChart3, Bell, Building2, ClipboardList, FilePlus2, UserCheck, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.png';
 import apiClient from '../../api/client';
@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 // 관리자 화면 좌측 사이드바 레이아웃. 전체 사이드바 개편 전 단계이므로 우선 "참가 신청 관리" 페이지에서만 사용하고,
 // 다른 관리자 페이지(박람회 등록/통계)는 기존 AdminHeader(상단 가로 네비) 그대로 유지함.
 // AdminHeader.jsx의 NAV_ITEMS와 동일한 메뉴 구성 - 세로 배치로만 바뀜.
+// 회원 관리는 참관객 관리/참가업체 관리로 나뉘는 상위 메뉴라 children으로 묶음.
+// 부모 링크는 두 하위 화면 중 기본으로 보여줄 참관객 관리와 같은 경로로 연결.
 const NAV_ITEMS = [
   {
     to: '/admin/applications',
@@ -19,7 +21,16 @@ const NAV_ITEMS = [
     children: [{ to: '/admin/expos/new', label: '박람회 등록', icon: FilePlus2 }],
   },
   { to: '/admin/stats', label: '통계', icon: BarChart3 },
-  { to: '/admin/members', label: '회원 관리', icon: Users },
+  {
+    // 회원 관리를 누르면 바로 참관객 관리(기본 하위 화면)가 뜨도록, 부모 링크도 그 경로로 연결.
+    to: '/admin/members/attendees',
+    label: '회원 관리',
+    icon: Users,
+    children: [
+      { to: '/admin/members/attendees', label: '참관객 관리', icon: UserCheck },
+      { to: '/admin/members/exhibitors', label: '참가업체 관리', icon: Building2 },
+    ],
+  },
 ];
 
 const navLinkClass = ({ isActive }) =>

@@ -37,4 +37,15 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
             + "WHERE ba.exhibitorId = :exhibitorId AND ba.status = :status")
     List<BoothApplication> findWithBoothAndExpoByExhibitorIdAndStatus(
             @Param("exhibitorId") Long exhibitorId, @Param("status") ApplicationStatus status);
+
+    // 관리자 회원(참가업체) 화면 - 여러 업체의 "참가 신청 건수"를 한 번에 집계(DRAFT 제외 - 아직 제출 전이라 신청으로 안 침).
+    @Query("SELECT ba.exhibitorId AS exhibitorId, COUNT(ba) AS applicationCount FROM BoothApplication ba "
+            + "WHERE ba.exhibitorId IN :exhibitorIds AND ba.status <> com.team4.expo.domain.ApplicationStatus.DRAFT "
+            + "GROUP BY ba.exhibitorId")
+    List<ExhibitorApplicationCountProjection> countApplicationsByExhibitorIds(@Param("exhibitorIds") List<Long> exhibitorIds);
+
+    // 관리자 회원(참가업체) 화면 - 주어진 업체들 중 참가 확정(CONFIRMED)된 신청이 하나라도 있는 업체 id만 추출("참가중" 판정용).
+    @Query("SELECT DISTINCT ba.exhibitorId FROM BoothApplication ba "
+            + "WHERE ba.exhibitorId IN :exhibitorIds AND ba.status = com.team4.expo.domain.ApplicationStatus.CONFIRMED")
+    List<Long> findExhibitorIdsWithConfirmedApplication(@Param("exhibitorIds") List<Long> exhibitorIds);
 }

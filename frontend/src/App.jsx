@@ -34,6 +34,8 @@ import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
 import AdminMemberList from './pages/admin/AdminMemberList';
 import AdminMemberDetail from './pages/admin/AdminMemberDetail';
+import AdminAttendeeList from './pages/admin/AdminAttendeeList';
+import AdminExhibitorList from './pages/admin/AdminExhibitorList';
 
 // 역할별 헤더만 다르고 본문, 푸터 배치는 공통
 function Layout({ header, children }) {
@@ -133,6 +135,9 @@ function App() {
       <Route path="/admin/applications/:expoId" element={<AdminExpoDetail />} />
       <Route path="/admin/stats" element={<AdminRevenueStats />} />
       <Route path="/admin/members" element={<AdminMemberList />} />
+      {/* 참관객/참가업체 관리 - 회원 관리 하위 메뉴. 상세보기는 역할 공용인 AdminMemberDetail을 그대로 재사용 */}
+      <Route path="/admin/members/attendees" element={<AdminAttendeeList />} />
+      <Route path="/admin/members/exhibitors" element={<AdminExhibitorList />} />
       <Route path="/admin/members/:userId" element={<AdminMemberDetail />} />
     </Routes>
   );
