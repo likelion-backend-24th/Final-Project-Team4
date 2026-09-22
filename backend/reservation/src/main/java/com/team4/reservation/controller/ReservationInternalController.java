@@ -152,4 +152,16 @@ public class ReservationInternalController {
             throw new CustomException(ErrorCode.UNAUTHENTICATED,"내부 서비스 인증에 실패했습니다.");
         }
     }
+
+    // Identity -> Reservation. 관리자 회원(참관객) 목록/엑셀 화면 - 여러 고객의 체크인 여부·최종 입장일을 한 번에 조회.
+    // GET 대신 POST + body를 쓴 이유: 페이지 하나에 최대 수백 명 분량 customerId를 보낼 수 있어 쿼리스트링으로는 부적합.
+    @PostMapping("/customers/check-in-status")
+    public ResponseEntity<ApiResponse<List<CustomerCheckInStatusResponse>>> getCheckInStatuses(
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody List<Long> customerIds) {
+
+        requireIdentityService(authorization);
+
+        return ResponseEntity.ok(ApiResponse.success(ticketService.getCheckInStatuses(customerIds)));
+    }
 }

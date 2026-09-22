@@ -53,6 +53,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             + "AND (t.visitDate < :newStart OR t.visitDate > :newEnd)")
     int cancelOutOfRangeByExpoId(@Param("expoId") Long expoId, @Param("newStart") LocalDate newStart, @Param("newEnd") LocalDate newEnd);
 
+    // Identity 회원 관리(참관객) 화면 - 여러 고객의 "최종 입장(체크인) 시각"을 한 번에 집계.
+    // 체크인 이력이 전혀 없는 고객은 결과 자체에 나타나지 않음(호출부에서 없으면 미체크인으로 간주).
+    @Query("SELECT t.customerId AS customerId, MAX(t.usedAt) AS lastCheckedInAt FROM Ticket t "
+            + "WHERE t.customerId IN :customerIds AND t.status = com.team4.reservation.domain.TicketStatus.USED "
+            + "GROUP BY t.customerId")
+    List<CustomerLastCheckInProjection> findLastCheckInByCustomerIds(@Param("customerIds") List<Long> customerIds);
     // 통계용 - 유형별 유효 발급 수(취소된 티켓 제외), 체크인 완료(USED) 수
     long countByExpoIdAndTicketTypeAndStatusNot(Long expoId, TicketType ticketType, TicketStatus status);
 
