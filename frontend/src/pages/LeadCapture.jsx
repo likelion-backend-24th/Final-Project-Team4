@@ -1,6 +1,6 @@
 import jsQR from 'jsqr';
 import { ArrowLeft, Camera, Check, ChevronDown, ChevronUp, Maximize2, QrCode, ScanLine, Search, Send, Sparkles, Upload, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   confirmLeadConsent,
   getLeads,
@@ -81,6 +81,22 @@ function LeadCapture() {
       .catch((err) => setBoothsError(err.response?.data?.error?.message ?? err.message))
       .finally(() => setBoothsLoading(false));
   }, []);
+
+  // 부스 선택 목록 - 같은 박람회에 부스가 여러 개면 엑스포별로 묶어서 보여줌
+  const boothsByExpo = useMemo(() => {
+    const groups = [];
+    const indexByExpo = new Map();
+    myBooths.forEach((booth) => {
+      let group = indexByExpo.get(booth.expoId);
+      if (!group) {
+        group = { expoId: booth.expoId, expoTitle: booth.expoTitle, booths: [] };
+        indexByExpo.set(booth.expoId, group);
+        groups.push(group);
+      }
+      group.booths.push(booth);
+    });
+    return groups;
+  }, [myBooths]);
 
 
   const backToBoothList = () => {
@@ -318,18 +334,23 @@ function LeadCapture() {
             <CardHeader>
               <CardTitle className="text-base">부스 선택</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {myBooths.map((booth) => (
-                <Button
-                  key={booth.boothId}
-                  type="button"
-                  variant="outline"
-                  className="h-auto justify-between px-4 py-3"
-                  onClick={() => setBoothId(booth.boothId)}
-                >
-                  <span>{booth.expoTitle}</span>
-                  <Badge variant="secondary">{booth.boothNo}</Badge>
-                </Button>
+            <CardContent className="flex flex-col gap-4">
+              {boothsByExpo.map((group) => (
+                <div key={group.expoId} className="flex flex-col gap-2">
+                  <p className="m-0 text-sm font-semibold">{group.expoTitle}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {group.booths.map((booth) => (
+                      <Button
+                        key={booth.boothId}
+                        type="button"
+                        variant="outline"
+                        onClick={() => setBoothId(booth.boothId)}
+                      >
+                        <Badge variant="secondary">{booth.boothNo}</Badge>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </CardContent>
           </Card>
