@@ -9,13 +9,13 @@ function CheckInLogList({ logs, limit = 20 }) {
   const rows = logs.slice(0, limit);
 
   return (
-    <Table>
+    <Table className="table-fixed">
       <TableHeader>
         <TableRow>
-          <TableHead>시간</TableHead>
-          <TableHead>이름</TableHead>
-          <TableHead>입장권 유형</TableHead>
-          <TableHead>입장 방법</TableHead>
+          <TableHead className="w-1/4 text-center">시간</TableHead>
+          <TableHead className="w-1/4 text-center">이름</TableHead>
+          <TableHead className="w-1/4 text-center">입장권 유형</TableHead>
+          <TableHead className="w-1/4 text-center">입장 방법</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -24,14 +24,14 @@ function CheckInLogList({ logs, limit = 20 }) {
         )}
         {rows.map((r, i) => (
           <TableRow key={i}>
-            <TableCell>{r.checkedInAt.slice(11, 16)}</TableCell>
-            <TableCell>{r.customerName}</TableCell>
-            <TableCell>
+            <TableCell className="text-center">{r.checkedInAt.slice(11, 16)}</TableCell>
+            <TableCell className="text-center">{r.customerName}</TableCell>
+            <TableCell className="text-center">
               <Badge variant="secondary" className={r.ticketType === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
                 {TICKET_LABEL[r.ticketType] ?? r.ticketType}
               </Badge>
             </TableCell>
-            <TableCell>QR 체크인</TableCell>
+            <TableCell className="text-center">QR 체크인</TableCell>
           </TableRow>
         ))}
       </TableBody>

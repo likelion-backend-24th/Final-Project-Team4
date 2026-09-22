@@ -271,57 +271,57 @@ function AdminStats() {
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <Card>
-                <CardContent>
+                <CardContent className="flex h-full flex-col">
                   <h3 className="m-0 mb-3 text-sm font-semibold">입장권 상세</h3>
-                  <Table>
+                  <Table className="table-fixed">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>구분</TableHead>
-                        <TableHead>입장</TableHead>
-                        <TableHead>비율</TableHead>
-                        <TableHead>매출액</TableHead>
+                        <TableHead className="w-1/4 text-center">구분</TableHead>
+                        <TableHead className="w-1/4 text-center">입장</TableHead>
+                        <TableHead className="w-1/4 text-center">비율</TableHead>
+                        <TableHead className="w-1/4 text-center">매출액</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow>
-                        <TableCell>무료</TableCell>
-                        <TableCell>{stat.free}명</TableCell>
-                        <TableCell>{ratio(stat.free, stat.visit)}%</TableCell>
-                        <TableCell>0원</TableCell>
+                        <TableCell className="text-center">무료</TableCell>
+                        <TableCell className="text-center">{stat.free}명</TableCell>
+                        <TableCell className="text-center">{ratio(stat.free, stat.visit)}%</TableCell>
+                        <TableCell className="text-center">0원</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell>유료</TableCell>
-                        <TableCell>{stat.paid}명</TableCell>
-                        <TableCell>{ratio(stat.paid, stat.visit)}%</TableCell>
-                        <TableCell>{won(ticketRevenue)}</TableCell>
+                        <TableCell className="text-center">유료</TableCell>
+                        <TableCell className="text-center">{stat.paid}명</TableCell>
+                        <TableCell className="text-center">{ratio(stat.paid, stat.visit)}%</TableCell>
+                        <TableCell className="text-center">{won(ticketRevenue)}</TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell className="font-semibold">합계</TableCell>
-                        <TableCell className="font-semibold">{stat.visit}명</TableCell>
-                        <TableCell className="font-semibold">{stat.visit === 0 ? 0 : 100}%</TableCell>
-                        <TableCell className="font-semibold">{won(ticketRevenue)}</TableCell>
+                        <TableCell className="text-center font-semibold">합계</TableCell>
+                        <TableCell className="text-center font-semibold">{stat.visit}명</TableCell>
+                        <TableCell className="text-center font-semibold">{stat.visit === 0 ? 0 : 100}%</TableCell>
+                        <TableCell className="text-center font-semibold">{won(ticketRevenue)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
-                  <p className="mt-2.5 text-xs text-muted-foreground">
+                  <p className="mt-auto pt-2.5 text-xs text-muted-foreground">
                     입장 인원은 체크인 수, 매출액은 그날 결제된 당일 입장권 금액입니다.
                   </p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent>
+                <CardContent className="flex h-full flex-col">
                   <h3 className="m-0 mb-3 text-sm font-semibold">입장 현황 ({selected})</h3>
                   <CheckInLogList logs={logs} />
-                  <p className="mt-2.5 text-xs text-muted-foreground">최근 입장 20건까지 노출됩니다.</p>
+                  <p className="mt-auto pt-2.5 text-xs text-muted-foreground">최근 입장 20건까지 노출됩니다.</p>
                 </CardContent>
               </Card>
 
               <Card>
-                <CardContent>
+                <CardContent className="flex h-full flex-col">
                   <h3 className="m-0 mb-3 text-sm font-semibold">취소표 내역 ({selected})</h3>
                   <RefundLogList logs={refundLogs} />
-                  <p className="mt-2.5 text-xs text-muted-foreground">최근 환불 20건까지 노출됩니다.</p>
+                  <p className="mt-auto pt-2.5 text-xs text-muted-foreground">최근 환불 20건까지 노출됩니다.</p>
                 </CardContent>
               </Card>
             </div>
