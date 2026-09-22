@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
 import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import { boothNoValue, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,8 +20,6 @@ const SORT_OPTIONS = [
 ];
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
-
-const boothNoValue = (boothNo) => parseInt(String(boothNo).replace(/\D/g, ''), 10) || 0;
 
 // 박람회 둘러보기 첫 화면 - 참가업체 목록. 카드를 누르면 그 업체의 전시 차량 목록으로 이동하고,
 // "한 번에 상담 신청"으로 여러 업체를 골라 상담 신청 정보를 한 번만 입력해 동시에 신청할 수 있다.
@@ -50,28 +49,8 @@ function ExhibitorList() {
       });
   }, [expoId]);
 
-  // 같은 업체(title)가 여러 부스를 신청한 경우 - "A-101 ~ A-102"처럼 한 카드로 묶어서 보여준다.
-  const exhibitors = useMemo(() => {
-    const byKey = new Map();
-    groups.forEach((g) => {
-      // 같은 신청(applicationGroupId)으로 함께 접수한 부스끼리만 한 카드로 묶는다.
-      // applicationGroupId가 없으면(예외 케이스) 부스 하나짜리 카드로 독립 처리.
-      const key = g.applicationGroupId ?? `booth-${g.boothId}`;
-      if (!byKey.has(key)) {
-        byKey.set(key, {
-          title: g.companyName ?? g.title,
-          boothId: g.boothId,
-          bannerImageUrl: g.bannerImageUrl,
-          boothNos: [],
-        });
-      }
-      byKey.get(key).boothNos.push(g.boothNo);
-    });
-    return Array.from(byKey.values()).map((e) => ({
-      ...e,
-      boothNos: [...e.boothNos].sort((a, b) => boothNoValue(a) - boothNoValue(b)),
-    }));
-  }, [groups]);
+  // 같은 신청(applicationGroupId)으로 접수한 부스는 "A-101 ~ A-102"처럼 한 카드로 묶어서 보여준다.
+  const exhibitors = useMemo(() => mergeExhibitorGroups(groups), [groups]);
 
   const filteredExhibitors = useMemo(
     () => exhibitors.filter((e) => e.title.toLowerCase().includes(keyword.toLowerCase())),

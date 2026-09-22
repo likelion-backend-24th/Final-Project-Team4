@@ -10,6 +10,7 @@ import {
   summarizeLeadEmail,
   updateLeadEmail,
 } from '../api/leads';
+import { boothNoValue } from '../utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -82,7 +83,9 @@ function LeadCapture() {
       .finally(() => setBoothsLoading(false));
   }, []);
 
-  // 부스 선택 목록 - 같은 박람회에 부스가 여러 개면 엑스포별로 묶어서 보여줌
+  // 박람회 선택 목록 - 같은 박람회에 부스가 여러 개면 하나로 묶고, 대표 부스(번호가 가장 낮은 부스) 기준으로 리드를 확보한다.
+  // 상담 신청이 참가업체(부스 여러 개 전부) 단위로 들어오기 때문에 어느 부스로 스캔해도 상담 매칭이 되고,
+  // 대표 부스 하나로 고정해야 리드/통계가 부스마다 쪼개지지 않는다.
   const boothsByExpo = useMemo(() => {
     const groups = [];
     const indexByExpo = new Map();
@@ -95,6 +98,7 @@ function LeadCapture() {
       }
       group.booths.push(booth);
     });
+    groups.forEach((g) => g.booths.sort((a, b) => boothNoValue(a.boothNo) - boothNoValue(b.boothNo)));
     return groups;
   }, [myBooths]);
 
@@ -313,6 +317,9 @@ function LeadCapture() {
   };
 
   const selectedBooth = myBooths.find((b) => b.boothId === boothId) ?? null;
+  // 화면 상단에는 대표 부스 번호 하나가 아니라, 선택한 박람회의 부스 전부를 보여준다.
+  const selectedGroup = selectedBooth ? boothsByExpo.find((g) => g.expoId === selectedBooth.expoId) : null;
+  const selectedBoothNoLabel = selectedGroup ? selectedGroup.booths.map((b) => b.boothNo).join(', ') : '';
 
   return (
     <div>
@@ -332,25 +339,26 @@ function LeadCapture() {
         {!boothsLoading && !boothsError && myBooths.length > 0 && boothId == null && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">부스 선택</CardTitle>
+              <CardTitle className="text-base">박람회 선택</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-2">
               {boothsByExpo.map((group) => (
-                <div key={group.expoId} className="flex flex-col gap-2">
-                  <p className="m-0 text-sm font-semibold">{group.expoTitle}</p>
-                  <div className="flex flex-wrap gap-2">
+                <Button
+                  key={group.expoId}
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-between px-4 py-3"
+                  onClick={() => setBoothId(group.booths[0].boothId)}
+                >
+                  <span>{group.expoTitle}</span>
+                  <div className="flex flex-wrap justify-end gap-1">
                     {group.booths.map((booth) => (
-                      <Button
-                        key={booth.boothId}
-                        type="button"
-                        variant="outline"
-                        onClick={() => setBoothId(booth.boothId)}
-                      >
-                        <Badge variant="secondary">{booth.boothNo}</Badge>
-                      </Button>
+                      <Badge key={booth.boothId} variant="secondary">
+                        {booth.boothNo}
+                      </Badge>
                     ))}
                   </div>
-                </div>
+                </Button>
               ))}
             </CardContent>
           </Card>
@@ -363,7 +371,7 @@ function LeadCapture() {
                 <ArrowLeft /> 부스 다시 선택
               </Button>
               <p className="m-0 text-sm font-medium text-muted-foreground">
-                {selectedBooth.expoTitle} · {selectedBooth.boothNo}
+                {selectedBooth.expoTitle} · {selectedBoothNoLabel}
               </p>
             </div>
 
