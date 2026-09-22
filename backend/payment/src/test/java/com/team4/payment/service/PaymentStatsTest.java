@@ -1,6 +1,7 @@
 package com.team4.payment.service;
 
 import com.team4.payment.dto.PaymentStatsEntryResponse;
+import com.team4.payment.dto.RefundLogResponse;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.entity.AdmissionPaymentTicket;
 import com.team4.payment.entity.Payment;
@@ -75,6 +76,30 @@ class PaymentStatsTest {
         assertThat(stats.stream().mapToLong(PaymentStatsEntryResponse::getPaidAmount).sum()).isEqualTo(330_000L);
     }
 
+    @Test
+    void 취소표_내역은_최근_환불순으로_반환한다() {
+        PaymentStatsService statsService = new PaymentStatsService(paymentRepository, admissionPaymentRepository, admissionPaymentTicketRepository);
+        long expoId = 902L;
+        LocalDate today = LocalDate.now();
+
+        AdmissionPayment admissionPayment = saveAdmissionPayment(expoId, 60_000L, today.atTime(9, 0));
+        AdmissionPaymentTicket early = saveTicket(admissionPayment, today, 30_000L);
+        early.markRefunded("일정 변경", today.atTime(10, 0));
+        admissionPaymentTicketRepository.save(early);
+        AdmissionPaymentTicket late = saveTicket(admissionPayment, today.plusDays(1), 30_000L);
+        late.markRefunded("단순 변심", today.atTime(15, 0));
+        admissionPaymentTicketRepository.save(late);
+        // 환불 안 된 티켓 - 목록에서 빠져야 함
+        saveTicket(admissionPayment, today.plusDays(2), 30_000L);
+
+        List<RefundLogResponse> logs = statsService.getRefundLogs(expoId, today);
+
+        assertThat(logs).hasSize(2);
+        assertThat(logs.get(0).getRefundReason()).isEqualTo("단순 변심"); // 15시가 더 최근이라 먼저 나옴
+        assertThat(logs.get(0).getAmount()).isEqualTo(30_000L);
+        assertThat(logs.get(1).getRefundReason()).isEqualTo("일정 변경");
+    }
+
     private PaymentStatsEntryResponse find(List<PaymentStatsEntryResponse> stats, LocalDate date, String source) {
         return stats.stream()
                 .filter(e -> e.getDate().equals(date) && e.getSource().equals(source))
@@ -110,8 +135,8 @@ class PaymentStatsTest {
         return admissionPayment;
     }
 
-    private void saveTicket(AdmissionPayment admissionPayment, LocalDate visitDate, long amount) {
-        admissionPaymentTicketRepository.save(AdmissionPaymentTicket.builder()
+    private AdmissionPaymentTicket saveTicket(AdmissionPayment admissionPayment, LocalDate visitDate, long amount) {
+        return admissionPaymentTicketRepository.save(AdmissionPaymentTicket.builder()
                 .admissionPayment(admissionPayment)
                 .visitDate(visitDate)
                 .ticketId(1L)
