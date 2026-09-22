@@ -1,5 +1,5 @@
 import { CalendarDays, ChevronDown, ChevronUp, FileText, MapPin, QrCode, Ticket, UserRound } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
@@ -11,13 +11,16 @@ import VisitedBoothsModal from '../../components/customer/VisitedBoothsModal';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import WritableReviewsModal from '../../components/customer/WritableReviewsModal';
 import { getTicketStatus, isReviewWindowOpen, isTicketCheckableToday, isTicketRefundable, toDisplayTicket } from '../../utils/customerData';
-import { getMyReservations } from '../../api/reservation';
-import { deleteBoothReview, getCustomerExpoList, getMyConsultations, getMyReviews, toAssetUrl } from '../../api/expo';
-import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identity';
+import { deleteBoothReview, toAssetUrl } from '../../api/expo';
+import { withdrawAccount, updateMyProfile } from '../../api/identity';
 import { clearAuth, notifyProfileUpdated } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import { formatPhoneNumber } from '../../utils/phone';
 import { TextField } from '../../components/form/fields';
+import { useMyProfile } from '../../hooks/customer/useMyProfile';
+import { useMyTickets } from '../../hooks/customer/useMyTickets';
+import { useMyConsultations } from '../../hooks/customer/useMyConsultations';
+import { useMyReviews } from '../../hooks/customer/useMyReviews';
 import { AppDialog } from '@/components/layout/AppDialog';
 import { EmptyState, PageContainer, Pagination } from '@/components/layout/Page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -91,51 +94,22 @@ const consultationTypeLabel = (c) => [c.wantsPurchase && '구매', c.wantsTestDr
 function CustomerMyPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('profile');
-  const [profile, setProfile] = useState(null);
-  const [profileError, setProfileError] = useState(null);
   const [ticketFilter, setTicketFilter] = useState('전체');
   const [consultFilter, setConsultFilter] = useState('전체');
   const [zoomTicket, setZoomTicket] = useState(null);
   const [expandedExpoIds, setExpandedExpoIds] = useState(() => new Set()); // 사용예정 QR을 모두 펼친 박람회
   const [paymentDetailTicket, setPaymentDetailTicket] = useState(null);
   const [refundTicket, setRefundTicket] = useState(null);
-  const [apiTickets, setApiTickets] = useState([]);
-  const [expoMap, setExpoMap] = useState(new Map());
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [consultations, setConsultations] = useState([]);
-  const [consultLoading, setConsultLoading] = useState(true);
-  const [consultError, setConsultError] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
   const [reviewExpoId, setReviewExpoId] = useState(null);
-  const [myReviews, setMyReviews] = useState([]);
-  const [reviewLoading, setReviewLoading] = useState(true);
-  const [reviewError, setReviewError] = useState(null);
   const [editingReview, setEditingReview] = useState(null);
   const [showWritableReviews, setShowWritableReviews] = useState(false);
   const [reviewPage, setReviewPage] = useState(1);
 
-  // 실제 Reservation 서비스(GET /api/customer/reservations)에서 내 입장권 목록 조회.
-  // 티켓 응답엔 expoId만 있어서, 이름/장소/기간 표시는 실제 Expo 서비스(GET /api/customer/expos)를
-  // 같이 조회해 expoId로 매칭해야 함 — 안 그러면 QR이 발급된 실제 박람회와 화면에 뜨는 이름이 어긋난다.
-  // 환불 처리 후에도 이 함수를 다시 불러 목록을 새로고침한다(RefundRequestModal의 onRefunded).
-  const loadTickets = () =>
-    Promise.all([getMyReservations(), getCustomerExpoList({ page: 0, size: 100 })])
-      .then(([tickets, expoRes]) => {
-        setApiTickets(tickets);
-        setExpoMap(new Map(expoRes.content.map((e) => [e.expoId, e])));
-        setLoadError(null);
-      })
-      .catch((err) => {
-        setLoadError(
-          err.response?.data?.error?.message ?? '입장권 목록을 불러오지 못했습니다.'
-        );
-      })
-      .finally(() => setLoading(false));
-
-  useEffect(() => {
-    loadTickets();
-  }, []);
+  const { profile, setProfile, error: profileError } = useMyProfile();
+  const { apiTickets, expoMap, loading, error: loadError, reload: loadTickets } = useMyTickets();
+  const { consultations, loading: consultLoading, error: consultError, reload: loadConsultations } = useMyConsultations();
+  const { myReviews, loading: reviewLoading, error: reviewError, reload: loadMyReviews } = useMyReviews();
 
   // 티켓 표시용 홀더명은 로그인한 본인 이름(profile.name)을 써야 함 — QR/티켓 카드에
   // 실제 발급받은 사람이 아닌 고정값이 보이면 안 되므로 profile 로딩 완료 후에 채워 넣는다.
@@ -143,45 +117,6 @@ function CustomerMyPage() {
     () => apiTickets.map((t) => toDisplayTicket(t, expoMap, profile?.name)),
     [apiTickets, expoMap, profile]
   );
-
-  useEffect(() => {
-    getMyProfile()
-      .then((data) => {
-        setProfile(data);
-        setProfileError(null);
-      })
-      .catch((err) =>
-        setProfileError(err.response?.data?.error?.message ?? '내 정보를 불러오지 못했습니다.')
-      );
-  }, []);
-
-  const loadConsultations = () =>
-    getMyConsultations()
-      .then((data) => {
-        setConsultations(data);
-        setConsultError(null);
-      })
-      .catch((err) =>
-        setConsultError(err.response?.data?.error?.message ?? '상담 신청 내역을 불러오지 못했습니다.')
-      )
-      .finally(() => setConsultLoading(false));
-
-  useEffect(() => {
-    loadConsultations();
-  }, []);
-
-  const loadMyReviews = () =>
-    getMyReviews()
-      .then((data) => {
-        setMyReviews(data);
-        setReviewError(null);
-      })
-      .catch((err) => setReviewError(err.response?.data?.error?.message ?? '작성한 후기를 불러오지 못했습니다.'))
-      .finally(() => setReviewLoading(false));
-
-  useEffect(() => {
-    loadMyReviews();
-  }, []);
 
   // 후기는 상담이 완료된 부스에만 쓸 수 있으므로, 내 상담 내역(boothId)과 매칭하면 어느 업체에 쓴 후기인지 알 수 있다.
   const boothInfoById = useMemo(

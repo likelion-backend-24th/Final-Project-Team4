@@ -3,14 +3,14 @@ import { ArrowLeft, Camera, Check, ChevronDown, ChevronUp, Maximize2, QrCode, Sc
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   confirmLeadConsent,
-  getLeads,
-  getMyBooths,
   scanLeadQr,
   sendLeadInfo,
   summarizeLeadEmail,
   updateLeadEmail,
 } from '../../api/leads';
 import { boothNoValue } from '../../utils/exhibitorGroups';
+import { useMyBooths } from '../../hooks/exhibitor/useMyBooths';
+import { useLeads } from '../../hooks/exhibitor/useLeads';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -44,16 +44,14 @@ const fmtDate = (dateStr) => (dateStr ? dateStr.slice(0, 10).replace(/-/g, '.') 
 
 // QR 스캔 → 리드 확보 → 상담 메모 → Gemini 이메일 초안 → 발송 (STORY 11, TASK 11-2~4 실제 API 연동)
 function LeadCapture() {
-  const [myBooths, setMyBooths] = useState([]);
-  const [boothsLoading, setBoothsLoading] = useState(true);
-  const [boothsError, setBoothsError] = useState(null);
+  const { myBooths, loading: boothsLoading, error: boothsError } = useMyBooths();
   const [boothId, setBoothId] = useState(null);
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanResult, setScanResult] = useState(null); // { customerName, isConsultation } | null
 
-  const [leads, setLeads] = useState([]);
+  const { leads, setLeads, refresh: refreshLeads } = useLeads(boothId);
   const [leadListOpen, setLeadListOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [dateFilter, setDateFilter] = useState(''); // 'YYYY-MM-DD' | ''
@@ -75,13 +73,6 @@ function LeadCapture() {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const rafRef = useRef(null);
-
-  useEffect(() => {
-    getMyBooths()
-      .then(setMyBooths)
-      .catch((err) => setBoothsError(err.response?.data?.error?.message ?? err.message))
-      .finally(() => setBoothsLoading(false));
-  }, []);
 
   // 박람회 선택 목록 - 같은 박람회에 부스가 여러 개면 하나로 묶고, 대표 부스(번호가 가장 낮은 부스) 기준으로 리드를 확보한다.
   // 상담 신청이 참가업체(부스 여러 개 전부) 단위로 들어오기 때문에 어느 부스로 스캔해도 상담 매칭이 되고,
@@ -110,12 +101,6 @@ function LeadCapture() {
     setScanResult(null);
     closeLead();
   };
-
-  const refreshLeads = () => getLeads(boothId).then(setLeads);
-
-  useEffect(() => {
-    if (boothId != null) refreshLeads();
-  }, [boothId]);
 
   const submitToken = (token) => {
     setScanning(true);
