@@ -81,8 +81,11 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
   const leadConsent = form.watch('leadConsent');
 
   const [step, setStep] = useState(1);
+  // 업체당 상담 신청은 1건만 만들어야 해서(부스마다 신청하면 상담 신청 관리 화면에 같은 요청이 부스 수만큼 중복돼 보임),
+  // 대표 부스(g.boothId, 부스번호가 가장 낮은 곳) 하나만 선택 상태로 담는다. QR 리드확보도 같은 대표 부스로 스캔하도록
+  // 맞춰놔서(LeadCapture.jsx) 어느 부스로 스캔해도가 아니라 항상 이 대표 부스로만 스캔하면 매칭된다.
   const [selectedBoothIds, setSelectedBoothIds] = useState(
-    () => new Set(lockedGroup ? lockedGroup.boothIds : [])
+    () => new Set(lockedGroup ? [lockedGroup.boothId] : [])
   );
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -204,12 +207,12 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
       return next;
     });
 
-  // 참가업체 단위 토글 - 부스를 여러 개 가진 업체를 선택하면 그 업체의 부스 전부를 한 번에 담는다.
+  // 참가업체 단위 토글 - 부스를 여러 개 가진 업체도 대표 부스 하나만 선택/해제한다(상담 신청은 업체당 1건).
   const toggleExhibitorGroup = (group) =>
     setSelectedBoothIds((prev) => {
       const next = new Set(prev);
-      const allSelected = group.boothIds.every((id) => next.has(id));
-      group.boothIds.forEach((id) => (allSelected ? next.delete(id) : next.add(id)));
+      if (next.has(group.boothId)) next.delete(group.boothId);
+      else next.add(group.boothId);
       return next;
     });
 
@@ -463,7 +466,7 @@ function BulkConsultationModal({ expoId, groups, lockedBoothId, defaultVehicle, 
           <div key={g.key} className="flex items-center justify-between gap-2 rounded-lg border p-3">
             <Label className="min-w-0 flex-1 cursor-pointer">
               <Checkbox
-                checked={g.boothIds.every((id) => selectedBoothIds.has(id))}
+                checked={selectedBoothIds.has(g.boothId)}
                 onCheckedChange={() => {
                   toggleExhibitorGroup(g);
                   clearFieldError('booths');
