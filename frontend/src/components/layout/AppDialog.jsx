@@ -24,7 +24,10 @@ export function AppDialog({
   className,
 }) {
   return (
-    <Dialog open onOpenChange={(open) => !open && dismissible && onClose?.()}>
+    // modal=false: Radix가 열려있는 동안 document.body에 pointer-events:none을 거는데,
+    // PortOne 결제창(body에 바로 붙는 외부 오버레이)이 이 스타일을 그대로 물려받아 클릭이 안 먹는 문제가 있었음.
+    // 바깥 클릭/ESC로 닫는 동작은 위 onPointerDownOutside/onEscapeKeyDown에서 이미 직접 처리하므로 영향 없음.
+    <Dialog open modal={false} onOpenChange={(open) => !open && dismissible && onClose?.()}>
       <DialogContent
         showCloseButton={dismissible}
         className={cn('max-h-[90vh] gap-4 overflow-y-auto', SIZES[size], className)}
