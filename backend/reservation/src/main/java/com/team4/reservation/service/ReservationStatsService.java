@@ -25,14 +25,14 @@ public class ReservationStatsService {
     // 일별 체크인 수
     public List<DailyCheckInResponse> getDailyCheckIns(Long expoId, LocalDate from, LocalDate to) {
         return checkInRepository.findDailyByExpoId(expoId, from.atStartOfDay(), to.plusDays(1).atStartOfDay()).stream()
-                .map(r -> new DailyCheckInResponse(r.getDay(), r.getCnt()))
+                .map(r -> new DailyCheckInResponse(r.getDay(), r.getCnt(), r.getFree(), r.getPaid()))
                 .toList();
     }
 
     // 하루 안에서 시간대별 체크인 수
     public List<HourlyCheckInResponse> getHourlyCheckIns(Long expoId, LocalDate date) {
         return checkInRepository.findHourlyByExpoId(expoId, date.atStartOfDay(), date.plusDays(1).atStartOfDay()).stream()
-                .map(r -> new HourlyCheckInResponse(r.getHour(), r.getCnt()))
+                .map(r -> new HourlyCheckInResponse(r.getHour(), r.getCnt(), r.getFree(), r.getPaid()))
                 .toList();
     }
 

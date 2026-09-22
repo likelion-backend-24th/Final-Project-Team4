@@ -4,4 +4,6 @@ package com.team4.reservation.repository;
 public interface HourlyCount {
     Integer getHour();
     Long getCnt();
+    Long getFree(); // 무료 입장권 체크인 수
+    Long getPaid(); // 유료 입장권 체크인 수
 }

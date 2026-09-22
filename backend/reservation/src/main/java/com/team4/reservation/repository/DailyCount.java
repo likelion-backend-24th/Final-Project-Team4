@@ -6,4 +6,6 @@ import java.time.LocalDate;
 public interface DailyCount {
     LocalDate getDay();
     Long getCnt();
+    Long getFree(); // 무료 입장권 체크인 수
+    Long getPaid(); // 유료 입장권 체크인 수
 }
