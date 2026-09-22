@@ -4,7 +4,7 @@ import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.ConsultationSlotAvailabilityResponse;
 import com.team4.expo.dto.ConsultationSlotSettingsRequest;
 import com.team4.expo.dto.ConsultationSlotSettingsResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.ConsultationSlotService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;

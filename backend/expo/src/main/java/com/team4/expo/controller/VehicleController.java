@@ -5,7 +5,7 @@ import com.team4.expo.dto.VehicleAiAnalysisResponse;
 import com.team4.expo.dto.VehicleImageResponse;
 import com.team4.expo.dto.VehicleRequest;
 import com.team4.expo.dto.VehicleResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.VehicleService;
 import jakarta.validation.Valid;
 import java.util.List;

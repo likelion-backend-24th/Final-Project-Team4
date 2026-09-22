@@ -4,7 +4,7 @@ import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.BoothContentRequest;
 import com.team4.expo.dto.BoothContentResponse;
 import com.team4.expo.dto.BoothManageDetailResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.BoothContentService;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;

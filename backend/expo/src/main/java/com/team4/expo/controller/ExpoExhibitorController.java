@@ -12,7 +12,7 @@ import com.team4.expo.dto.BoothApplicationGroupResponse;
 import com.team4.expo.dto.BoothApplicationRequest;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.BoothApplicationService;
 import com.team4.expo.service.ExpoService;
 import jakarta.validation.Valid;

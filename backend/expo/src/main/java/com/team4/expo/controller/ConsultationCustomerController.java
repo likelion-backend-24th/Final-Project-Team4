@@ -8,7 +8,7 @@ import com.team4.expo.dto.ConsultationReviewDraftRequest;
 import com.team4.expo.dto.ConsultationReviewDraftResponse;
 import com.team4.expo.dto.ReviewPolishRequest;
 import com.team4.expo.dto.ConsultationUpdateRequest;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.ConsultationService;
 import jakarta.validation.Valid;
 import java.util.List;

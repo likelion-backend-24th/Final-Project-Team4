@@ -3,7 +3,7 @@ package com.team4.expo.controller;
 import com.team4.common.response.ApiResponse;
 import com.team4.common.response.PageMeta;
 import com.team4.expo.dto.NotificationResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.NotificationEmitterRegistry;
 import com.team4.expo.service.NotificationService;
 import java.util.Map;

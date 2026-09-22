@@ -5,7 +5,7 @@ import com.team4.review.dto.ReviewImageResponse;
 import com.team4.review.dto.ReviewListResponse;
 import com.team4.review.dto.ReviewRequest;
 import com.team4.review.dto.ReviewResponse;
-import com.team4.review.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.review.service.ReviewService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

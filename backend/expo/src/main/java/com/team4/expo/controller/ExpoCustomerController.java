@@ -7,7 +7,7 @@ import com.team4.expo.dto.CustomerBoothVehiclesResponse;
 import com.team4.expo.dto.ExpoBoothsResponse;
 import com.team4.expo.dto.ExpoSummaryResponse;
 import com.team4.expo.dto.VisitedBoothResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.CustomerVehicleService;
 import com.team4.expo.service.ExpoService;
 import com.team4.expo.service.LeadService;

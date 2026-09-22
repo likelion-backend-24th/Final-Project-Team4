@@ -2,7 +2,7 @@ package com.team4.expo.controller;
 
 import com.team4.common.response.ApiResponse;
 import com.team4.expo.dto.LeadResponse;
-import com.team4.expo.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.expo.service.LeadService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

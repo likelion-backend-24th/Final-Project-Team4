@@ -5,7 +5,7 @@ import com.team4.reservation.dto.CheckInResponse;
 import com.team4.reservation.dto.TicketResponse;
 import com.team4.reservation.dto.VisitApplicationRequest;
 import com.team4.reservation.dto.VisitApplicationResponse;
-import com.team4.reservation.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.reservation.service.CheckInService;
 import com.team4.reservation.service.TicketService;
 import jakarta.validation.Valid;
