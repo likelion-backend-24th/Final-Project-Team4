@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/admin/applications', label: '참가신청 관리' },
   { to: '/admin/expos/new', label: '박람회 등록' },
   { to: '/admin/stats', label: '통계' },
+  { to: '/admin/members', label: '회원 관리' },
 ];
 
 function AdminHeader() {

@@ -33,6 +33,8 @@ import AdminExpoDetail from './pages/admin/AdminExpoDetail';
 import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
+import AdminMemberList from './pages/admin/AdminMemberList';
+import AdminMemberDetail from './pages/admin/AdminMemberDetail';
 
 // 역할별 헤더만 다르고 본문, 푸터 배치는 공통
 function Layout({ header, children }) {
@@ -126,11 +128,14 @@ function App() {
 
       {/* 대시보드 임시 비활성화: /admin 접속 시 참가신청 관리로 이동 */}
       <Route path="/admin" element={<Navigate to="/admin/applications" replace />} />
-      <Route path="/admin/expos/new" element={<AdminExpoCreate />} />      
       <Route path="/admin/expos/new" element={<AdminExpoCreate />} />
+      <Route path="/admin/expos/:expoId/edit" element={<AdminExpoEdit />} />
       <Route path="/admin/applications" element={<AdminExpoList />} />
       <Route path="/admin/applications/:expoId" element={<AdminExpoDetail />} />
-      <Route path="/admin/stats" element={<AdminRevenueStats />} />    </Routes>
+      <Route path="/admin/stats" element={<AdminRevenueStats />} />
+      <Route path="/admin/members" element={<AdminMemberList />} />
+      <Route path="/admin/members/:userId" element={<AdminMemberDetail />} />
+    </Routes>
   );
 }
 

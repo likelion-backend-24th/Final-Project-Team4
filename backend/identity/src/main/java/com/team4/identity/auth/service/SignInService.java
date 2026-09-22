@@ -55,6 +55,9 @@ public class SignInService {
         if (user.getStatus() == UserStatus.WITHDRAWN) {
             throw new CustomException(ErrorCode.UNAUTHENTICATED, "탈퇴한 계정입니다.");
         }
+        if (user.getStatus() == UserStatus.LOCKED) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "정지된 계정입니다.");
+        }
 
         return issue(user, rememberMe, response);
     }

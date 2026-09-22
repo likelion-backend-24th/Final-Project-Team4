@@ -1,4 +1,4 @@
-import { BarChart3, Bell, ClipboardList, FilePlus2 } from 'lucide-react';
+import { BarChart3, Bell, ClipboardList, FilePlus2, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.png';
 import apiClient from '../../api/client';
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/admin/applications', label: '참가 신청 관리', icon: ClipboardList },
   { to: '/admin/expos/new', label: '박람회 등록', icon: FilePlus2 },
   { to: '/admin/stats', label: '통계', icon: BarChart3 },
+  { to: '/admin/members', label: '회원 관리', icon: Users },
 ];
 
 // breadcrumb: 상단 바에 보여줄 현재 페이지 이름, children: 본문
