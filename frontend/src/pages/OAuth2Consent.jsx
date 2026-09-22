@@ -4,8 +4,7 @@ import logoIcon from '../assets/logo-icon.png';
 import apiClient from '../api/client';
 import { setAuth } from '../api/auth';
 import TermsAgreement from '../components/TermsAgreement';
-import '../components/Header.css';
-import './Signup.css';
+import { Button } from '@/components/ui/button';
 
 // 소셜 로그인으로 처음 온 회원은 백엔드가 가입을 보류하고 이 화면으로 보냄
 // 필수 약관에 동의해야 가입이 확정되고 로그인
@@ -30,17 +29,17 @@ function OAuth2Consent() {
   };
 
   return (
-    <div className="signup">
-      <header className="app-header">
-        <Link to="/login" className="app-header__brand">
-          <img src={logoIcon} alt="" className="app-header__logo" />
-          <span>MOBILITY EXPO</span>
+    <div className="min-h-screen bg-muted/40">
+      <header className="flex items-center border-b border-border bg-background px-4 py-3 md:px-8">
+        <Link to="/login" className="flex items-center gap-2.5 text-foreground no-underline">
+          <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
+          <span className="text-sm font-bold tracking-wide">MOBILITY EXPO</span>
         </Link>
       </header>
 
-      <main className="signup__main">
-        <h1>서비스 이용 동의</h1>
-        <p className="signup__subtitle">
+      <main className="mx-auto w-full max-w-xl px-4 py-10">
+        <h1 className="m-0 text-3xl font-bold tracking-tight">서비스 이용 동의</h1>
+        <p className="mt-2 mb-6 text-sm text-muted-foreground">
           처음 이용하시는 계정입니다. 소셜 로그인으로 가입하려면 아래 약관에 동의해주세요.
         </p>
 
@@ -51,18 +50,13 @@ function OAuth2Consent() {
           onChangePrivacy={setAgreePrivacy}
         />
 
-        <div className="signup__actions">
-          <button type="button" className="signup__back" onClick={() => navigate('/login')}>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="outline" size="lg" onClick={() => navigate('/login')}>
             취소
-          </button>
-          <button
-            type="button"
-            className="signup__submit"
-            disabled={submitting || !allAgreed}
-            onClick={handleSubmit}
-          >
+          </Button>
+          <Button type="button" size="lg" disabled={submitting || !allAgreed} onClick={handleSubmit}>
             {submitting ? '처리 중...' : '동의하고 가입하기'}
-          </button>
+          </Button>
         </div>
       </main>
     </div>

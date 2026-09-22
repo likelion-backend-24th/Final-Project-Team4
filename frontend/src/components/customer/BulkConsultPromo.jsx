@@ -1,17 +1,19 @@
+import { Check, MessageSquareText } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BulkConsultationModal from './BulkConsultationModal';
 import LoginPromptModal from './LoginPromptModal';
 import { isLoggedIn } from '../../api/auth';
-import '../../pages/customer/ExhibitorList.css';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+
+const CHECKLIST = ['여러 업체에 한 번에 신청', '간편한 정보 입력', '빠른 답변을 받아보세요'];
 
 // 참가업체 목록 / 차량 상세 페이지에서 공통으로 쓰는 "여러 업체 한 번에 상담 신청" 사이드 프로모 박스.
-// 넓은 화면에서는 사이드바에 그대로 붙어있고, 화면이 좁아지면 맨 아래로 밀려나는 대신
-// 우측에 작은 플로팅 버튼으로 접혀서 항상 떠 있다가, 누르면 다시 펼쳐진다.
+// 넓은 화면(lg 이상)에서는 사이드바에 붙어 있고, 좁은 화면에서는 우측 하단 플로팅 버튼으로 접힌다.
 // 상담 신청은 로그인한 회원만 가능 - 비로그인 상태면 로그인 유도 모달을 먼저 띄운다.
 function BulkConsultPromo({ expoId, groups, lockedBoothId, defaultVehicle }) {
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
   const [showBulkConsult, setShowBulkConsult] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
@@ -30,43 +32,46 @@ function BulkConsultPromo({ expoId, groups, lockedBoothId, defaultVehicle }) {
 
   return (
     <>
-      <aside className={`c-bulk-promo${expanded ? ' is-expanded' : ''}`}>
-        <button
-          type="button"
-          className="c-bulk-promo__collapse"
-          onClick={() => setExpanded(false)}
-          aria-label="닫기"
-        >
-          ×
-        </button>
-        <span className="c-bulk-promo__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-            <path d="M4 4h16v11H8l-4 4V4z" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </span>
-        <h2>
-          관심 있는 <span className="c-bulk-promo__accent">모든 업체에</span>
-          <br />
-          <span className="c-bulk-promo__accent">한 번에 상담 신청</span>
-        </h2>
-        <button type="button" className="c-bulk-promo__cta" onClick={openBulkConsult} disabled={noExhibitors}>
-          {noExhibitors ? '참가 업체가 생겨야 상담 신청이 가능해요' : '원클릭 상담 신청 →'}
-        </button>
-        <ul className="c-bulk-promo__checklist">
-          <li>여러 업체에 한 번에 신청</li>
-          <li>간편한 정보 입력</li>
-          <li>빠른 답변을 받아보세요</li>
-        </ul>
-        <p className="c-bulk-promo__tagline">CONNECT FOR A BETTER MOBILITY</p>
+      <aside className="hidden lg:block">
+        <Card className="sticky top-24 bg-slate-900 text-white ring-0">
+          <CardContent className="flex flex-col gap-4">
+            <span className="flex size-11 items-center justify-center rounded-full bg-white/10 text-sky-300">
+              <MessageSquareText className="size-6" />
+            </span>
+            <h2 className="m-0 text-xl leading-snug font-bold">
+              관심 있는 <span className="text-sky-300">모든 업체에</span>
+              <br />
+              <span className="text-sky-300">한 번에 상담 신청</span>
+            </h2>
+            <Button type="button" size="lg" className="h-auto whitespace-normal py-2.5" onClick={openBulkConsult} disabled={noExhibitors}>
+              {noExhibitors ? '참가 업체가 생겨야 상담 신청이 가능해요' : '원클릭 상담 신청 →'}
+            </Button>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0 text-sm text-slate-300">
+              {CHECKLIST.map((text) => (
+                <li key={text} className="flex items-center gap-2">
+                  <Check className="size-4 text-sky-300" />
+                  {text}
+                </li>
+              ))}
+            </ul>
+            <p className="m-0 text-[10px] font-semibold tracking-[0.2em] text-slate-500">
+              CONNECT FOR A BETTER MOBILITY
+            </p>
+          </CardContent>
+        </Card>
       </aside>
 
-      {/* 좁은 화면에서만 보이는 우측 고정 플로팅 버튼 - is-expanded가 아닐 때 항상 떠 있다. */}
-      <button type="button" className="c-bulk-promo__fab" onClick={() => setExpanded(true)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M4 4h16v11H8l-4 4V4z" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      {/* 좁은 화면에서만 보이는 우측 하단 고정 플로팅 버튼 */}
+      <Button
+        type="button"
+        size="lg"
+        className="fixed right-4 bottom-4 z-30 rounded-full shadow-lg lg:hidden"
+        onClick={openBulkConsult}
+        disabled={noExhibitors}
+      >
+        <MessageSquareText />
         상담 신청
-      </button>
+      </Button>
 
       {showBulkConsult && (
         <BulkConsultationModal

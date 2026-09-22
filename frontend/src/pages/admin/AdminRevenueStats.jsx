@@ -2,8 +2,13 @@ import { useEffect, useState } from 'react';
 import { getAdminExpoList } from '../../api/expo';
 import { getExpoRevenue, getPaymentStats } from '../../api/payment';
 import { toIsoDate } from '../../utils/calendar';
-import './AdminApplications.css';
-import './AdminRevenueStats.css';
+import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 const SOURCE_LABEL = { BOOTH_FEE: '부스 참가비', DAY_TICKET: '당일 입장권' };
 
@@ -44,83 +49,95 @@ function AdminRevenueStats() {
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '통계를 불러오지 못했습니다.'));
   }, [expoId, from, to]);
 
+  const cards = revenue && [
+    ['부스 참가비 매출', revenue.boothFee, ''],
+    ['당일 입장권 매출', revenue.dayTicket, ''],
+    ['환불 총액', revenue.refundTotal, 'text-red-600'],
+    ['순매출', revenue.netRevenue, 'text-emerald-600'],
+  ];
+
   return (
-    <div className="admin-applications">
-      <section className="admin-applications__hero">
-        <p className="admin-applications__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>결제 통계</h1>
-        <p>박람회별 매출 현황과 일별 결제·환불 통계를 확인합니다.</p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+        title="결제 통계"
+        description="박람회별 매출 현황과 일별 결제·환불 통계를 확인합니다."
+      />
 
-      <section className="admin-revenue-stats__filters">
-        <select value={expoId} onChange={(e) => setExpoId(e.target.value)}>
-          {expos.map((expo) => (
-            <option key={expo.expoId} value={expo.expoId}>{expo.title}</option>
-          ))}
-        </select>
-        <input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
-        <span>~</span>
-        <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
-      </section>
+      <PageContainer className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={expoId} onValueChange={setExpoId}>
+            <SelectTrigger className="h-10 w-full sm:w-72">
+              <SelectValue placeholder="박람회 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {expos.map((expo) => (
+                <SelectItem key={expo.expoId} value={String(expo.expoId)}>{expo.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" className="h-10 w-auto" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
+          <span className="text-muted-foreground">~</span>
+          <Input type="date" className="h-10 w-auto" value={to} min={from} onChange={(e) => setTo(e.target.value)} />
+        </div>
 
-      {loadError && <p className="admin-applications__error">{loadError}</p>}
+        {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
-      {revenue && (
-        <section className="admin-applications__stats">
-          <div className="admin-stat-card">
-            <p>부스 참가비 매출</p>
-            <strong>{revenue.boothFee.toLocaleString()}원</strong>
-          </div>
-          <div className="admin-stat-card">
-            <p>당일 입장권 매출</p>
-            <strong>{revenue.dayTicket.toLocaleString()}원</strong>
-          </div>
-          <div className="admin-stat-card">
-            <p>환불 총액</p>
-            <strong className="is-rejected">{revenue.refundTotal.toLocaleString()}원</strong>
-          </div>
-          <div className="admin-stat-card">
-            <p>순매출</p>
-            <strong className="is-approved">{revenue.netRevenue.toLocaleString()}원</strong>
-          </div>
-        </section>
-      )}
-
-      <div className="admin-applications__table-card">
-        <table className="admin-applications__table">
-          <thead>
-            <tr>
-              <th>날짜</th>
-              <th>구분</th>
-              <th>결제 건수</th>
-              <th>결제 금액</th>
-              <th>환불 건수</th>
-              <th>환불 금액</th>
-              <th>순매출</th>
-            </tr>
-          </thead>
-          <tbody>
-            {statsEntries.length === 0 && (
-              <tr><td colSpan={7} style={{ color: '#64748b' }}>선택한 기간에 결제·환불 내역이 없습니다.</td></tr>
-            )}
-            {statsEntries.map((entry) => (
-              <tr key={`${entry.date}-${entry.source}`}>
-                <td>{entry.date}</td>
-                <td>
-                  <span className={`admin-badge ${entry.source === 'BOOTH_FEE' ? 'admin-badge--reserved' : 'admin-badge--approved'}`}>
-                    {SOURCE_LABEL[entry.source] ?? entry.source}
-                  </span>
-                </td>
-                <td>{entry.paidCount}</td>
-                <td>{entry.paidAmount.toLocaleString()}원</td>
-                <td>{entry.refundCount}</td>
-                <td>{entry.refundAmount.toLocaleString()}원</td>
-                <td className="is-strong">{entry.net.toLocaleString()}원</td>
-              </tr>
+        {cards && (
+          <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {cards.map(([label, value, tone]) => (
+              <Card key={label}>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">{label}</p>
+                  <strong className={cn('mt-1 block text-2xl font-extrabold', tone)}>{value.toLocaleString()}원</strong>
+                </CardContent>
+              </Card>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </section>
+        )}
+
+        <Card className="py-0">
+          <CardContent className="overflow-x-auto p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-5">날짜</TableHead>
+                  <TableHead>구분</TableHead>
+                  <TableHead>결제 건수</TableHead>
+                  <TableHead>결제 금액</TableHead>
+                  <TableHead>환불 건수</TableHead>
+                  <TableHead>환불 금액</TableHead>
+                  <TableHead className="pr-5">순매출</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {statsEntries.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                      선택한 기간에 결제·환불 내역이 없습니다.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {statsEntries.map((entry) => (
+                  <TableRow key={`${entry.date}-${entry.source}`}>
+                    <TableCell className="pl-5">{entry.date}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className={entry.source === 'BOOTH_FEE' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}>
+                        {SOURCE_LABEL[entry.source] ?? entry.source}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{entry.paidCount}</TableCell>
+                    <TableCell>{entry.paidAmount.toLocaleString()}원</TableCell>
+                    <TableCell>{entry.refundCount}</TableCell>
+                    <TableCell>{entry.refundAmount.toLocaleString()}원</TableCell>
+                    <TableCell className="pr-5 font-semibold">{entry.net.toLocaleString()}원</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </PageContainer>
     </div>
   );
 }

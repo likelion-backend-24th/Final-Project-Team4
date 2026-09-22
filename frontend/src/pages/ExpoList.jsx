@@ -1,13 +1,20 @@
+import { ArrowRight, Calendar, MapPin, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { getExpoList, toAssetUrl } from "../api/expo";
 import { phaseOf } from "../utils/expoPhase";
-import "./ExpoList.css";
+import { EmptyState, PageContainer, PageHero, Pagination } from "@/components/layout/Page";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // 상단 필터 탭 목록 - phaseOf()가 반환하는 5가지 단계를 순서대로 전부 포함 (CustomerExpoList.jsx와 동일해야 함)
 const FILTERS = ["전체", "진행중", "모집중", "모집예정", "모집마감", "종료"];
 
-// 카드 목록 정렬 시 우선 적용할 진행 단계 우선순위 (숫자가 작을수록 위로)  ← 추가
+// 카드 목록 정렬 시 우선 적용할 진행 단계 우선순위 (숫자가 작을수록 위로)
 const PHASE_ORDER = { 진행중: 0, 모집중: 1, 모집예정: 2, 모집마감: 3, 종료: 4 };
 
 const PAGE_SIZE = 8;
@@ -76,10 +83,7 @@ function ExpoList() {
     getExpoList({ page: 0, size: 50 })
       .then((res) => setCards(res.content.map(toRealCard)))
       .catch((err) =>
-        setLoadError(
-          err.response?.data?.error?.message ??
-            "박람회 목록을 불러오지 못했습니다.",
-        ),
+        setLoadError(err.response?.data?.error?.message ?? "박람회 목록을 불러오지 못했습니다."),
       );
   }, []);
 
@@ -90,19 +94,17 @@ function ExpoList() {
     return cards
       .filter((c) => {
         const matchesFilter = filter === "전체" || c.phase === filter;
-        const matchesKeyword = c.title
-          .toLowerCase()
-          .includes(keyword.toLowerCase());
+        const matchesKeyword = c.title.toLowerCase().includes(keyword.toLowerCase());
         return matchesFilter && matchesKeyword;
       })
-        .sort((a, b) => {
-          const phaseDiff = PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase];
-          if (phaseDiff !== 0) return phaseDiff;
-          return dir * (new Date(a[sort.key]) - new Date(b[sort.key]));
-        });
+      .sort((a, b) => {
+        const phaseDiff = PHASE_ORDER[a.phase] - PHASE_ORDER[b.phase];
+        if (phaseDiff !== 0) return phaseDiff;
+        return dir * (new Date(a[sort.key]) - new Date(b[sort.key]));
+      });
   }, [cards, filter, keyword, sortOption]);
 
-    // 필터/정렬/검색 결과가 바뀌면 페이지를 1로 초기화
+  // 필터/정렬/검색 결과가 바뀌면 페이지를 1로 초기화
   useEffect(() => {
     setPage(1);
   }, [filter, sortOption, keyword]);
@@ -114,143 +116,120 @@ function ExpoList() {
     [filtered, page],
   );
 
-  // 카드 하나의 내부 UI(썸네일 + 뱃지 + 제목 + 날짜/장소 + 하단 링크)를 그려주는 함수
-  const renderCardBody = (c, i) => (
-    <>
-      {/* 카드 상단 썸네일 영역 (그라데이션 배경) */}
-      <div
-        className="expo-card__thumb"
-        style={
-          c.bannerImageUrl
-            ? { backgroundImage: `url(${toAssetUrl(c.bannerImageUrl)})` }
-            : { background: GRADIENTS[i % GRADIENTS.length] }
-        }
-      />
-      <div className="expo-card__body">
-        <div className="expo-card__meta">
-          {/* 진행 단계 뱃지: 모집마감/종료면 회색(closed), 그 외엔 강조색(open) */}
-          <span
-            className={`expo-card__badge expo-card__badge--${
-              ["모집마감", "종료"].includes(c.phase) ? "closed" : "open"
-            }`}
-          >
-            {c.phase}
-          </span>
-          <span>
-            신청마감 <strong className={dDayOf(c.applyEndsAt) === "마감" ? "is-zero" : undefined}>{dDayOf(c.applyEndsAt)}</strong>
-          </span>
-        </div>
-        <h3>{c.title}</h3>
-        <p className="expo-card__apply-period">
-          신청기간 {fmtDate(c.applyStartsAt)} - {fmtDate(c.applyEndsAt)}
-        </p>
-        <div className="expo-card__meta-list">
-          <p>
-            <span className="expo-card__icon expo-card__icon--calendar" />
-            {fmtDate(c.startsAt)} - {fmtDate(c.endsAt)}
+  // 카드 하나의 내부 UI(썸네일 + 뱃지 + 제목 + 날짜/장소 + 하단 링크)
+  const renderCard = (c, i) => {
+    const closed = NOT_APPLICABLE.includes(c.phase);
+    const dDay = dDayOf(c.applyEndsAt);
+    return (
+      <Card className={cn("h-full gap-0 overflow-hidden py-0 transition-shadow", closed ? "opacity-70" : "hover:shadow-md")}>
+        <div
+          className="h-36 bg-cover bg-center"
+          style={
+            c.bannerImageUrl
+              ? { backgroundImage: `url(${toAssetUrl(c.bannerImageUrl)})` }
+              : { background: GRADIENTS[i % GRADIENTS.length] }
+          }
+        />
+        <CardContent className="flex flex-1 flex-col gap-3 p-4">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <Badge variant={closed ? "secondary" : "default"}>{c.phase}</Badge>
+            <span>
+              신청마감 <strong className={dDay === "마감" ? "text-muted-foreground" : "text-destructive"}>{dDay}</strong>
+            </span>
+          </div>
+          <h3 className="m-0 line-clamp-2 text-base font-semibold text-foreground">{c.title}</h3>
+          <p className="m-0 text-xs text-muted-foreground">
+            신청기간 {fmtDate(c.applyStartsAt)} - {fmtDate(c.applyEndsAt)}
           </p>
-          <p>
-            <span className="expo-card__icon expo-card__icon--pin" />
-            {c.venue}
-          </p>
-        </div>
-        <div className="expo-card__divider" />
-        <div className="expo-card__footer">
-          <span className="expo-card__link">
-            {FOOTER_TEXT[c.phase] ?? "상세 보기 및 부스 신청"}
-          </span>
-          {!NOT_APPLICABLE.includes(c.phase) && <span className="expo-card__arrow" />}
-        </div>
-      </div>
-    </>
-  );
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <p className="m-0 flex items-center gap-1.5">
+              <Calendar className="size-4 shrink-0" />
+              {fmtDate(c.startsAt)} - {fmtDate(c.endsAt)}
+            </p>
+            <p className="m-0 flex items-center gap-1.5">
+              <MapPin className="size-4 shrink-0" />
+              <span className="truncate">{c.venue}</span>
+            </p>
+          </div>
+          <div className="mt-auto flex items-center justify-between border-t pt-3 text-sm font-medium">
+            <span className={closed ? "text-muted-foreground" : "text-primary"}>
+              {FOOTER_TEXT[c.phase] ?? "상세 보기 및 부스 신청"}
+            </span>
+            {!closed && <ArrowRight className="size-4 text-primary" />}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
-    <div className="expo-list">
-      {/* 상단 소개 영역 */}
-      <section className="expo-list__hero">
-        <p className="expo-list__eyebrow">ONLINE REGISTRATION PORTAL</p>
-        <h1>박람회 참가 신청</h1>
-        <p>
-          현재 모집 중이거나 진행 예정인 모빌리티 분야 전문 박람회의 부스 참가
-          신청을 접수하고 있습니다.
-        </p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="ONLINE REGISTRATION PORTAL"
+        title="박람회 참가 신청"
+        description="현재 모집 중이거나 진행 예정인 모빌리티 분야 전문 박람회의 부스 참가 신청을 접수하고 있습니다."
+      />
 
-      {/* 필터 탭 + 검색창 */}
-      <div className="expo-list__toolbar">
-        <div className="expo-list__filters">
-          {FILTERS.map((f) => (
-            <button
-              key={f}
-              type="button"
-              className={f === filter ? "is-active" : ""}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-        <div className="expo-list__toolbar-right">
-          <select
-            className="expo-list__sort"
-            value={sortOption}
-            onChange={(e) => setSortOption(e.target.value)}
-          >
-            {SORTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
+      <div className="border-b border-border bg-background">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-4 md:px-8">
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <Button
+                key={f}
+                type="button"
+                size="sm"
+                variant={f === filter ? "default" : "outline"}
+                className="rounded-full"
+                onClick={() => setFilter(f)}
+              >
+                {f}
+              </Button>
             ))}
-          </select>
-          <div className="expo-list__search-wrap">
-            <span className="expo-list__search-icon" />
-            <input
-              className="expo-list__search"
-              placeholder="박람회 명칭 검색..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={sortOption} onValueChange={setSortOption}>
+              <SelectTrigger className="h-9 w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORTS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative">
+              <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                className="h-9 w-64 pl-8"
+                placeholder="박람회 명칭 검색..."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 박람회 카드 목록 */}
-      <div className="expo-list__grid-wrap">
-        {loadError && <p className="expo-list__status">{loadError}</p>}
-        <div className="expo-list__grid">
+      <PageContainer>
+        {loadError && <EmptyState tone="error">{loadError}</EmptyState>}
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {paginated.map((c, i) =>
-            // 모집예정/모집마감/종료는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
+            // 모집마감/종료는 부스 신청 자체가 불가능하므로 클릭해서 들어가지 못하게 막음
             NOT_APPLICABLE.includes(c.phase) ? (
-              <div key={c.key} className="expo-card expo-card--disabled">
-                {renderCardBody(c, i)}
+              <div key={c.key} className="cursor-not-allowed">
+                {renderCard(c, i)}
               </div>
             ) : (
-              <Link key={c.key} to={`/expos/${c.expoId}`} className="expo-card">
-                {renderCardBody(c, i)}
+              <Link key={c.key} to={`/expos/${c.expoId}`} className="no-underline">
+                {renderCard(c, i)}
               </Link>
-            )
+            ),
           )}
         </div>
-
-        {totalPages > 1 && (
-          <div className="expo-list__pagination">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button key={p} type="button" className={p === page ? "is-active" : ""} onClick={() => setPage(p)}>
-                {p}
-              </button>
-            ))}
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              aria-label="다음"
-              disabled={page === totalPages}
-            >
-              &gt;
-            </button>
-          </div>
-        )}
-      </div>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </PageContainer>
     </div>
   );
 }

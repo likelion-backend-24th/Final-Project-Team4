@@ -1,4 +1,5 @@
 import jsQR from 'jsqr';
+import { ArrowLeft, Camera, Check, ChevronDown, ChevronUp, Maximize2, QrCode, ScanLine, Search, Send, Sparkles, Upload, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   confirmLeadConsent,
@@ -9,12 +10,30 @@ import {
   summarizeLeadEmail,
   updateLeadEmail,
 } from '../api/leads';
-import './LeadCapture.css';
+import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { AppDialog, InfoList } from '@/components/layout/AppDialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const STATUS_LABEL = {
   SCANNED: '연락처 확보',
   DRAFTED: '이메일 초안 생성됨',
   SENT: '발송 완료',
+};
+
+const LEAD_STATUS_TONE = {
+  SCANNED: 'bg-amber-100 text-amber-700',
+  DRAFTED: 'bg-blue-100 text-blue-700',
+  SENT: 'bg-emerald-100 text-emerald-700',
 };
 
 // ISO → 화면 표시용(2026.09.14 10:16)
@@ -63,7 +82,6 @@ function LeadCapture() {
       .finally(() => setBoothsLoading(false));
   }, []);
 
-  const selectedBooth = myBooths.find((b) => b.boothId === boothId) ?? null;
 
   const backToBoothList = () => {
     setBoothId(null);
@@ -278,351 +296,385 @@ function LeadCapture() {
       .finally(() => setConfirmingVisit(false));
   };
 
+  const selectedBooth = myBooths.find((b) => b.boothId === boothId) ?? null;
+
   return (
-    <div className="lead">
-      <section className="lead-hero">
-        <div className="lead-hero__eyebrow">EXHIBITOR LEAD CAPTURE</div>
-        <h1>QR 리드 확보</h1>
-        <p>고객 QR을 스캔해 연락처를 확보하고, 상담 내용을 AI로 정리해 이메일로 보낼 수 있습니다.</p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITOR LEAD CAPTURE"
+        title="QR 리드 확보"
+        description="고객 QR을 스캔해 연락처를 확보하고, 상담 내용을 AI로 정리해 이메일로 보낼 수 있습니다."
+      />
 
-      {boothsLoading && <p className="lead-empty">내 부스 목록을 불러오는 중...</p>}
-      {!boothsLoading && boothsError && <p className="lead-error">{boothsError}</p>}
-      {!boothsLoading && !boothsError && myBooths.length === 0 && (
-        <p className="lead-empty">참가 확정된 부스가 없어 QR 리드 기능을 사용할 수 없습니다.</p>
-      )}
+      <PageContainer size="md">
+        {boothsLoading && <EmptyState>내 부스 목록을 불러오는 중...</EmptyState>}
+        {!boothsLoading && boothsError && <EmptyState tone="error">{boothsError}</EmptyState>}
+        {!boothsLoading && !boothsError && myBooths.length === 0 && (
+          <EmptyState>참가 확정된 부스가 없어 QR 리드 기능을 사용할 수 없습니다.</EmptyState>
+        )}
 
-      {!boothsLoading && !boothsError && myBooths.length > 0 && boothId == null && (
-        <main className="lead-container">
-          <section className="lead-booth-list">
-            <div className="lead-list__head">부스 선택</div>
-            {myBooths.map((booth) => (
-              <button
-                key={booth.boothId}
-                type="button"
-                className="lead-booth-row"
-                onClick={() => setBoothId(booth.boothId)}
-              >
-                <span className="lead-booth-row__expo">{booth.expoTitle}</span>
-                <span className="lead-booth-row__no">{booth.boothNo}</span>
-              </button>
-            ))}
-          </section>
-        </main>
-      )}
-
-      {!boothsLoading && !boothsError && selectedBooth && (
-        <main className="lead-container">
-          <button type="button" className="lead-back" onClick={backToBoothList}>
-            ← 부스 다시 선택
-          </button>
-          <div className="lead-current-booth">{selectedBooth.expoTitle} · {selectedBooth.boothNo}</div>
-
-          <section className="lead-scan">
-            <button type="button" className="lead-scan__button" onClick={openScanModal}>
-              QR 스캔
-            </button>
-          </section>
-
-          <section className="lead-list">
-            <button type="button" className="lead-list__toggle" onClick={() => setLeadListOpen((v) => !v)}>
-              <span className="lead-list__head">
-                리드 목록 <span>{filteredLeads.length}</span>
-                {filteredLeads.length !== leads.length && ` / ${leads.length}`}건
-              </span>
-              <span className="lead-list__chevron">{leadListOpen ? '▲' : '▼'}</span>
-            </button>
-            {leadListOpen && (
-              <>
-                <div className="lead-filter">
-                  <input
-                    type="search"
-                    className="lead-email-input"
-                    placeholder="고객 이름 또는 이메일 검색"
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                  />
-                  <select className="lead-email-input lead-filter__select" value={dateType} onChange={(e) => setDateType(e.target.value)}>
-                    <option value="visit">방문일</option>
-                    <option value="scan">스캔일</option>
-                  </select>
-                  <input
-                    type="date"
-                    className="lead-email-input lead-filter__select"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                  />
-                  <select className="lead-email-input lead-filter__select" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)}>
-                    <option value="">전체 구분</option>
-                    <option value="consultation">상담 신청 고객</option>
-                    <option value="walkin">워크인</option>
-                  </select>
-                  {hasFilter && (
-                    <button type="button" className="lead-btn" onClick={() => { setSearchText(''); setDateFilter(''); setKindFilter(''); }}>
-                      초기화
-                    </button>
-                  )}
-                </div>
-                {leads.length === 0 && <p className="lead-empty">아직 스캔한 리드가 없습니다.</p>}
-                {leads.length > 0 && filteredLeads.length === 0 && <p className="lead-empty">조건에 맞는 리드가 없습니다.</p>}
-                {filteredLeads.map((lead) => (
-                <div key={lead.leadId} className="lead-row" onClick={() => openLead(lead)}>
-                  <div>
-                    <span className="lead-row__name">{lead.customerName}</span>
-                    <span className="lead-row__email">{lead.customerEmail}</span>
-                  </div>
-                  <span className="lead-row__date">
-                    <span>방문일:</span><span>{fmtDate(lead.visitDate)}</span>
-                    <span>스캔일:</span><span>{fmtDateTime(lead.createdAt)}</span>
-                  </span>
-                  <span className={`lead-badge lead-badge--${lead.status.toLowerCase()}`}>
-                    {STATUS_LABEL[lead.status]}
-                  </span>
-                </div>
+        {!boothsLoading && !boothsError && myBooths.length > 0 && boothId == null && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">부스 선택</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {myBooths.map((booth) => (
+                <Button
+                  key={booth.boothId}
+                  type="button"
+                  variant="outline"
+                  className="h-auto justify-between px-4 py-3"
+                  onClick={() => setBoothId(booth.boothId)}
+                >
+                  <span>{booth.expoTitle}</span>
+                  <Badge variant="secondary">{booth.boothNo}</Badge>
+                </Button>
               ))}
-              </>
-            )}
-          </section>
-        </main>
-      )}
+            </CardContent>
+          </Card>
+        )}
+
+        {!boothsLoading && !boothsError && selectedBooth && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={backToBoothList}>
+                <ArrowLeft /> 부스 다시 선택
+              </Button>
+              <p className="m-0 text-sm font-medium text-muted-foreground">
+                {selectedBooth.expoTitle} · {selectedBooth.boothNo}
+              </p>
+            </div>
+
+            <Button type="button" size="lg" className="h-14 text-base" onClick={openScanModal}>
+              <ScanLine /> QR 스캔
+            </Button>
+
+            <Card>
+              <CardHeader>
+                <button
+                  type="button"
+                  className="flex w-full cursor-pointer items-center justify-between border-0 bg-transparent p-0 text-left"
+                  onClick={() => setLeadListOpen((v) => !v)}
+                >
+                  <CardTitle className="text-base">
+                    리드 목록 <span className="text-primary">{filteredLeads.length}</span>
+                    {filteredLeads.length !== leads.length && ` / ${leads.length}`}건
+                  </CardTitle>
+                  {leadListOpen ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                </button>
+              </CardHeader>
+
+              {leadListOpen && (
+                <CardContent className="flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    <div className="relative w-full">
+                      <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        className="h-10 pl-8"
+                        placeholder="고객 이름 또는 이메일 검색"
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                      />
+                    </div>
+                    <Select value={dateType} onValueChange={setDateType}>
+                      <SelectTrigger className="h-10 w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="visit">방문일</SelectItem>
+                        <SelectItem value="scan">스캔일</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input type="date" className="h-10 w-44" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+                    <Select value={kindFilter || 'all'} onValueChange={(v) => setKindFilter(v === 'all' ? '' : v)}>
+                      <SelectTrigger className="h-10 w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">전체 구분</SelectItem>
+                        <SelectItem value="consultation">상담 신청 고객</SelectItem>
+                        <SelectItem value="walkin">워크인</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {hasFilter && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-10"
+                        onClick={() => {
+                          setSearchText('');
+                          setDateFilter('');
+                          setKindFilter('');
+                        }}
+                      >
+                        <X /> 초기화
+                      </Button>
+                    )}
+                  </div>
+
+                  {leads.length === 0 && <EmptyState className="my-2">아직 스캔한 리드가 없습니다.</EmptyState>}
+                  {leads.length > 0 && filteredLeads.length === 0 && <EmptyState className="my-2">조건에 맞는 리드가 없습니다.</EmptyState>}
+
+                  <div className="divide-y">
+                    {filteredLeads.map((lead) => (
+                      <div
+                        key={lead.leadId}
+                        className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 px-1 py-3 transition-colors hover:bg-muted/50 sm:grid-cols-[minmax(0,1fr)_170px_auto]"
+                        onClick={() => openLead(lead)}
+                      >
+                        <div className="min-w-0">
+                          <span className="block truncate text-sm font-semibold">{lead.customerName}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{lead.customerEmail}</span>
+                        </div>
+                        <div className="hidden grid-cols-[44px_auto] gap-x-1.5 text-xs text-muted-foreground sm:grid">
+                          <span>방문일:</span>
+                          <span>{fmtDate(lead.visitDate)}</span>
+                          <span>스캔일:</span>
+                          <span>{fmtDateTime(lead.createdAt)}</span>
+                        </div>
+                        <Badge variant="secondary" className={LEAD_STATUS_TONE[lead.status]}>
+                          {STATUS_LABEL[lead.status]}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          </div>
+        )}
+      </PageContainer>
 
       {scanModalOpen && (
-        <div className="lead-drawer-backdrop" onClick={closeScanModal}>
-          <div className="lead-scan-modal" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="lead-drawer__close lead-scan-modal__close" onClick={closeScanModal} aria-label="닫기">×</button>
-
-            <h2 className="lead-scan-modal__title">방문 등록 QR 코드를 스캔해주세요</h2>
-            <p className="lead-scan-modal__sub">
-              사전 발급받으신 모바일 출입증 QR 코드를 카메라에 비추거나, 캡처된 QR 이미지 파일을 직접 업로드하세요.
-            </p>
-
-            <div
-              className={`lead-viewfinder ${dragOver ? 'is-dragover' : ''}`}
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              <span className="lead-viewfinder__corner lead-viewfinder__corner--tl" />
-              <span className="lead-viewfinder__corner lead-viewfinder__corner--tr" />
-              <span className="lead-viewfinder__corner lead-viewfinder__corner--bl" />
-              <span className="lead-viewfinder__corner lead-viewfinder__corner--br" />
-
-              <video ref={videoRef} className="lead-camera__video" hidden={!cameraOn} muted playsInline />
-
-              {!cameraOn && (
-                <div className="lead-viewfinder__hint">
-                  <div className="lead-viewfinder__hint-icon">▦</div>
-                  <p>QR 코드를 가이드 영역 안에 맞춰주세요</p>
-                  <p className="lead-viewfinder__hint-sub">자동으로 초점을 조절하여 인식합니다</p>
-                </div>
-              )}
-            </div>
-            <canvas ref={canvasRef} hidden />
-
-            <div className="lead-scan-options">
-              <button type="button" className="lead-scan-option" onClick={cameraOn ? stopCamera : startCamera}>
-                <span className="lead-scan-option__icon">🎥</span>
-                <span className="lead-scan-option__title">{cameraOn ? '카메라 끄기' : '카메라로 스캔 →'}</span>
-                <span className="lead-scan-option__desc">실시간 웹캠/키오스크 카메라 사용</span>
-                <span className="lead-scan-option__badge">{cameraOn ? '스캔 중' : '카메라 렌즈 준비됨'}</span>
-              </button>
-
-              <label className="lead-scan-option">
-                <span className="lead-scan-option__icon">⬆️</span>
-                <span className="lead-scan-option__title">QR 이미지 업로드 📎</span>
-                <span className="lead-scan-option__desc">저장된 캡처본, 이미지 파일 (PNG, JPG)</span>
-                <span className="lead-scan-option__badge">드래그 앤 드롭 지원</span>
-                <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
-              </label>
-            </div>
-
-            <div className="lead-scan-modal__drop-hint">
-              ⤢ 또는 이미지를 화면으로 직접 드래그앤드롭하여 즉시 인식할 수 있습니다
-            </div>
-
-            {scanning && <p className="lead-scan-status">확인 중...</p>}
-            {cameraError && <p className="lead-error">{cameraError}</p>}
-            {scanError && <p className="lead-error">{scanError}</p>}
+        <AppDialog
+          onClose={closeScanModal}
+          size="md"
+          title="방문 등록 QR 코드를 스캔해주세요"
+          description="사전 발급받으신 모바일 출입증 QR 코드를 카메라에 비추거나, 캡처된 QR 이미지 파일을 직접 업로드하세요."
+        >
+          <div
+            className={cn(
+              'relative flex aspect-video items-center justify-center overflow-hidden rounded-xl border-2 border-dashed bg-muted/40 transition-colors',
+              dragOver && 'border-primary bg-primary/5'
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <video ref={videoRef} className="size-full object-cover" hidden={!cameraOn} muted playsInline />
+            {!cameraOn && (
+              <div className="flex flex-col items-center gap-1 text-center text-muted-foreground">
+                <QrCode className="size-10" />
+                <p className="m-0 text-sm font-medium">QR 코드를 가이드 영역 안에 맞춰주세요</p>
+                <p className="m-0 text-xs">자동으로 초점을 조절하여 인식합니다</p>
+              </div>
+            )}
           </div>
-        </div>
+          <canvas ref={canvasRef} hidden />
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button type="button" variant="outline" className="h-auto flex-col gap-1 py-3" onClick={cameraOn ? stopCamera : startCamera}>
+              <Camera className="size-5" />
+              <span className="font-semibold">{cameraOn ? '카메라 끄기' : '카메라로 스캔'}</span>
+              <span className="text-xs font-normal text-muted-foreground">실시간 웹캠/키오스크 카메라 사용</span>
+            </Button>
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border bg-background px-3 py-3 text-center shadow-xs transition-colors hover:bg-muted">
+              <Upload className="size-5" />
+              <span className="text-sm font-semibold">QR 이미지 업로드</span>
+              <span className="text-xs text-muted-foreground">저장된 캡처본, 이미지 파일 (PNG, JPG)</span>
+              <input type="file" accept="image/*" hidden onChange={handleImageUpload} />
+            </label>
+          </div>
+          <p className="m-0 text-center text-xs text-muted-foreground">
+            또는 이미지를 화면으로 직접 드래그앤드롭하여 즉시 인식할 수 있습니다
+          </p>
+
+          {scanning && <p className="m-0 text-center text-sm text-muted-foreground">확인 중...</p>}
+          {cameraError && <p className="m-0 text-sm text-destructive">{cameraError}</p>}
+          {scanError && <p className="m-0 text-sm text-destructive">{scanError}</p>}
+        </AppDialog>
       )}
 
-      {selected && (
-        <div className="lead-drawer-backdrop" onClick={closeLead}>
-          <div className="lead-drawer-group" onClick={(e) => e.stopPropagation()}>
-          <aside className="lead-drawer">
-            <div className="lead-drawer__head">
-              <div>
-                <h2>{selected.customerName}</h2>
-                <p>{selected.customerEmail || '이메일 없음'}</p>
-              </div>
-              <button type="button" className="lead-drawer__close" onClick={closeLead} aria-label="닫기">×</button>
-            </div>
+      <Sheet open={!!selected} onOpenChange={(open) => !open && closeLead()}>
+        <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-xl">
+          {selected && (
+            <>
+              <SheetHeader className="border-b p-5">
+                <SheetTitle className="text-lg">{selected.customerName}</SheetTitle>
+                <SheetDescription>{selected.customerEmail || '이메일 없음'}</SheetDescription>
+              </SheetHeader>
 
-            {actionError && <p className="lead-error">{actionError}</p>}
+              <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-5">
+                {actionError && <p className="m-0 text-sm text-destructive">{actionError}</p>}
 
-            <div className="lead-drawer__body">
-              <section className="lead-detail-section">
-                <div className="lead-detail-title">상담 예약 정보</div>
-                <div className="lead-detail-box">
-                  <div className="lead-detail-row"><span className="lead-label">고객</span><span className="lead-value">{selected.customerName}</span></div>
-                  <div className="lead-detail-row"><span className="lead-label">방문일</span><span className="lead-value">{fmtDate(selected.visitDate)}</span></div>
-                  <div className="lead-detail-row"><span className="lead-label">QR 스캔 일시</span><span className="lead-value">{fmtDateTime(selected.createdAt)}</span></div>
-                  <div className="lead-detail-row"><span className="lead-label">진행 상태</span><span className="lead-value">{STATUS_LABEL[selected.status]}</span></div>
-                </div>
-              </section>
+                <section>
+                  <h3 className="m-0 mb-2 text-sm font-semibold">상담 예약 정보</h3>
+                  <dl className="m-0 divide-y rounded-lg border bg-muted/30 text-sm">
+                    {[
+                      ['고객', selected.customerName],
+                      ['방문일', fmtDate(selected.visitDate)],
+                      ['QR 스캔 일시', fmtDateTime(selected.createdAt)],
+                      ['진행 상태', STATUS_LABEL[selected.status]],
+                    ].map(([label, value]) => (
+                      <div key={label} className="flex justify-between gap-4 px-3 py-2">
+                        <dt className="text-muted-foreground">{label}</dt>
+                        <dd className="m-0 font-medium">{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
 
-              <section className="lead-detail-section">
-                <div className="lead-detail-title">고객 이메일 {selected.customerEmail ? '수정' : '입력'}</div>
-                {!selected.customerEmail && (
-                  <p className="lead-empty">등록된 이메일이 없습니다. 현장에서 확인해 직접 입력해주세요.</p>
-                )}
-                <div className="lead-email-input-row">
-                  <input
-                    type="email"
-                    className="lead-email-input"
-                    placeholder="customer@example.com"
-                    value={emailInput}
-                    onChange={(e) => setEmailInput(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="lead-btn lead-btn--ai"
-                    disabled={!emailInput.trim() || emailInput.trim() === selected.customerEmail || savingEmail}
-                    onClick={handleSaveEmail}
-                  >
-                    {savingEmail ? '저장 중...' : '저장'}
-                  </button>
-                </div>
-              </section>
-
-              {!selected.leadConsent && (
-                <p className="lead-error">고객이 연락처 제공에 동의하지 않아 이메일 작성·발송을 할 수 없습니다.</p>
-              )}
-
-              <section className="lead-detail-section">
-                <div className="lead-detail-title lead-detail-title--row">
-                  상담 메모
-                  <button type="button" className="lead-expand-btn" onClick={() => setExpandField('note')}>
-                    크게 보기
-                  </button>
-                </div>
-                <textarea
-                  className="lead-textarea lead-textarea--memo"
-                  rows={10}
-                  placeholder="현장에서 나눈 상담 내용을 자유롭게 적어주세요"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  disabled={selected.status === 'SENT' || !selected.leadConsent}
-                />
-                <button
-                  type="button"
-                  className="lead-btn lead-btn--ai"
-                  disabled={!note.trim() || summarizing || selected.status === 'SENT' || !selected.leadConsent}
-                  onClick={handleSummarize}
-                >
-                  {summarizing ? 'AI 요약 생성 중...' : 'AI 요약 생성'}
-                </button>
-              </section>
-
-              {draft && (
-                <section className="lead-detail-section">
-                  <div className="lead-detail-title lead-detail-title--row">
-                    고객 발송용 이메일 초안 (수정 가능)
-                    <button type="button" className="lead-expand-btn" onClick={() => setExpandField('draft')}>
-                      크게 보기
-                    </button>
+                <section>
+                  <h3 className="m-0 mb-2 text-sm font-semibold">고객 이메일 {selected.customerEmail ? '수정' : '입력'}</h3>
+                  {!selected.customerEmail && (
+                    <p className="m-0 mb-2 text-xs text-muted-foreground">등록된 이메일이 없습니다. 현장에서 확인해 직접 입력해주세요.</p>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      className="h-10"
+                      placeholder="customer@example.com"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      className="h-10"
+                      disabled={!emailInput.trim() || emailInput.trim() === selected.customerEmail || savingEmail}
+                      onClick={handleSaveEmail}
+                    >
+                      {savingEmail ? '저장 중...' : '저장'}
+                    </Button>
                   </div>
-                  <textarea
-                    className="lead-textarea"
+                </section>
+
+                {!selected.leadConsent && (
+                  <Alert variant="destructive">
+                    <AlertDescription>고객이 연락처 제공에 동의하지 않아 이메일 작성·발송을 할 수 없습니다.</AlertDescription>
+                  </Alert>
+                )}
+
+                <section className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="m-0 text-sm font-semibold">상담 메모</h3>
+                    <Button type="button" variant="ghost" size="xs" className="text-primary" onClick={() => setExpandField('note')}>
+                      <Maximize2 /> 크게 보기
+                    </Button>
+                  </div>
+                  <Textarea
                     rows={8}
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    placeholder="현장에서 나눈 상담 내용을 자유롭게 적어주세요"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
                     disabled={selected.status === 'SENT' || !selected.leadConsent}
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-fit border-primary text-primary"
+                    disabled={!note.trim() || summarizing || selected.status === 'SENT' || !selected.leadConsent}
+                    onClick={handleSummarize}
+                  >
+                    <Sparkles /> {summarizing ? 'AI 요약 생성 중...' : 'AI 요약 생성'}
+                  </Button>
                 </section>
-              )}
-            </div>
 
-            <div className="lead-drawer__actions">
-              {selected.status === 'SENT' ? (
-                <p className="lead-drawer__done-note">이미 발송된 리드입니다.</p>
-              ) : (
-                <button
-                  type="button"
-                  className="lead-btn lead-btn--send"
-                  disabled={!draft.trim() || sending || !selected.leadConsent || !selected.customerEmail}
-                  onClick={handleSend}
-                >
-                  {sending ? '발송 중...' : '고객에게 발송'}
-                </button>
-              )}
-            </div>
-          </aside>
-
-          {expandField && (
-            <aside className="lead-expand-panel">
-              <div className="lead-expand-panel__head">
-                <h3>{expandField === 'note' ? '상담 메모 (크게 보기)' : '이메일 초안 (크게 보기)'}</h3>
-                <button type="button" className="lead-drawer__close" onClick={() => setExpandField(null)} aria-label="닫기">×</button>
+                {draft && (
+                  <section className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="m-0 text-sm font-semibold">고객 발송용 이메일 초안 (수정 가능)</h3>
+                      <Button type="button" variant="ghost" size="xs" className="text-primary" onClick={() => setExpandField('draft')}>
+                        <Maximize2 /> 크게 보기
+                      </Button>
+                    </div>
+                    <Textarea
+                      rows={10}
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      disabled={selected.status === 'SENT' || !selected.leadConsent}
+                    />
+                  </section>
+                )}
               </div>
-              <textarea
-                className="lead-textarea lead-textarea--expanded"
-                value={expandField === 'note' ? note : draft}
-                onChange={(e) => (expandField === 'note' ? setNote(e.target.value) : setDraft(e.target.value))}
-                disabled={selected.status === 'SENT'}
-                autoFocus
-              />
-            </aside>
+
+              <SheetFooter className="border-t p-5">
+                {selected.status === 'SENT' ? (
+                  <p className="m-0 text-center text-sm text-muted-foreground">이미 발송된 리드입니다.</p>
+                ) : (
+                  <Button
+                    type="button"
+                    size="lg"
+                    disabled={!draft.trim() || sending || !selected.leadConsent || !selected.customerEmail}
+                    onClick={handleSend}
+                  >
+                    <Send /> {sending ? '발송 중...' : '고객에게 발송'}
+                  </Button>
+                )}
+              </SheetFooter>
+            </>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {expandField && (
+        <AppDialog
+          onClose={() => setExpandField(null)}
+          size="lg"
+          title={expandField === 'note' ? '상담 메모 (크게 보기)' : '이메일 초안 (크게 보기)'}
+          className="sm:h-[80vh]"
+        >
+          <Textarea
+            autoFocus
+            className="min-h-64 flex-1 resize-none"
+            value={expandField === 'note' ? note : draft}
+            onChange={(e) => (expandField === 'note' ? setNote(e.target.value) : setDraft(e.target.value))}
+            disabled={selected?.status === 'SENT'}
+          />
+          <div className="flex justify-end">
+            <Button type="button" onClick={() => setExpandField(null)}>
+              완료
+            </Button>
           </div>
-        </div>
+        </AppDialog>
       )}
 
       {scanResult && (
-        <div className="lead-drawer-backdrop" onClick={() => { setScanResult(null); setConsentChecked(false); openScanModal(); }}>
-          <div className="lead-scan-result-card" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="lead-drawer__close lead-scan-result-card__close"
-              onClick={() => { setScanResult(null); setConsentChecked(false); openScanModal(); }}
-              aria-label="닫기"
-            >
-              ×
-            </button>
-            <div className="lead-scan-result-card__icon">✓</div>
-            <h2 className="lead-scan-result-card__title">방문 확인 완료</h2>
-            <div className="lead-detail-box">
-              <div className="lead-detail-row"><span className="lead-label">고객</span><span className="lead-value">{scanResult.customerName}</span></div>
-              <div className="lead-detail-row"><span className="lead-label">구분</span><span className="lead-value">{scanResult.isConsultation ? '상담 신청 고객' : '방문자(워크인)'}</span></div>
-              <div className="lead-detail-row"><span className="lead-label">방문일</span><span className="lead-value">{fmtDate(scanResult.visitDate)}</span></div>
-              <div className="lead-detail-row"><span className="lead-label">스캔 일시</span><span className="lead-value">{fmtDateTime(scanResult.scannedAt)}</span></div>
-            </div>
-
-            {!scanResult.isConsultation && (
-              <>
-                <label className="lead-scan-result-card__consent">
-                  <input
-                    type="checkbox"
-                    checked={consentChecked}
-                    disabled={confirmingVisit}
-                    onChange={(e) => setConsentChecked(e.target.checked)}
-                  />
-                  <span>부스 방문 시 연락처 제공에 동의함</span>
-                </label>
-                {scanError && <p className="lead-error">{scanError}</p>}
-                <button
-                  type="button"
-                  className="lead-scan-result-card__confirm-btn"
-                  disabled={confirmingVisit}
-                  onClick={handleConfirmVisit}
-                >
-                  {confirmingVisit ? '처리 중...' : '방문 확인'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <AppDialog
+          onClose={() => {
+            setScanResult(null);
+            setConsentChecked(false);
+            openScanModal();
+          }}
+          icon={<Check />}
+          title="방문 확인 완료"
+          centered
+        >
+          <InfoList
+            items={[
+              { label: '고객', value: scanResult.customerName },
+              { label: '구분', value: scanResult.isConsultation ? '상담 신청 고객' : '방문자(워크인)' },
+              { label: '방문일', value: fmtDate(scanResult.visitDate) },
+              { label: '스캔 일시', value: fmtDateTime(scanResult.scannedAt) },
+            ]}
+          />
+          {!scanResult.isConsultation && (
+            <>
+              <Label className="cursor-pointer font-normal">
+                <Checkbox checked={consentChecked} disabled={confirmingVisit} onCheckedChange={(v) => setConsentChecked(v === true)} />
+                부스 방문 시 연락처 제공에 동의함
+              </Label>
+              {scanError && <p className="m-0 text-sm text-destructive">{scanError}</p>}
+              <Button type="button" size="lg" disabled={confirmingVisit} onClick={handleConfirmVisit}>
+                {confirmingVisit ? '처리 중...' : '방문 확인'}
+              </Button>
+            </>
+          )}
+        </AppDialog>
       )}
     </div>
   );
