@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getVisitedBooths } from '../../api/expo';
 import { isReviewWindowOpen } from '../../mock/customerData';
-import './Modal.css';
-import './VisitedBoothsModal.css';
+import { AppDialog } from '@/components/layout/AppDialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 // 마감까지 남은 일수 표시 - 당일이면 "오늘 마감". deadlineIso는 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss'.
 const dLabel = (deadlineIso) => {
@@ -64,59 +65,62 @@ function WritableReviewsModal({ consultations, tickets, myReviews, onClose }) {
 
   const empty = writableConsultations.length === 0 && booths?.length === 0;
 
+  const Item = ({ onClick, title, sub, deadline }) => (
+    <li>
+      <Button variant="outline" className="h-auto w-full justify-between px-3.5 py-3 text-left" onClick={onClick}>
+        <span className="min-w-0">
+          <span className="block truncate">{title}</span>
+          <small className="block truncate text-xs font-normal text-muted-foreground">{sub}</small>
+        </span>
+        <Badge variant="secondary" className="shrink-0 text-primary">{dLabel(deadline)}</Badge>
+      </Button>
+    </li>
+  );
+
   return (
-    <div className="c-modal__backdrop" onClick={onClose}>
-      <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
-          ✕
-        </button>
-        <h2>작성할 수 있는 후기</h2>
-        <p className="c-modal__desc">완료·방문 후 5일 이내인 후기만 작성할 수 있습니다. 마감이 임박한 순서로 보여줍니다.</p>
+    <AppDialog
+      onClose={onClose}
+      title="작성할 수 있는 후기"
+      description="완료·방문 후 5일 이내인 후기만 작성할 수 있습니다. 마감이 임박한 순서로 보여줍니다."
+    >
+      {error && <p className="m-0 text-sm text-destructive">{error}</p>}
+      {!error && !booths && <p className="m-0 py-4 text-center text-sm text-muted-foreground">불러오는 중...</p>}
+      {empty && <p className="m-0 py-4 text-center text-sm text-muted-foreground">지금 작성할 수 있는 후기가 없습니다.</p>}
 
-        {error && <p className="c-modal__error">{error}</p>}
-        {!error && !booths && <p className="c-visited-booths__status">불러오는 중...</p>}
-        {empty && <p className="c-visited-booths__status">지금 작성할 수 있는 후기가 없습니다.</p>}
+      {writableConsultations.length > 0 && (
+        <section>
+          <h3 className="m-0 mb-2 text-sm font-semibold">상담후기</h3>
+          <ul className="m-0 flex max-h-60 list-none flex-col gap-2 overflow-y-auto p-0">
+            {writableConsultations.map((c) => (
+              <Item
+                key={c.consultationId}
+                onClick={() => writeConsultReview(c)}
+                title={`${c.companyName || `${c.boothNo} 부스`}${c.interestedVehicle ? ` · ${c.interestedVehicle}` : ''}`}
+                sub={`${c.expoTitle} · 상담일 ${c.preferredDate}`}
+                deadline={c.reviewDeadline}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
 
-        {writableConsultations.length > 0 && (
-          <>
-            <h3 className="c-writable-reviews__section">상담후기</h3>
-            <ul className="c-visited-booths__list">
-              {writableConsultations.map((c) => (
-                <li key={c.consultationId}>
-                  <button type="button" onClick={() => writeConsultReview(c)}>
-                    <span>
-                      {c.companyName || `${c.boothNo} 부스`}
-                      {c.interestedVehicle && ` · ${c.interestedVehicle}`}
-                      <small className="c-writable-reviews__sub">{c.expoTitle} · 상담일 {c.preferredDate}</small>
-                    </span>
-                    <span className="c-writable-reviews__dday">{dLabel(c.reviewDeadline)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-
-        {booths?.length > 0 && (
-          <>
-            <h3 className="c-writable-reviews__section">부스후기</h3>
-            <ul className="c-visited-booths__list">
-              {booths.map((b) => (
-                <li key={b.boothId}>
-                  <button type="button" onClick={() => writeBoothReview(b)}>
-                    <span>
-                      {b.companyName || `${b.boothNo} 부스`}
-                      <small className="c-writable-reviews__sub">{b.expoTitle} · {b.boothNo}</small>
-                    </span>
-                    <span className="c-writable-reviews__dday">{dLabel(b.reviewDeadline)}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
-    </div>
+      {booths?.length > 0 && (
+        <section>
+          <h3 className="m-0 mb-2 text-sm font-semibold">부스후기</h3>
+          <ul className="m-0 flex max-h-60 list-none flex-col gap-2 overflow-y-auto p-0">
+            {booths.map((b) => (
+              <Item
+                key={b.boothId}
+                onClick={() => writeBoothReview(b)}
+                title={b.companyName || `${b.boothNo} 부스`}
+                sub={`${b.expoTitle} · ${b.boothNo}`}
+                deadline={b.reviewDeadline}
+              />
+            ))}
+          </ul>
+        </section>
+      )}
+    </AppDialog>
   );
 }
 
