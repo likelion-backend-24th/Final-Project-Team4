@@ -1,21 +1,27 @@
 package com.team4.reservation.controller;
 
+import com.team4.reservation.client.IdentityClient;
 import com.team4.reservation.domain.CheckIn;
 import com.team4.reservation.domain.Ticket;
 import com.team4.reservation.repository.CheckInRepository;
 import com.team4.reservation.repository.TicketRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import org.springframework.transaction.annotation.Transactional;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,6 +39,9 @@ class ReservationAdminStatsAcceptanceTest {
     @Autowired MockMvc mockMvc;
     @Autowired TicketRepository ticketRepository;
     @Autowired CheckInRepository checkInRepository;
+
+    // 고객 이름은 Identity 소유 - 테스트에서는 실제 호출 대신 값을 지정해 씀
+    @MockBean IdentityClient identityClient;
 
     @AfterEach
     void cleanUp() {
@@ -107,6 +116,7 @@ class ReservationAdminStatsAcceptanceTest {
     }
 
     @Test
+    @Transactional // markUsedIfIssued/markCancelledIfIssued는 @Modifying 벌크 UPDATE라 트랜잭션 안에서만 실행 가능
     @DisplayName("입장권 현황은 유형별 발급 수(취소 제외)와 체크인 완료 수를 반환한다")
     void 입장권_현황() throws Exception {
         LocalDate today = LocalDate.now();
@@ -122,6 +132,27 @@ class ReservationAdminStatsAcceptanceTest {
                 .andExpect(jsonPath("$.data.freeIssued").value(2))
                 .andExpect(jsonPath("$.data.paidIssued").value(1))
                 .andExpect(jsonPath("$.data.used").value(1));
+    }
+
+    @Test
+    @DisplayName("입장 현황 목록은 최근 체크인부터 나오고 고객 이름이 함께 나온다")
+    void 입장_현황_목록() throws Exception {
+        LocalDate today = LocalDate.now();
+        Long firstTicketId = freeTicketId(21L);
+        Long secondTicketId = paidTicketId(22L);
+        checkInRepository.save(new CheckIn(firstTicketId, EXPO_ID, today.atTime(9, 5)));
+        checkInRepository.save(new CheckIn(secondTicketId, EXPO_ID, today.atTime(14, 21)));
+        BDDMockito.given(identityClient.getUserNames(anyList())).willReturn(Map.of(21L, "이준호", 22L, "김다솜"));
+
+        mockMvc.perform(get(BASE + "/check-in-logs").with(as("ADMIN"))
+                        .param("expoId", String.valueOf(EXPO_ID))
+                        .param("date", today.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].customerName").value("김다솜"))
+                .andExpect(jsonPath("$.data[0].ticketType").value("PAID"))
+                .andExpect(jsonPath("$.data[1].customerName").value("이준호"))
+                .andExpect(jsonPath("$.data[1].ticketType").value("FREE"));
     }
 
     @Test
