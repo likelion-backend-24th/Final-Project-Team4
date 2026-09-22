@@ -2,18 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getAdminExpoBooths, getAdminExpoList } from '../../api/expo';
 import { getPaymentStats } from '../../api/payment';
-import { getCheckInStats, getHourlyCheckIns, getTicketStats } from '../../api/reservation';
+import { getCheckInLogs, getCheckInStats, getHourlyCheckIns, getTicketStats } from '../../api/reservation';
 import BarChart from '../../components/BarChart';
+import CheckInLogList from '../../components/CheckInLogList';
 import DonutChart from '../../components/DonutChart';
 import LineChart from '../../components/LineChart';
 import { isFoodBooth } from '../../utils/boothType';
 import { offsetIsoDate } from '../../utils/calendar';
-import { EMPTY_DAY, dayLabel, man, mergeDaily, sum, won } from '../../utils/statsFormat';
+import { EMPTY_DAY, dayLabel, man, mergeDaily, ratio, sum, won } from '../../utils/statsFormat';
 import './AdminApplications.css';
 import './AdminRevenueStats.css';
 import './AdminDashboard.css';
-
-const percent = (part, total) => (total === 0 ? 0 : Math.round((part / total) * 100));
 
 // 전일 대비 문구와 색(up, down). 어제 값이 0이면 퍼센트는 빼고 차이만 보여줌
 const compare = (cur, prev, fmt) => {
@@ -63,9 +62,10 @@ function AdminDashboard() {
       getCheckInStats({ expoId, from: weekStart, to: today }),
       getHourlyCheckIns({ expoId, date: today }),
       getTicketStats(expoId),
+      getCheckInLogs({ expoId, date: today }),
     ])
-      .then(([boothRes, payments, checkIns, hourly, tickets]) => {
-        setData({ expoId, booths: boothRes.booths, payments, checkIns, hourly, tickets, today });
+      .then(([boothRes, payments, checkIns, hourly, tickets, logs]) => {
+        setData({ expoId, booths: boothRes.booths, payments, checkIns, hourly, tickets, logs, today });
         setLoadError(null);
       })
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '대시보드 현황을 불러오지 못했습니다.'));
@@ -104,7 +104,7 @@ function AdminDashboard() {
 
 // 선택한 박람회의 데이터가 준비된 뒤에 그리는 본문
 function DashboardBody({ data, pending, todos }) {
-  const { expoId, booths, payments, checkIns, hourly, tickets, today } = data;
+  const { expoId, booths, payments, checkIns, hourly, tickets, logs, today } = data;
 
   const daily = mergeDaily(payments, checkIns);
   const todayStat = daily[today] ?? EMPTY_DAY;
@@ -163,13 +163,15 @@ function DashboardBody({ data, pending, todos }) {
       <div className="admin-dashboard__grid admin-dashboard__grid--wide-right">
         <section className="admin-dashboard__card">
           <h3>입장권 유형별 입장 현황 (오늘)</h3>
-          <DonutChart
-            centerLabel="총 입장 인원"
-            items={[
-              { label: '무료 입장권', value: todayStat.free, color: '#bfdbfe' },
-              { label: '유료 입장권', value: todayStat.paid, color: '#2f6bff' },
-            ]}
-          />
+          <div className="admin-dashboard__chart">
+            <DonutChart
+              centerLabel="총 입장 인원"
+              items={[
+                { label: '무료 입장권', value: todayStat.free, color: '#bfdbfe' },
+                { label: '유료 입장권', value: todayStat.paid, color: '#2f6bff' },
+              ]}
+            />
+          </div>
         </section>
 
         <section className="admin-dashboard__card">
@@ -177,29 +179,35 @@ function DashboardBody({ data, pending, todos }) {
             시간대별 입장 인원 (오늘)
             <Link to={`/admin/stats?expoId=${expoId}`}>상세 보기 &gt;</Link>
           </h3>
-          <BarChart items={hourItems} />
+          <div className="admin-dashboard__chart">
+            <BarChart items={hourItems} />
+          </div>
         </section>
       </div>
 
       <div className="admin-dashboard__grid">
         <section className="admin-dashboard__card">
           <h3>최근 7일 입장 추이</h3>
-          <LineChart
-            labels={weekDates.map(dayLabel)}
-            series={[
-              { name: '전체', color: '#2f6bff', values: weekValues('visit') },
-              { name: '무료', color: '#93c5fd', values: weekValues('free') },
-              { name: '유료', color: '#f97316', values: weekValues('paid') },
-            ]}
-          />
+          <div className="admin-dashboard__chart">
+            <LineChart
+              labels={weekDates.map(dayLabel)}
+              series={[
+                { name: '전체', color: '#2f6bff', values: weekValues('visit') },
+                { name: '무료', color: '#93c5fd', values: weekValues('free') },
+                { name: '유료', color: '#f97316', values: weekValues('paid') },
+              ]}
+            />
+          </div>
         </section>
 
         <section className="admin-dashboard__card">
           <h3>최근 7일 매출 추이</h3>
-          <BarChart
-            format={man}
-            items={weekDates.map((d) => ({ label: dayLabel(d), value: daily[d]?.net ?? 0, active: d === today }))}
-          />
+          <div className="admin-dashboard__chart">
+            <BarChart
+              format={man}
+              items={weekDates.map((d) => ({ label: dayLabel(d), value: daily[d]?.net ?? 0, active: d === today }))}
+            />
+          </div>
         </section>
       </div>
 
@@ -218,8 +226,8 @@ function DashboardBody({ data, pending, todos }) {
 
         <section className="admin-dashboard__card">
           <h3>부스 배치 현황</h3>
-          <strong className="admin-dashboard__big">{percent(assignedOf(booths), booths.length)}%</strong>
-          <ProgressBar pct={percent(assignedOf(booths), booths.length)} />
+          <strong className="admin-dashboard__big">{ratio(assignedOf(booths), booths.length)}%</strong>
+          <ProgressBar pct={ratio(assignedOf(booths), booths.length)} />
           <p className="admin-dashboard__sub">
             확정 {assignedOf(booths)}개, 결제 대기 {reserved}개, 전체 {booths.length}개
           </p>
@@ -228,14 +236,22 @@ function DashboardBody({ data, pending, todos }) {
         </section>
 
         <section className="admin-dashboard__card">
-          <h3>입장권 현황</h3>
-          <strong className="admin-dashboard__big">{percent(tickets.used, issued)}%</strong>
-          <ProgressBar pct={percent(tickets.used, issued)} />
-          <p className="admin-dashboard__sub">체크인 {tickets.used}명, 발급 {issued}장</p>
+          <h3>누적 입장권 현황</h3>
+          <strong className="admin-dashboard__big">{ratio(tickets.used, issued)}%</strong>
+          <ProgressBar pct={ratio(tickets.used, issued)} />
+          <p className="admin-dashboard__sub">전체 기간 체크인 {tickets.used}명, 발급 {issued}장</p>
           <p className="admin-dashboard__row"><span>무료 QR 입장권</span><span>{tickets.freeIssued}장</span></p>
           <p className="admin-dashboard__row"><span>당일 유료 입장권</span><span>{tickets.paidIssued}장</span></p>
         </section>
       </div>
+
+      <section className="admin-dashboard__card">
+        <h3>
+          최근 입장 현황 (오늘)
+          <Link to={`/admin/stats?expoId=${expoId}`}>상세 보기 &gt;</Link>
+        </h3>
+        <CheckInLogList logs={logs} limit={5} />
+      </section>
     </>
   );
 }

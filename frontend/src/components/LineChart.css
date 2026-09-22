@@ -1,7 +1,5 @@
 .line-chart svg {
   display: block;
-  width: 100%;
-  height: auto;
 }
 
 .line-chart svg text {

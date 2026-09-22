@@ -1,7 +1,8 @@
+import { useEffect, useRef, useState } from 'react';
 import './LineChart.css';
 
-const W = 600;
-const H = 220;
+// 막대그래프(BarChart, 150px 고정)와 카드 높이를 맞추기 위한 고정 높이. 폭은 아래 ResizeObserver로 실측함
+const H = 160;
 const PAD = { left: 40, right: 16, top: 12, bottom: 28 };
 const GRID = 4; // 가로 눈금선 개수
 
@@ -13,16 +14,29 @@ function niceStep(max) {
 }
 
 // 단순 선 그래프. labels: x축 글자, series: [{ name, color, values }] (values 길이 = labels 길이)
+// SVG를 viewBox 비율로 늘리면(width:100%, height:auto) 폭이 넓어질수록 높이도 커져서 옆 카드와
+// 높이가 어긋난다. 그래서 실제 컨테이너 폭을 재서 좌표를 그 폭 기준으로 그리고, 높이(H)는 고정한다.
 function LineChart({ labels, series }) {
+  const wrapRef = useRef(null);
+  const [width, setWidth] = useState(600); // 실측 전 초기값
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return undefined;
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   const step = niceStep(Math.max(GRID, ...series.flatMap((s) => s.values)));
   const max = step * GRID;
-  const plotW = W - PAD.left - PAD.right;
+  const plotW = width - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const x = (i) => PAD.left + (labels.length === 1 ? plotW / 2 : (i * plotW) / (labels.length - 1));
   const y = (v) => PAD.top + plotH - (v / max) * plotH;
 
   return (
-    <div className="line-chart">
+    <div className="line-chart" ref={wrapRef}>
       <ul className="line-chart__legend">
         {series.map((s) => (
           <li key={s.name}>
@@ -31,10 +45,10 @@ function LineChart({ labels, series }) {
           </li>
         ))}
       </ul>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img">
+      <svg width={width} height={H} role="img">
         {Array.from({ length: GRID + 1 }, (_, i) => i * step).map((v) => (
           <g key={v}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} className="line-chart__grid" />
+            <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} className="line-chart__grid" />
             <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end">{v}</text>
           </g>
         ))}

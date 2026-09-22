@@ -6,6 +6,9 @@ export const sum = (rows, key) => rows.reduce((acc, r) => acc + r[key], 0);
 
 export const won = (n) => `${n.toLocaleString()}원`;
 
+// 비중(%) - 분모가 0이면 0
+export const ratio = (part, total) => (total === 0 ? 0 : Math.round((part / total) * 100));
+
 // 1만 이상은 '150만'처럼 줄여서 표시 (달력 셀, 그래프 값처럼 좁은 곳용)
 export const man = (n) => (n >= 10000 ? `${Math.round(n / 10000).toLocaleString()}만` : String(n));
 

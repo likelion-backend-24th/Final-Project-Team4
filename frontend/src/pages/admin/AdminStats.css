@@ -4,9 +4,34 @@
   font-weight: 600;
 }
 
+.admin-stats__today {
+  margin-left: 4px;
+}
+
 .admin-stats__link {
   margin-left: auto;
   font-size: 13px;
+  color: #2f6bff;
+}
+
+.admin-stats__toggle {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.admin-stats__toggle button {
+  padding: 3px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.admin-stats__toggle button.is-active {
+  border-color: #2f6bff;
+  background: #eff5ff;
   color: #2f6bff;
 }
 
@@ -14,7 +39,6 @@
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
-  padding: 0 32px 8px;
 }
 
 .admin-stats__dow {
@@ -29,7 +53,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-height: 84px;
+  min-height: 64px;
   padding: 6px 8px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -51,7 +75,12 @@
 }
 
 .admin-stats__cell.is-today {
+  border-color: #2f6bff;
+}
+
+.admin-stats__cell.is-selected {
   border: 2px solid #2f6bff;
+  background: #eff5ff;
 }
 
 .admin-stats__cell b {
@@ -69,32 +98,43 @@
   color: #0f172a;
 }
 
+.admin-stats__cell:disabled .admin-stats__net {
+  color: #cbd5e1;
+}
+
 .admin-stats__hint {
-  margin: 0 32px 24px;
+  margin: 10px 0 0;
   font-size: 12px;
   color: #64748b;
 }
 
-.admin-stats__back {
-  display: inline-block;
-  margin: 20px 32px 0;
-  font-size: 13px;
-  color: #2f6bff;
+.admin-stats__summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-dashboard__card .admin-applications__table th:first-child,
+.admin-dashboard__card .admin-applications__table td:first-child {
+  padding-left: 0;
+}
+
+.admin-dashboard__card .admin-applications__table th:last-child,
+.admin-dashboard__card .admin-applications__table td:last-child {
+  padding-right: 0;
+}
+
+@media (max-width: 1200px) {
+  .admin-stats__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 900px) {
-  .admin-stats__calendar {
-    padding: 0 20px 8px;
-  }
-
-  .admin-stats__hint,
-  .admin-stats__back {
-    margin-left: 20px;
-    margin-right: 20px;
+  .admin-stats__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .admin-stats__cell {
-    min-height: 64px;
+    min-height: 52px;
     padding: 4px 6px;
   }
 }

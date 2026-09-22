@@ -21,6 +21,13 @@ export const getHourlyCheckIns = ({ expoId, date }) =>
     .get('/api/admin/reservation/stats/hourly', { params: { expoId, date } })
     .then((res) => res.data.data);
 
+// GET /api/admin/reservation/stats/check-in-logs — 관리자: 하루치 입장 현황 목록(최근 체크인부터 최대 20줄).
+// [{ checkedInAt, customerName, ticketType }]
+export const getCheckInLogs = ({ expoId, date }) =>
+  apiClient
+    .get('/api/admin/reservation/stats/check-in-logs', { params: { expoId, date } })
+    .then((res) => res.data.data);
+
 // GET /api/admin/reservation/stats/tickets — 관리자: 입장권 현황 { freeIssued, paidIssued, used }
 export const getTicketStats = (expoId) =>
   apiClient
