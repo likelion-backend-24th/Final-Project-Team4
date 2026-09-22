@@ -27,5 +27,7 @@
 }
 
 .bar-chart__col em {
+  font-size: 11px;
   font-style: normal;
+  white-space: nowrap;
 }
