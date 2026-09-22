@@ -1,8 +1,8 @@
 import { Download, UserCheck, UserMinus, UserPlus, Users } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { exportAdminUsers, getAdminUserStats, getAdminUsers } from '../../api/identity';
+import { getAdminUserStats } from '@/api/identity';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { StatCard } from '@/components/admin/StatCard';
 import { EmptyState, PageHeader, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -10,139 +10,25 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { useAdminMemberList } from '@/hooks/admin/useAdminMemberList';
+import { useAdminMemberStats } from '@/hooks/admin/useAdminMemberStats';
+import { ALL, PAGE_SIZE_OPTIONS, PERIOD_OPTIONS, STATUS_LABEL, STATUS_TONE, fmtDate, fmtDateTime, percent } from '@/utils/adminMemberList';
 
-const STATUS_LABEL = { ACTIVE: '활성', LOCKED: '정지', WITHDRAWN: '탈퇴' };
-const STATUS_TONE = {
-  활성: 'bg-emerald-100 text-emerald-700',
-  정지: 'bg-red-100 text-red-700',
-  탈퇴: 'bg-slate-100 text-slate-600',
-};
-
-const ALL = '__all__';
-const PERIOD_OPTIONS = [
-  { value: ALL, label: '전체 기간' },
-  { value: '0', label: '오늘 가입' },
-  { value: '7', label: '최근 7일' },
-  { value: '30', label: '최근 30일' },
-];
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
-
-// ISO(2026-01-20T10:14:00) → 2026.01.20
-const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '-');
-// ISO → 2026.01.20 10:14
-const fmtDateTime = (iso) => (iso ? iso.slice(0, 16).replace('T', ' ').replace(/-/g, '.') : '-');
-
-const toDateParam = (date) => date.toISOString().slice(0, 10);
-
-// "최근 N일" 선택값 → 백엔드 signupFrom/signupTo(둘 다 date, 자정 기준) 변환. 전체 기간이면 undefined.
-function periodToRange(period) {
-  if (period === ALL) return { signupFrom: undefined, signupTo: undefined };
-  const days = Number(period);
-  const today = new Date();
-  const from = new Date(today);
-  from.setDate(from.getDate() - days);
-  return { signupFrom: toDateParam(from), signupTo: toDateParam(today) };
-}
-
-function percent(count, total) {
-  if (!total) return '0%';
-  return `${((count / total) * 100).toFixed(1)}%`;
-}
-
-function StatCard({ icon: Icon, tone, label, value, sub }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-4">
-        <span className={cn('flex size-11 shrink-0 items-center justify-center rounded-xl', tone)}>
-          <Icon className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="m-0 text-xs text-muted-foreground">{label}</p>
-          <strong className="mt-0.5 block text-2xl font-extrabold">{value}</strong>
-          {sub && <p className="m-0 mt-0.5 text-xs text-muted-foreground">{sub}</p>}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+const fetchAttendeeStats = () => getAdminUserStats('USER');
 
 function AdminAttendeeList() {
   const navigate = useNavigate();
-  const [keywordInput, setKeywordInput] = useState('');
-  const [keyword, setKeyword] = useState('');
-  const [status, setStatus] = useState(ALL);
-  const [period, setPeriod] = useState(ALL);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [result, setResult] = useState({ content: [], totalPages: 1, totalElements: 0 });
-  const [stats, setStats] = useState(null);
-  const [loadError, setLoadError] = useState(null);
-  const [exporting, setExporting] = useState(false);
-
-  // 통계 카드는 검색/필터와 무관하게 참관객 전체 기준 - 목록 필터가 바뀌어도 다시 불러오지 않는다.
-  useEffect(() => {
-    getAdminUserStats('USER')
-      .then(setStats)
-      .catch(() => {}); // 통계 조회 실패는 카드만 숨기고 목록 조회는 그대로 진행
-  }, []);
-
-  useEffect(() => {
-    const { signupFrom, signupTo } = periodToRange(period);
-    getAdminUsers({
-      role: 'USER',
-      keyword: keyword || undefined,
-      status: status === ALL ? undefined : status,
-      signupFrom,
-      signupTo,
-      page,
-      size: pageSize,
-    })
-      .then((res) => {
-        setResult(res);
-        setLoadError(null);
-      })
-      .catch((err) => setLoadError(err.response?.data?.error?.message ?? '참관객 목록을 불러오지 못했습니다.'));
-  }, [keyword, status, period, page, pageSize]);
-
-  const submitSearch = () => {
-    setPage(0);
-    setKeyword(keywordInput.trim());
-  };
-
-  const handleExport = async () => {
-    setExporting(true);
-    try {
-      const { signupFrom, signupTo } = periodToRange(period);
-      const { blob, headers } = await exportAdminUsers({
-        role: 'USER',
-        keyword: keyword || undefined,
-        status: status === ALL ? undefined : status,
-        signupFrom,
-        signupTo,
-      });
-
-      const disposition = headers?.['content-disposition'] ?? '';
-      const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-      const filename = match ? decodeURIComponent(match[1]) : `attendees_${toDateParam(new Date())}.csv`;
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      alert(err.response?.data?.error?.message ?? '엑셀 다운로드에 실패했습니다.');
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const from = result.totalElements === 0 ? 0 : page * pageSize + 1;
-  const to = Math.min(page * pageSize + result.content.length, result.totalElements);
+  const stats = useAdminMemberStats(fetchAttendeeStats);
+  const {
+    keywordInput, setKeywordInput,
+    status, setStatus,
+    period, setPeriod,
+    page, setPage,
+    pageSize, setPageSize,
+    result, loadError, exporting,
+    submitSearch, handleExport,
+    from, to,
+  } = useAdminMemberList({ role: 'USER', filenamePrefix: 'attendees', notFoundMessage: '참관객 목록을 불러오지 못했습니다.' });
 
   return (
     <AdminSidebarLayout breadcrumb="회원 관리 / 참관객 관리">

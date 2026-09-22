@@ -1,4 +1,4 @@
-import { isFoodBooth } from '../utils/boothType';
+import { isFoodBooth } from '@/utils/boothType';
 import { cn } from '@/lib/utils';
 
 const STATUS_LABEL = {

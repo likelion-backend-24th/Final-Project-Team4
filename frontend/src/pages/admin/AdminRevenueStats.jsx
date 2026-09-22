@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { getAdminExpoList } from '../../api/expo';
-import { getExpoRevenue, getPaymentStats } from '../../api/payment';
-import { toIsoDate } from '../../utils/calendar';
+import { getAdminExpoList } from '@/api/expo';
+import { getExpoRevenue, getPaymentStats } from '@/api/payment';
+import { toIsoDate } from '@/utils/calendar';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';

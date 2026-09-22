@@ -1,15 +1,17 @@
 import { ChartColumn, ChevronDown, ChevronRight, ChevronUp, CreditCard, FileText, Settings, Undo2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { getMyBoothApplications } from "../../api/expo";
-import { getMyPayments, refundBoothPayment } from "../../api/payment";
-import { getMyProfile, withdrawAccount, updateExhibitorProfile } from "../../api/identity";
-import { clearAuth, notifyProfileUpdated } from "../../api/auth";
-import { isFoodBooth } from "../../utils/boothType";
-import { formatPhoneNumber } from "../../utils/phone";
-import { REFUND_REASONS } from "../../utils/customerData";
-import { SelectField, TextField } from "../../components/form/fields";
+import { refundBoothPayment } from "@/api/payment";
+import { withdrawAccount, updateExhibitorProfile } from "@/api/identity";
+import { clearAuth, notifyProfileUpdated } from "@/api/auth";
+import { isFoodBooth } from "@/utils/boothType";
+import { formatPhoneNumber } from "@/utils/phone";
+import { REFUND_REASONS } from "@/utils/customerData";
+import { SelectField, TextField } from "@/components/form/fields";
+import { useMyBoothApplications, STATUS_LABEL } from "@/hooks/exhibitor/useMyBoothApplications";
+import { useExhibitorProfile } from "@/hooks/exhibitor/useExhibitorProfile";
+import { useMyBoothPayments } from "@/hooks/exhibitor/useMyBoothPayments";
 import { AppDialog, InfoList } from "@/components/layout/AppDialog";
 import { EmptyState, PageContainer } from "@/components/layout/Page";
 import { Badge } from "@/components/ui/badge";
@@ -35,16 +37,6 @@ const STATUS_TONE = {
   "참가 완료": "bg-slate-100 text-slate-600",
 };
 
-const STATUS_LABEL = {
-  DRAFT: "임시저장",
-  SUBMITTED: "심사중",
-  PAYMENT_PENDING: "신청 승인",
-  CONFIRMED: "참가 확정",
-  REJECTED: "반려",
-  REFUND_REQUIRED: "환불 대기",
-  CANCELLED: "취소됨",
-};
-
 // 결제 엔티티의 상태(PaymentStatus enum) → 화면 표시용 한글 라벨
 const PAYMENT_STATUS_LABEL = {
   PENDING: "결제중",
@@ -62,88 +54,11 @@ const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, ".") : null);
 
 function MyPage() {
   const navigate = useNavigate();
-  const [myApplications, setMyApplications] = useState([]);
-  const [applicationGroups, setApplicationGroups] = useState([]); // 원본 신청 그룹 (부스 참가 이력 산출용)
-  const [loadError, setLoadError] = useState(null);
   const [openId, setOpenId] = useState(null);
 
-  // 업체 및 담당자 정보: 로그인한 사용자 프로필 (없으면 null - 로딩 중이거나 조회 실패)
-  const [profile, setProfile] = useState(null);
-  const [profileError, setProfileError] = useState(null);
-
-  // 참가비 결제 내역: 실제 결제된 건 목록 (없으면 빈 배열 - 아직 결제한 게 없다는 뜻)
-  const [payments, setPayments] = useState([]);
-  const [paymentsError, setPaymentsError] = useState(null);
-
-  const loadApplications = () =>
-    getMyBoothApplications()
-      .then((res) => {
-        const rows = res.content.flatMap((group) => {
-          // 결제 대상(승인, 결제대기) 부스 참가비 합계 - payment-context 합계와 맞아야 결제 통과
-          const payableTotal = group.applications
-            .filter((a) => a.status === "PAYMENT_PENDING")
-            .reduce((sum, a) => sum + a.fee, 0);
-          return group.applications.map((app) => ({
-            id: app.applicationId,
-            groupId: group.groupId,
-            boothId: app.boothId,
-            payableTotal,
-            expoTitle: group.expoTitle,
-            boothNo: `${app.boothNo} (${app.boothType})`,
-            fee: app.fee,
-            appliedAt: app.submittedAt
-              ? app.submittedAt.slice(0, 10)
-              : group.createdAt.slice(0, 10),
-            status: STATUS_LABEL[app.status] ?? app.status,
-            rejectReason: app.rejectReason,
-            exhibitionItem: group.exhibitionItem,
-            conceptDescription: group.conceptDescription,
-            powerRequested: group.powerRequested,
-            waterSupplyRequested: group.waterSupplyRequested,
-            internetRequested: group.internetRequested,
-            additionalRequest: group.additionalRequest,
-          }));
-        });
-        setMyApplications(rows);
-        setApplicationGroups(res.content);
-      })
-      .catch((err) =>
-        setLoadError(
-          err.response?.data?.error?.message ??
-            "신청 내역을 불러오지 못했습니다.",
-        ),
-      );
-
-  useEffect(() => {
-    loadApplications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    getMyProfile()
-      .then(setProfile)
-      .catch((err) =>
-        setProfileError(
-          err.response?.data?.error?.message ??
-            "업체 정보를 불러오지 못했습니다.",
-        ),
-      );
-  }, []);
-
-  const loadPayments = () =>
-    getMyPayments()
-      .then(setPayments)
-      .catch((err) =>
-        setPaymentsError(
-          err.response?.data?.error?.message ??
-            "결제 내역을 불러오지 못했습니다.",
-        ),
-      );
-
-  useEffect(() => {
-    loadPayments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { myApplications, applicationGroups, error: loadError, reload: loadApplications } = useMyBoothApplications();
+  const { profile, setProfile, error: profileError } = useExhibitorProfile();
+  const { payments, error: paymentsError, reload: loadPayments } = useMyBoothPayments();
 
   // 부스 참가 취소(전액 환불) 모달 - "참가 확정" 상태 그룹에서만 열림
   const [refundTarget, setRefundTarget] = useState(null); // { groupId, expoTitle, amount } | null

@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getVisitedBooths } from '../../api/expo';
+import { getVisitedBooths } from '@/api/expo.js';
 import { AppDialog } from '@/components/layout/AppDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

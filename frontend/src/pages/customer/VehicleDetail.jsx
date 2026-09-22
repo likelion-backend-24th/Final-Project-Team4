@@ -1,8 +1,8 @@
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
-import { getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
+import BulkConsultPromo from '@/components/customer/BulkConsultPromo';
+import { getCustomerExpoVehicles, toAssetUrl } from '@/api/expo';
 import { EmptyState, PageContainer } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

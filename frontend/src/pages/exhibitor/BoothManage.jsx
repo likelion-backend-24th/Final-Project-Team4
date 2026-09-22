@@ -11,11 +11,11 @@ import {
   toAssetUrl,
   updateBoothContent,
   uploadBoothBannerImage,
-} from '../../api/expo';
-import { getMyProfile } from '../../api/identity';
-import ConsultationSlotSettings from '../../components/ConsultationSlotSettings';
-import { TextareaField, TextField } from '../../components/form/fields';
-import { isFoodBooth } from '../../utils/boothType';
+} from '@/api/expo.js';
+import { getMyProfile } from '@/api/identity.js';
+import ConsultationSlotSettings from '@/components/exhibitor/ConsultationSlotSettings';
+import { TextareaField, TextField } from '@/components/form/fields';
+import { isFoodBooth } from '@/utils/boothType.js';
 import { EmptyState, PageContainer } from '@/components/layout/Page';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';

@@ -1,7 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getAdminUserDetail, updateAdminUserStatus } from '../../api/identity';
+import { getAdminUserDetail, updateAdminUserStatus } from '@/api/identity';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';

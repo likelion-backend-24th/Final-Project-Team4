@@ -6,9 +6,9 @@ import {
   getAdminBoothApplications,
   getAdminExpoBooths,
   rejectBoothApplication,
-} from '../../api/expo';
-import HallMap, { HallPlaza } from '../../components/HallMap';
-import { getBoothHall } from '../../utils/boothType';
+} from '@/api/expo';
+import HallMap, { HallPlaza } from '@/components/HallMap';
+import { getBoothHall } from '@/utils/boothType';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import logoIcon from '../assets/logo-icon.png';
-import apiClient from '../api/client';
-import { setAuth } from '../api/auth';
-import TermsAgreement from '../components/TermsAgreement';
+import logoIcon from '@/assets/logo-icon.png';
+import apiClient from '@/api/client';
+import { setAuth } from '@/api/auth';
+import TermsAgreement from '@/components/TermsAgreement';
 import { Button } from '@/components/ui/button';
 
 // 소셜 로그인으로 처음 온 회원은 백엔드가 가입을 보류하고 이 화면으로 보냄

@@ -1,10 +1,10 @@
 import { BarChart3, Bell, Building2, ClipboardList, FilePlus2, LayoutDashboard, UserCheck, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import logoIcon from '@/assets/logo-icon.png';
-import apiClient from '../../api/client';
-import { clearAuth } from '../../api/auth';
-import AccountMenu from '../AccountMenu';
-import Footer from '../Footer';
+import apiClient from '@/api/client';
+import { clearAuth } from '@/api/auth.js';
+import AccountMenu from '@/components/AccountMenu';
+import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 

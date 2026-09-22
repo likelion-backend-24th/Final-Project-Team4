@@ -1,11 +1,11 @@
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
-import ReviewDetailModal from '../../components/customer/ReviewDetailModal';
-import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
-import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import { boothNoLabel, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
+import ReviewWriteModal from '@/components/customer/modals/ReviewWriteModal';
+import ReviewDetailModal from '@/components/customer/modals/ReviewDetailModal';
+import BulkConsultPromo from '@/components/customer/BulkConsultPromo';
+import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '@/api/expo';
+import { boothNoLabel, mergeExhibitorGroups } from '@/utils/exhibitorGroups';
 import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';

@@ -7,7 +7,7 @@ import {
   markConsultationNoShow,
   regenerateConsultationAiSummary,
   rejectConsultation,
-} from '../../api/expo';
+} from '@/api/expo';
 import { Search, Sparkles } from 'lucide-react';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

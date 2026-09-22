@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import './LineChart.css';
 
 // 막대그래프(BarChart, 150px 고정)와 카드 높이를 맞추기 위한 고정 높이. 폭은 아래 ResizeObserver로 실측함
 const H = 160;
@@ -36,24 +35,24 @@ function LineChart({ labels, series }) {
   const y = (v) => PAD.top + plotH - (v / max) * plotH;
 
   return (
-    <div className="line-chart" ref={wrapRef}>
-      <ul className="line-chart__legend">
+    <div ref={wrapRef}>
+      <ul className="m-0 mb-1 flex list-none justify-end gap-3 p-0 text-xs text-slate-500">
         {series.map((s) => (
-          <li key={s.name}>
-            <i style={{ background: s.color }} />
+          <li key={s.name} className="flex items-center gap-1">
+            <i className="size-2 rounded-full" style={{ background: s.color }} />
             {s.name}
           </li>
         ))}
       </ul>
-      <svg width={width} height={H} role="img">
+      <svg width={width} height={H} role="img" className="block">
         {Array.from({ length: GRID + 1 }, (_, i) => i * step).map((v) => (
           <g key={v}>
-            <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} className="line-chart__grid" />
-            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end">{v}</text>
+            <line x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} className="stroke-[#f1f5f9]" />
+            <text x={PAD.left - 8} y={y(v) + 4} textAnchor="end" className="text-[11px] fill-slate-500">{v}</text>
           </g>
         ))}
         {labels.map((label, i) => (
-          <text key={label} x={x(i)} y={H - 8} textAnchor="middle">{label}</text>
+          <text key={label} x={x(i)} y={H - 8} textAnchor="middle" className="text-[11px] fill-slate-500">{label}</text>
         ))}
         {series.map((s) => (
           <g key={s.name}>

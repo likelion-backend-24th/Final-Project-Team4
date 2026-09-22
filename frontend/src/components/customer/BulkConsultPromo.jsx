@@ -1,9 +1,9 @@
 import { Check, MessageSquareText } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BulkConsultationModal from './BulkConsultationModal';
-import LoginPromptModal from './LoginPromptModal';
-import { isLoggedIn } from '../../api/auth';
+import BulkConsultationModal from './modals/BulkConsultationModal';
+import LoginPromptModal from './modals/LoginPromptModal';
+import { isLoggedIn } from '@/api/auth.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 

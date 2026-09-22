@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Calendar, MapPin, Search, Sparkles, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import EntryFlowModal from '../../components/customer/EntryFlowModal';
-import { getCustomerExpoList, searchVehicles, toAssetUrl } from '../../api/expo';
-import { phaseOf, customerPhaseOf } from '../../utils/expoPhase';
-import { CUSTOMER_EXPO_GRADIENTS } from '../../utils/customerData';
+import EntryFlowModal from '@/components/customer/modals/EntryFlowModal';
+import { getCustomerExpoList, searchVehicles, toAssetUrl } from '@/api/expo';
+import { phaseOf, customerPhaseOf } from '@/utils/expoPhase';
+import { CUSTOMER_EXPO_GRADIENTS } from '@/utils/customerData';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

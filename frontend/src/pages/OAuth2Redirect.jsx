@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { setAuth } from "../api/auth";
+import { setAuth } from "@/api/auth";
 
 // 소셜 로그인 성공/실패 후 백엔드가 accessToken 또는 error를 쿼리로 실어 리다이렉트하는 도착 화면
 function OAuth2Redirect() {

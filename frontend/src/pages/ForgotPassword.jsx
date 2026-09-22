@@ -2,9 +2,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { requestPasswordReset } from "../api/identity";
-import { AuthCard, BackToLogin } from "../components/layout/AuthCard";
-import { TextField } from "../components/form/fields";
+import { requestPasswordReset } from "@/api/identity";
+import { AuthCard, BackToLogin } from "@/components/layout/AuthCard";
+import { TextField } from "@/components/form/fields";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 

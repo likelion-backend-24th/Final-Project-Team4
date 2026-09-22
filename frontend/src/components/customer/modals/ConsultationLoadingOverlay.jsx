@@ -1,5 +1,5 @@
 import { MessageSquareText } from 'lucide-react';
-import loadingCarImage from '../../assets/car-image.png';
+import loadingCarImage from '@/assets/car-image.png';
 import { AppDialog } from '@/components/layout/AppDialog';
 
 // 상담 신청/수정 저장 중(AI 요약 생성 포함) 대기 화면. 실제 진행률과 무관하게 차가 계속 앞으로만 달린다.

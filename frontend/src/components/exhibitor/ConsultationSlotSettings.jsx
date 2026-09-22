@@ -1,8 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getConsultationSlotSettings, getCustomerExpo, saveConsultationSlotSettings } from '../api/expo';
-import { CONSULTATION_TIME_SLOTS } from '../utils/customerData';
-import { buildCalendar, expoDateRange, toIsoDate, WEEKDAYS } from '../utils/calendar';
+import { getConsultationSlotSettings, getCustomerExpo, saveConsultationSlotSettings } from '@/api/expo.js';
+import { CONSULTATION_TIME_SLOTS } from '@/utils/customerData.js';
+import { buildCalendar, expoDateRange, toIsoDate, WEEKDAYS } from '@/utils/calendar.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

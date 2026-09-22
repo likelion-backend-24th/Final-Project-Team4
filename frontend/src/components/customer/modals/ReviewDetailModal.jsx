@@ -1,4 +1,4 @@
-import { toAssetUrl } from '../../api/expo';
+import { toAssetUrl } from '@/api/expo.js';
 import { AppDialog } from '@/components/layout/AppDialog';
 import { Badge } from '@/components/ui/badge';
 
