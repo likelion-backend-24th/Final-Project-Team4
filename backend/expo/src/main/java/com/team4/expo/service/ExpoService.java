@@ -220,6 +220,7 @@ public class ExpoService {
             return new ExpoAdminSummaryResponse(
                     expo.getId(), expo.getTitle(), expo.getBannerImageUrl(), expo.getStatus(),
                     expo.getApplyStartsAt(), expo.getApplyEndsAt(),
+                    expo.getStartsAt(), expo.getEndsAt(),
                     booths.size(), availableBooths,
                     applications.size(), pending, approved, rejected
             );

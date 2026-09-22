@@ -55,6 +55,22 @@ function todayDateString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+function pickDefaultTicketIndex(tickets) {
+  const today = todayDateString();
+  const isUsable = (t) => t.status !== 'CANCELLED';
+
+  const todayIdx = tickets.findIndex((t) => isUsable(t) && t.visitDate === today);
+  if (todayIdx !== -1) return todayIdx;
+
+  const upcoming = tickets
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => isUsable(t))
+    .sort((a, b) => a.t.visitDate.localeCompare(b.t.visitDate));
+  if (upcoming.length > 0) return upcoming[0].i;
+
+  return 0;
+}
+
 // 박람회 기간(startsAt~endsAt)의 날짜 목록 ('YYYY-MM-DD' 배열).
 // new Date(expo.startsAt)로 파싱하면(시간 포함 ISO라 "로컬 시간"으로 해석됨) 그 뒤 .toISOString()이
 // UTC로 변환하면서 한국(UTC+9)에서는 하루가 앞당겨지는 버그가 있었음 — 로컬 자정을 UTC로 바꾸면
@@ -156,6 +172,7 @@ function EntryFlowModal({ expo, onClose }) {
   const [payError, setPayError] = useState(null);
   const [paidPayment, setPaidPayment] = useState(null);
   const [holderName, setHolderName] = useState(null);
+  const [existingIndex, setExistingIndex] = useState(0);
 
   const freeMode = isFreeReservation(expo);
   const admissionFee = expo.admissionFee ?? 0;
@@ -329,6 +346,7 @@ function EntryFlowModal({ expo, onClose }) {
   const showExistingQr = () => {
     setCheckInError(null);
     setTickets(existingTickets);
+    setExistingIndex(pickDefaultTicketIndex(existingTickets));
     setStep('existing-qr');
   };
 
@@ -401,9 +419,11 @@ function EntryFlowModal({ expo, onClose }) {
       {step === 'existing-qr' && tickets.length > 0 && (
         <ExistingTicketQr
           expo={expo}
-          ticket={tickets[0]}
+          ticket={tickets}
+          selectedIndex={Math.min(existingIndex, tickets.length - 1)}
+          onSelectIndex={setExistingIndex}
           checkInError={checkInError}
-          onCheckIn={() => checkInTicket(tickets[0])}
+          onCheckIn={() => checkInTicket(tickets[existingIndex])}
           onLookAround={goDetail}
         />
       )}
@@ -716,21 +736,42 @@ function TicketQr({ expo, ticket, extraCount, notice, onNext, nextLabel }) {
 
 // 이미 발급된 QR 확인 화면. 방문 예약일(visitDate)이 오늘일 때만 "입장 체크" 가능
 // — 체크인을 마치면 "사용완료", 체크인 없이 박람회 기간만 끝나면 "만료"로 갈리며 둘 다 재사용 불가.
-function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround }) {
-  const status = getTicketStatus(ticket);
-  const isInactive = status === '사용완료' || status === '만료';
-  const checkableToday = status === '사용가능' && isTicketCheckableToday(ticket);
+function ExistingTicketQr({ expo, tickets, selectedIndex, onSelectIndex, checkInError, onCheckIn, onLookAround }) {
+  const ticket = tickets[selectedIndex];
+  const status = getTicketStatus(ticket); // '환불' | '사용완료' | '만료' | '사용예정' | '사용가능'
+  const isCancelled = status === '환불';
+  const isInactive = isCancelled || status === '사용완료' || status === '만료';
+  const checkableToday = !isCancelled && status === '사용가능' && isTicketCheckableToday(ticket);
+
   return (
     <>
+      {tickets.length > 1 && (
+        <Tabs value={String(selectedIndex)} onValueChange={(v) => onSelectIndex(Number(v))}>
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+            {tickets.map((t, i) => (
+              <TabsTrigger
+                key={t.id}
+                value={String(i)}
+                className={cn(t.status === 'CANCELLED' && 'text-red-600')}
+              >
+                {fmtDate(t.visitDate)}
+                {t.status === 'CANCELLED' && ' (환불됨)'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
       <p className={cn('m-0 flex items-center justify-center gap-2 text-sm font-semibold', isInactive ? 'text-muted-foreground' : 'text-emerald-600')}>
         <span className={cn('size-2 rounded-full', isInactive ? 'bg-slate-400' : 'bg-emerald-500')} />
-        {status === '사용완료'
-          ? '사용완료된 입장권입니다'
-          : status === '만료'
-            ? '만료된 입장권입니다'
-            : '발급된 QR 입장권'}
+        {isCancelled
+          ? '환불된 입장권입니다'
+          : status === '사용완료'
+            ? '사용완료된 입장권입니다'
+            : status === '만료'
+              ? '만료된 입장권입니다'
+              : '발급된 QR 입장권'}
       </p>
-      <QrImage ticket={ticket} />
+      {!isCancelled && <QrImage ticket={ticket} />}
       <div className="text-center">
         <h2 className="m-0 text-lg font-semibold">{expo.title}</h2>
         <p className="mt-1 mb-0 text-sm text-muted-foreground">
@@ -742,7 +783,12 @@ function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround 
           {expo.venue}
         </p>
       </div>
-      {status === '사용완료' ? (
+      {isCancelled ? (
+        <p className="m-0 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          환불(취소)된 입장권이라 사용할 수 없습니다.
+          {tickets.length > 1 && ' 위에서 다른 날짜를 선택해주세요.'}
+        </p>
+      ) : status === '사용완료' ? (
         <p className="m-0 rounded-lg bg-muted p-3 text-sm text-muted-foreground">이미 입장 체크가 완료된 QR입니다.</p>
       ) : status === '만료' ? (
         <p className="m-0 rounded-lg bg-muted p-3 text-sm text-muted-foreground">박람회 기간이 종료되어 사용할 수 없습니다.</p>
