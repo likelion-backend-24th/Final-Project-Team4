@@ -42,3 +42,15 @@ export const confirmVerificationCode = (email, code) =>
     { email, code },
     { skipAuthRefresh: true },
   );
+
+// GET /api/admin/users - 관리자 회원 목록 조회(검색/필터/페이징)
+export const getAdminUsers = (params) =>
+  apiClient.get("/api/admin/users", { params }).then((res) => res.data.data);
+
+// GET /api/admin/users/{id} - 관리자 회원 상세 조회
+export const getAdminUserDetail = (userId) =>
+  apiClient.get(`/api/admin/users/${userId}`).then((res) => res.data.data);
+
+// PATCH /api/admin/users/{id}/status - 회원 정지/정지 해제 (status: "ACTIVE" | "LOCKED")
+export const updateAdminUserStatus = (userId, status) =>
+  apiClient.patch(`/api/admin/users/${userId}/status`, { status }).then((res) => res.data.data);

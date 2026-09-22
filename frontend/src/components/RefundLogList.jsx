@@ -1,3 +1,4 @@
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { won } from '../utils/statsFormat';
 
 // 취소표(환불) 내역 표. logs: [{ refundedAt, amount, refundReason }]
@@ -5,27 +6,27 @@ function RefundLogList({ logs, limit = 20 }) {
   const rows = logs.slice(0, limit);
 
   return (
-    <table className="admin-applications__table">
-      <thead>
-        <tr>
-          <th>시간</th>
-          <th>환불 금액</th>
-          <th>사유</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>시간</TableHead>
+          <TableHead>환불 금액</TableHead>
+          <TableHead>사유</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {rows.length === 0 && (
-          <tr><td colSpan={3} style={{ color: '#64748b' }}>취소표 내역이 없습니다.</td></tr>
+          <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">취소표 내역이 없습니다.</TableCell></TableRow>
         )}
         {rows.map((r, i) => (
-          <tr key={i}>
-            <td>{r.refundedAt.slice(11, 16)}</td>
-            <td className="is-rejected">{won(r.amount)}</td>
-            <td style={{ whiteSpace: 'normal' }}>{r.refundReason || '-'}</td>
-          </tr>
+          <TableRow key={i}>
+            <TableCell>{r.refundedAt.slice(11, 16)}</TableCell>
+            <TableCell className="text-red-600">{won(r.amount)}</TableCell>
+            <TableCell className="whitespace-normal">{r.refundReason || '-'}</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 

@@ -1,16 +1,25 @@
+import { ChevronRight, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import ExpoUnavailableModal from '../../components/customer/ExpoUnavailableModal';
 import { getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import './ExhibitorVehicleList.css';
-import './ExhibitorList.css';
+import { boothNoValue, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
+import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PAGE_SIZE = 8;
 
-const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
+const SORT_OPTIONS = [
+  { value: 'boothNo', label: '부스 번호 낮은순' },
+  { value: 'boothNoDesc', label: '부스 번호 높은순' },
+  { value: 'name', label: '업체명 가나다순' },
+  { value: 'nameDesc', label: '업체명 가나다 역순' },
+];
 
-const boothNoValue = (boothNo) => parseInt(String(boothNo).replace(/\D/g, ''), 10) || 0;
+const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
 // 박람회 둘러보기 첫 화면 - 참가업체 목록. 카드를 누르면 그 업체의 전시 차량 목록으로 이동하고,
 // "한 번에 상담 신청"으로 여러 업체를 골라 상담 신청 정보를 한 번만 입력해 동시에 신청할 수 있다.
@@ -40,28 +49,8 @@ function ExhibitorList() {
       });
   }, [expoId]);
 
-  // 같은 업체(title)가 여러 부스를 신청한 경우 - "A-101 ~ A-102"처럼 한 카드로 묶어서 보여준다.
-  const exhibitors = useMemo(() => {
-    const byKey = new Map();
-    groups.forEach((g) => {
-      // 같은 신청(applicationGroupId)으로 함께 접수한 부스끼리만 한 카드로 묶는다.
-      // applicationGroupId가 없으면(예외 케이스) 부스 하나짜리 카드로 독립 처리.
-      const key = g.applicationGroupId ?? `booth-${g.boothId}`;
-      if (!byKey.has(key)) {
-        byKey.set(key, {
-          title: g.companyName ?? g.title,
-          boothId: g.boothId,
-          bannerImageUrl: g.bannerImageUrl,
-          boothNos: [],
-        });
-      }
-      byKey.get(key).boothNos.push(g.boothNo);
-    });
-    return Array.from(byKey.values()).map((e) => ({
-      ...e,
-      boothNos: [...e.boothNos].sort((a, b) => boothNoValue(a) - boothNoValue(b)),
-    }));
-  }, [groups]);
+  // 같은 신청(applicationGroupId)으로 접수한 부스는 "A-101 ~ A-102"처럼 한 카드로 묶어서 보여준다.
+  const exhibitors = useMemo(() => mergeExhibitorGroups(groups), [groups]);
 
   const filteredExhibitors = useMemo(
     () => exhibitors.filter((e) => e.title.toLowerCase().includes(keyword.toLowerCase())),
@@ -69,24 +58,24 @@ function ExhibitorList() {
   );
 
   const sortedExhibitors = useMemo(() => {
-  const arr = [...filteredExhibitors];
-  switch (sortBy) {
-    case 'boothNoDesc':
-      arr.sort((a, b) => boothNoValue(b.boothNos[0]) - boothNoValue(a.boothNos[0]));
-      break;
-    case 'name':
-      arr.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
-      break;
-    case 'nameDesc':
-      arr.sort((a, b) => b.title.localeCompare(a.title, 'ko'));
-      break;
-    case 'boothNo':
-    default:
-      arr.sort((a, b) => boothNoValue(a.boothNos[0]) - boothNoValue(b.boothNos[0]));
-      break;
-  }
-  return arr;
-}, [filteredExhibitors, sortBy]);
+    const arr = [...filteredExhibitors];
+    switch (sortBy) {
+      case 'boothNoDesc':
+        arr.sort((a, b) => boothNoValue(b.boothNos[0]) - boothNoValue(a.boothNos[0]));
+        break;
+      case 'name':
+        arr.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+        break;
+      case 'nameDesc':
+        arr.sort((a, b) => b.title.localeCompare(a.title, 'ko'));
+        break;
+      case 'boothNo':
+      default:
+        arr.sort((a, b) => boothNoValue(a.boothNos[0]) - boothNoValue(b.boothNos[0]));
+        break;
+    }
+    return arr;
+  }, [filteredExhibitors, sortBy]);
 
   useEffect(() => {
     setPage(1);
@@ -99,125 +88,94 @@ function ExhibitorList() {
     return <ExpoUnavailableModal onConfirm={() => navigate('/customer')} />;
   }
   if (loadError) {
-    return <p className="c-vehicle-list__status">{loadError}</p>;
+    return <EmptyState tone="error">{loadError}</EmptyState>;
   }
   if (!expo) {
-    return <p className="c-vehicle-list__status">불러오는 중...</p>;
+    return <EmptyState>불러오는 중...</EmptyState>;
   }
 
   return (
-    <div className="c-vehicle-list">
-      <section className="c-vehicle-list__hero">
-        <p className="c-vehicle-list__eyebrow">EXHIBITION</p>
-        <h1>{expo.title}</h1>
-        <p>
-          {fmtDate(expo.startsAt)} ~ {fmtDate(expo.endsAt)}
-        </p>
-      </section>
+    <div>
+      <PageHero eyebrow="EXHIBITION" title={expo.title} description={`${fmtDate(expo.startsAt)} ~ ${fmtDate(expo.endsAt)}`} />
 
-      <div className="c-exhibitor-list__page-header">
-        <div className="c-exhibitor-list__crumb">
-          <Link to="/customer">홈</Link> &gt; <span>참가 업체</span>
+      <PageContainer>
+        <nav className="mb-2 text-xs text-muted-foreground" aria-label="breadcrumb">
+          <Link to="/customer" className="text-muted-foreground no-underline hover:text-foreground">홈</Link>
+          {' > '}
+          <span className="text-foreground">참가 업체</span>
+        </nav>
+        <h2 className="m-0 mb-5 text-2xl font-bold tracking-tight">참가 업체</h2>
+
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-10 pl-8"
+              placeholder="업체명으로 검색하세요."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            정렬
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="h-10 w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <h2>참가 업체</h2>
-      </div>
 
-      <div className="c-vehicle-list__toolbar">
-        <div className="c-vehicle-list__search-wrap">
-          <span className="c-vehicle-list__search-icon" />
-          <input
-            className="c-vehicle-list__search"
-            placeholder="업체명으로 검색하세요."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-        </div>
-        <div className="c-exhibitor-list__sort-wrap">
-          <span className="c-exhibitor-list__sort-label">정렬</span>
-          <select
-          className="c-exhibitor-list__sort"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          >
-          <option value="boothNo">부스 번호 낮은순</option>
-          <option value="boothNoDesc">부스 번호 높은순</option>
-          <option value="name">업체명 가나다순</option>
-          <option value="nameDesc">업체명 가나다 역순</option>
-        </select>
-        </div>
-      </div>
+        <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
+          <div>
+            <p className="mb-3 text-sm text-muted-foreground">총 {sortedExhibitors.length}개 업체</p>
 
-      <div className="c-vehicle-list__body c-exhibitor-list__layout">
-        <div>
-          <p className="c-exhibitor-list__count">총 {sortedExhibitors.length}개 업체</p>
+            {pagedExhibitors.length === 0 && <EmptyState>조건에 맞는 참가업체가 없습니다.</EmptyState>}
 
-          {pagedExhibitors.length === 0 && (
-            <p className="c-vehicle-list__status">조건에 맞는 참가업체가 없습니다.</p>
-          )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              {pagedExhibitors.map((exhibitor) => {
+                const boothLabel =
+                  exhibitor.boothNos.length > 1
+                    ? `${exhibitor.boothNos[0]} ~ ${exhibitor.boothNos[exhibitor.boothNos.length - 1]}`
+                    : exhibitor.boothNos[0];
+                return (
+                  <Link
+                    key={exhibitor.boothId}
+                    to={`/customer/expos/${expoId}/booths/${exhibitor.boothId}`}
+                    className="no-underline"
+                  >
+                    <Card className="flex-row items-center gap-4 p-4 transition-shadow hover:shadow-md">
+                      <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted text-lg font-bold text-muted-foreground">
+                        {exhibitor.bannerImageUrl ? (
+                          <img src={toAssetUrl(exhibitor.bannerImageUrl)} alt={exhibitor.title} className="size-full object-cover" />
+                        ) : (
+                          <span>{exhibitor.title.slice(0, 1)}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="m-0 truncate text-base font-semibold text-foreground">{exhibitor.title}</h3>
+                        <span className="text-xs text-muted-foreground">{boothLabel}</span>
+                      </div>
+                      <ChevronRight className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    </Card>
+                  </Link>
+                );
+              })}
+            </div>
 
-          <div className="c-exhibitor-list__grid">
-            {pagedExhibitors.map((exhibitor) => {
-              const boothLabel =
-                exhibitor.boothNos.length > 1
-                  ? `${exhibitor.boothNos[0]} ~ ${exhibitor.boothNos[exhibitor.boothNos.length - 1]}`
-                  : exhibitor.boothNos[0];
-              return (
-                <Link
-                  key={exhibitor.boothId}
-                  to={`/customer/expos/${expoId}/booths/${exhibitor.boothId}`}
-                  className="c-exhibitor-row"
-                >
-                  <div className="c-exhibitor-row__logo">
-                    {exhibitor.bannerImageUrl ? (
-                      <img src={toAssetUrl(exhibitor.bannerImageUrl)} alt={exhibitor.title} />
-                    ) : (
-                      <span>{exhibitor.title.slice(0, 1)}</span>
-                    )}
-                  </div>
-                  <div className="c-exhibitor-row__info">
-                    <h3>{exhibitor.title}</h3>
-                    <span className="c-exhibitor-row__booth">{boothLabel}</span>
-                  </div>
-                  <span className="c-exhibitor-row__arrow" aria-hidden="true">›</span>
-                </Link>
-              );
-            })}
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </div>
 
-          {totalPages > 1 && (
-            <div className="c-exhibitor-list__pagination">
-              <button
-                type="button"
-                className="c-exhibitor-list__page-nav"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`c-exhibitor-list__page-num${p === page ? ' is-active' : ''}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="c-exhibitor-list__page-nav"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                ›
-              </button>
-            </div>
-          )}
+          <BulkConsultPromo expoId={expoId} groups={groups} />
         </div>
-
-        <BulkConsultPromo expoId={expoId} groups={groups} />
-      </div>
+      </PageContainer>
     </div>
   );
 }

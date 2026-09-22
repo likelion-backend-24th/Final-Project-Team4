@@ -10,9 +10,12 @@ import LineChart from '../../components/LineChart';
 import { isFoodBooth } from '../../utils/boothType';
 import { offsetIsoDate } from '../../utils/calendar';
 import { EMPTY_DAY, dayLabel, man, mergeDaily, ratio, sum, won } from '../../utils/statsFormat';
-import './AdminApplications.css';
-import './AdminRevenueStats.css';
-import './AdminDashboard.css';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 // 전일 대비 문구와 색(up, down). 어제 값이 0이면 퍼센트는 빼고 차이만 보여줌
 const compare = (cur, prev, fmt) => {
@@ -21,14 +24,14 @@ const compare = (cur, prev, fmt) => {
   const pct = prev === 0 ? '' : `${diff > 0 ? '+' : '-'}${Math.abs(Math.round((diff / prev) * 100))}% `;
   return {
     text: `${diff > 0 ? '▲' : '▼'} ${pct}어제보다 ${fmt(Math.abs(diff))} ${diff > 0 ? '증가' : '감소'}`,
-    tone: diff > 0 ? 'up' : 'down',
+    tone: diff > 0 ? 'text-emerald-600' : 'text-red-600',
   };
 };
 
 function ProgressBar({ pct }) {
   return (
-    <div className="admin-dashboard__bar">
-      <div style={{ width: `${pct}%` }} />
+    <div className="my-2 h-2.5 overflow-hidden rounded-full bg-muted">
+      <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -74,31 +77,32 @@ function AdminDashboard() {
   // 처리할 일 - 전체 박람회 기준. 0건인 항목은 숨김
   const pending = sum(expos, 'pendingCount');
   const todos = [
-    { label: '부스 신청 심사 대기', count: pending, unit: '건', badge: 'admin-badge--pending', to: '/admin/applications' },
-    { label: '결제 대기 중인 신청', count: sum(expos, 'paymentPendingCount'), unit: '건', badge: 'admin-badge--reserved', to: '/admin/applications' },
-    { label: '공개 전환이 안 된 박람회', count: expos.filter((e) => e.status === 'DRAFT').length, unit: '개', badge: 'admin-badge--reserved', to: '/admin/applications' },
+    { label: '부스 신청 심사 대기', count: pending, unit: '건', tone: 'bg-amber-100 text-amber-700', to: '/admin/applications' },
+    { label: '결제 대기 중인 신청', count: sum(expos, 'paymentPendingCount'), unit: '건', tone: 'bg-blue-100 text-blue-700', to: '/admin/applications' },
+    { label: '공개 전환이 안 된 박람회', count: expos.filter((e) => e.status === 'DRAFT').length, unit: '개', tone: 'bg-blue-100 text-blue-700', to: '/admin/applications' },
   ].filter((t) => t.count > 0);
 
   return (
-    <div className="admin-applications">
-      <section className="admin-applications__hero">
-        <p className="admin-applications__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>관리자 대시보드</h1>
-        <p>박람회의 전반적인 현황을 한눈에 확인합니다.</p>
-      </section>
+    <AdminSidebarLayout breadcrumb="대시보드">
+      <PageHeader title="관리자 대시보드" description="박람회의 전반적인 현황을 한눈에 확인합니다." />
 
-      <section className="admin-revenue-stats__filters">
-        <select value={expoId} onChange={(e) => setExpoId(e.target.value)}>
-          {expos.map((expo) => (
-            <option key={expo.expoId} value={expo.expoId}>{expo.title}</option>
-          ))}
-        </select>
-      </section>
+      <div className="mb-6">
+        <Select value={expoId} onValueChange={setExpoId}>
+          <SelectTrigger className="h-10 w-full sm:w-72">
+            <SelectValue placeholder="박람회 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {expos.map((expo) => (
+              <SelectItem key={expo.expoId} value={String(expo.expoId)}>{expo.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      {loadError && <p className="admin-applications__error">{loadError}</p>}
+      {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
       {data && <DashboardBody data={data} pending={pending} todos={todos} />}
-    </div>
+    </AdminSidebarLayout>
   );
 }
 
@@ -136,59 +140,71 @@ function DashboardBody({ data, pending, todos }) {
   }));
 
   return (
-    <>
-      <section className="admin-applications__stats">
-        <div className="admin-stat-card">
-          <p>오늘 순매출</p>
-          <strong>{won(todayStat.net)}</strong>
-          <span className={`admin-dashboard__sub is-${netCompare.tone}`}>{netCompare.text}</span>
-        </div>
-        <div className="admin-stat-card">
-          <p>오늘 입장 인원</p>
-          <strong>{todayStat.visit}명</strong>
-          <span className="admin-dashboard__sub">무료 {todayStat.free}명 | 유료 {todayStat.paid}명</span>
-        </div>
-        <div className="admin-stat-card">
-          <p>오늘 취소표</p>
-          <strong className="is-rejected">{todayStat.cancel}장</strong>
-          <span className="admin-dashboard__sub">환불 금액 {won(todayStat.refund)}</span>
-        </div>
-        <div className="admin-stat-card">
-          <p>심사 대기</p>
-          <strong className="is-pending">{pending}건</strong>
-          <span className="admin-dashboard__sub">전체 박람회 기준</span>
-        </div>
+    <div className="flex flex-col gap-6">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Card>
+          <CardContent>
+            <p className="m-0 text-xs text-muted-foreground">오늘 순매출</p>
+            <strong className="mt-1 block text-2xl font-extrabold">{won(todayStat.net)}</strong>
+            <span className={cn('text-xs', netCompare.tone)}>{netCompare.text}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="m-0 text-xs text-muted-foreground">오늘 입장 인원</p>
+            <strong className="mt-1 block text-2xl font-extrabold">{todayStat.visit}명</strong>
+            <span className="text-xs text-muted-foreground">무료 {todayStat.free}명 | 유료 {todayStat.paid}명</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="m-0 text-xs text-muted-foreground">오늘 취소표</p>
+            <strong className="mt-1 block text-2xl font-extrabold text-red-600">{todayStat.cancel}장</strong>
+            <span className="text-xs text-muted-foreground">환불 금액 {won(todayStat.refund)}</span>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <p className="m-0 text-xs text-muted-foreground">심사 대기</p>
+            <strong className="mt-1 block text-2xl font-extrabold text-amber-600">{pending}건</strong>
+            <span className="text-xs text-muted-foreground">전체 박람회 기준</span>
+          </CardContent>
+        </Card>
       </section>
 
-      <div className="admin-dashboard__grid admin-dashboard__grid--wide-right">
-        <section className="admin-dashboard__card">
-          <h3>입장권 유형별 입장 현황 (오늘)</h3>
-          <div className="admin-dashboard__chart">
-            <DonutChart
-              centerLabel="총 입장 인원"
-              items={[
-                { label: '무료 입장권', value: todayStat.free, color: '#bfdbfe' },
-                { label: '유료 입장권', value: todayStat.paid, color: '#2f6bff' },
-              ]}
-            />
-          </div>
-        </section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_2fr]">
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-3 text-sm font-semibold">입장권 유형별 입장 현황 (오늘)</h3>
+            <div className="flex min-h-40 flex-col justify-center">
+              <DonutChart
+                centerLabel="총 입장 인원"
+                items={[
+                  { label: '무료 입장권', value: todayStat.free, color: '#bfdbfe' },
+                  { label: '유료 입장권', value: todayStat.paid, color: '#2f6bff' },
+                ]}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <section className="admin-dashboard__card">
-          <h3>
-            시간대별 입장 인원 (오늘)
-            <Link to={`/admin/stats?expoId=${expoId}`}>상세 보기 &gt;</Link>
-          </h3>
-          <div className="admin-dashboard__chart">
-            <BarChart items={hourItems} />
-          </div>
-        </section>
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-3 flex items-center justify-between text-sm font-semibold">
+              시간대별 입장 인원 (오늘)
+              <Link to={`/admin/stats?expoId=${expoId}`} className="text-xs font-normal text-primary">상세 보기 &gt;</Link>
+            </h3>
+            <div className="flex min-h-40 flex-col justify-center">
+              <BarChart items={hourItems} />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="admin-dashboard__grid">
-        <section className="admin-dashboard__card">
-          <h3>최근 7일 입장 추이</h3>
-          <div className="admin-dashboard__chart">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-3 text-sm font-semibold">최근 7일 입장 추이</h3>
             <LineChart
               labels={weekDates.map(dayLabel)}
               series={[
@@ -197,62 +213,70 @@ function DashboardBody({ data, pending, todos }) {
                 { name: '유료', color: '#f97316', values: weekValues('paid') },
               ]}
             />
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="admin-dashboard__card">
-          <h3>최근 7일 매출 추이</h3>
-          <div className="admin-dashboard__chart">
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-3 text-sm font-semibold">최근 7일 매출 추이</h3>
             <BarChart
               format={man}
               items={weekDates.map((d) => ({ label: dayLabel(d), value: daily[d]?.net ?? 0, active: d === today }))}
             />
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="admin-dashboard__grid admin-dashboard__grid--three">
-        <section className="admin-dashboard__card">
-          <h3>처리할 일</h3>
-          {todos.length === 0 && <p className="admin-dashboard__empty">처리할 일이 없습니다.</p>}
-          {todos.map((t) => (
-            <div key={t.label} className="admin-dashboard__todo">
-              <span className="admin-dashboard__todo-label">{t.label}</span>
-              <span className={`admin-badge ${t.badge}`}>{t.count}{t.unit}</span>
-              <Link to={t.to}>바로가기</Link>
-            </div>
-          ))}
-        </section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-1 text-sm font-semibold">처리할 일</h3>
+            {todos.length === 0 && <p className="text-sm text-muted-foreground">처리할 일이 없습니다.</p>}
+            {todos.map((t) => (
+              <div key={t.label} className="flex items-center gap-3 border-t border-border py-2.5 text-sm first:border-t-0">
+                <span className="flex-1">{t.label}</span>
+                <Badge variant="secondary" className={t.tone}>{t.count}{t.unit}</Badge>
+                <Link to={t.to} className="text-xs text-primary">바로가기</Link>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
 
-        <section className="admin-dashboard__card">
-          <h3>부스 배치 현황</h3>
-          <strong className="admin-dashboard__big">{ratio(assignedOf(booths), booths.length)}%</strong>
-          <ProgressBar pct={ratio(assignedOf(booths), booths.length)} />
-          <p className="admin-dashboard__sub">
-            확정 {assignedOf(booths)}개, 결제 대기 {reserved}개, 전체 {booths.length}개
-          </p>
-          <p className="admin-dashboard__row"><span>조립 부스</span><span>{assignedOf(mainBooths)} / {mainBooths.length}</span></p>
-          <p className="admin-dashboard__row"><span>푸드 부스</span><span>{assignedOf(foodBooths)} / {foodBooths.length}</span></p>
-        </section>
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-1 text-sm font-semibold">부스 배치 현황</h3>
+            <strong className="text-2xl font-extrabold">{ratio(assignedOf(booths), booths.length)}%</strong>
+            <ProgressBar pct={ratio(assignedOf(booths), booths.length)} />
+            <p className="m-0 text-xs text-muted-foreground">
+              확정 {assignedOf(booths)}개, 결제 대기 {reserved}개, 전체 {booths.length}개
+            </p>
+            <p className="mt-2 flex justify-between border-t border-border pt-2 text-xs"><span>조립 부스</span><span>{assignedOf(mainBooths)} / {mainBooths.length}</span></p>
+            <p className="mt-2 flex justify-between border-t border-border pt-2 text-xs"><span>푸드 부스</span><span>{assignedOf(foodBooths)} / {foodBooths.length}</span></p>
+          </CardContent>
+        </Card>
 
-        <section className="admin-dashboard__card">
-          <h3>누적 입장권 현황</h3>
-          <strong className="admin-dashboard__big">{ratio(tickets.used, issued)}%</strong>
-          <ProgressBar pct={ratio(tickets.used, issued)} />
-          <p className="admin-dashboard__sub">전체 기간 체크인 {tickets.used}명, 발급 {issued}장</p>
-          <p className="admin-dashboard__row"><span>무료 QR 입장권</span><span>{tickets.freeIssued}장</span></p>
-          <p className="admin-dashboard__row"><span>당일 유료 입장권</span><span>{tickets.paidIssued}장</span></p>
-        </section>
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-1 text-sm font-semibold">누적 입장권 현황</h3>
+            <strong className="text-2xl font-extrabold">{ratio(tickets.used, issued)}%</strong>
+            <ProgressBar pct={ratio(tickets.used, issued)} />
+            <p className="m-0 text-xs text-muted-foreground">전체 기간 체크인 {tickets.used}명, 발급 {issued}장</p>
+            <p className="mt-2 flex justify-between border-t border-border pt-2 text-xs"><span>무료 QR 입장권</span><span>{tickets.freeIssued}장</span></p>
+            <p className="mt-2 flex justify-between border-t border-border pt-2 text-xs"><span>당일 유료 입장권</span><span>{tickets.paidIssued}장</span></p>
+          </CardContent>
+        </Card>
       </div>
 
-      <section className="admin-dashboard__card">
-        <h3>
-          최근 입장 현황 (오늘)
-          <Link to={`/admin/stats?expoId=${expoId}`}>상세 보기 &gt;</Link>
-        </h3>
-        <CheckInLogList logs={logs} limit={5} />
-      </section>
-    </>
+      <Card className="py-0">
+        <CardContent className="overflow-x-auto p-0 pt-4">
+          <h3 className="m-0 mb-3 flex items-center justify-between px-5 text-sm font-semibold">
+            최근 입장 현황 (오늘)
+            <Link to={`/admin/stats?expoId=${expoId}`} className="text-xs font-normal text-primary">상세 보기 &gt;</Link>
+          </h3>
+          <CheckInLogList logs={logs} limit={5} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

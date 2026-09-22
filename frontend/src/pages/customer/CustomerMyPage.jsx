@@ -1,4 +1,6 @@
+import { CalendarDays, ChevronDown, ChevronUp, FileText, MapPin, QrCode, Ticket, UserRound } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import QrPlaceholder from '../../components/customer/QrPlaceholder';
 import ConsultationDetailModal from '../../components/customer/ConsultationDetailModal';
@@ -15,9 +17,17 @@ import { getMyProfile, withdrawAccount, updateMyProfile } from '../../api/identi
 import { clearAuth, notifyProfileUpdated } from '../../api/auth';
 import { downloadTicketImage } from '../../utils/downloadImage';
 import { formatPhoneNumber } from '../../utils/phone';
-import '../../components/customer/Modal.css';
-import '../../components/customer/EntryFlowModal.css';
-import './CustomerMyPage.css';
+import { TextField } from '../../components/form/fields';
+import { AppDialog } from '@/components/layout/AppDialog';
+import { EmptyState, PageContainer, Pagination } from '@/components/layout/Page';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Form } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const TABS = [
   { key: 'profile', label: '내정보' },
@@ -52,12 +62,19 @@ const CONSULTATION_STATUS_LABEL = {
   NO_SHOW: '미방문',
 };
 const CONSULTATION_STATUS_BADGE = {
-  REQUESTED: 'is-pending',
-  APPROVED: 'is-approved',
-  REJECTED: 'is-rejected',
-  CANCELED: 'is-rejected',
-  COMPLETED: 'is-approved',
-  NO_SHOW: 'is-rejected',
+  REQUESTED: 'bg-amber-100 text-amber-700',
+  APPROVED: 'bg-emerald-100 text-emerald-700',
+  REJECTED: 'bg-red-100 text-red-700',
+  CANCELED: 'bg-slate-100 text-slate-600',
+  COMPLETED: 'bg-blue-100 text-blue-700',
+  NO_SHOW: 'bg-slate-100 text-slate-600',
+};
+const TICKET_STATUS_BADGE = {
+  사용예정: 'bg-blue-100 text-blue-700',
+  사용가능: 'bg-emerald-100 text-emerald-700',
+  사용완료: 'bg-slate-100 text-slate-600',
+  환불: 'bg-red-100 text-red-700',
+  만료: 'bg-slate-100 text-slate-500',
 };
 const ACTIVE_CONSULTATION_STATUSES = new Set(['REQUESTED', 'APPROVED']);
 const CONSULTATION_FILTERS = [
@@ -258,24 +275,21 @@ function CustomerMyPage() {
   const [withdrawAgreed, setWithdrawAgreed] = useState(false);
 
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const editForm = useForm({ defaultValues: { name: '', contact: '' } });
 
   const openEditModal = () => {
-    setEditForm({ name: profile.name ?? '', contact: profile.contact ?? '' });
+    editForm.reset({ name: profile.name ?? '', contact: profile.contact ?? '' });
     setSaveError(null);
     setShowEditModal(true);
   };
 
-  const handleEditField = (field) => (e) =>
-    setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
-
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (values) => {
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await updateMyProfile(editForm);
+      const updated = await updateMyProfile(values);
       setProfile(updated);
       notifyProfileUpdated();
       setShowEditModal(false);
@@ -329,268 +343,245 @@ function CustomerMyPage() {
   };
 
   return (
-    <div className="c-mypage">
-      <div className="c-mypage__crumb">마이페이지</div>
-      <h1 className="c-mypage__title">
+    <PageContainer size="lg">
+      <p className="m-0 mb-1 text-xs text-muted-foreground">마이페이지</p>
+      <h1 className="m-0 text-3xl font-bold tracking-tight">
         {tab === 'tickets' ? '나의 입장권' : TABS.find((t) => t.key === tab)?.label}
       </h1>
-      <p className="c-mypage__subtitle">
+      <p className="mt-1 mb-6 text-sm text-muted-foreground">
         {tab === 'tickets'
           ? '구매한 입장권과 QR을 다시 확인할 수 있습니다.'
           : tab === 'profile'
           ? '회원가입 시 등록한 내 기본 정보입니다.'
           : '내 정보와 활동 내역을 확인할 수 있습니다.'}
       </p>
-      <div className="c-mypage__body">
-        <aside className="c-mypage__side">
+
+      <div className="grid items-start gap-6 md:grid-cols-[200px_1fr]">
+        <aside className="flex gap-1 md:flex-col">
           {TABS.map((t) => (
-            <button
+            <Button
               key={t.key}
               type="button"
-              className={t.key === tab ? 'is-active' : ''}
+              variant={t.key === tab ? 'secondary' : 'ghost'}
+              className={cn('justify-start', t.key === tab && 'font-semibold text-primary')}
               onClick={() => setTab(t.key)}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </aside>
-        <main className="c-mypage__main">
+
+        <main className="min-w-0">
           {tab === 'profile' ? (
             <>
-            <div className="c-mypage__card">
-              {profileError ? (
-                <p className="c-mypage__empty">{profileError}</p>
-              ) : !profile ? (
-                <p className="c-mypage__empty">불러오는 중...</p>
-              ) : (
-                <div className="c-mypage__profile-grid">
-                  <div className="c-mypage__profile-row">
-                    <span className="c-mypage__profile-label">이름</span>
-                    <span className="c-mypage__profile-value">{profile.name ?? '-'}</span>
+              <Card>
+                <CardContent className="flex flex-col gap-4">
+                  {profileError ? (
+                    <EmptyState tone="error">{profileError}</EmptyState>
+                  ) : !profile ? (
+                    <EmptyState>불러오는 중...</EmptyState>
+                  ) : (
+                    <dl className="m-0 divide-y">
+                      {[
+                        ['이름', profile.name ?? '-'],
+                        ['이메일 주소', profile.email ?? '-'],
+                        ['휴대폰 번호', profile.contact ? formatPhoneNumber(profile.contact) : '-'],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex justify-between gap-4 py-3 text-sm">
+                          <dt className="text-muted-foreground">{label}</dt>
+                          <dd className="m-0 font-medium">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                  <div className="flex justify-end gap-2">
+                    {profile && (
+                      <Button type="button" variant="outline" onClick={openEditModal}>
+                        정보 수정
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        setWithdrawError(null);
+                        setShowWithdrawModal(true);
+                      }}
+                    >
+                      회원 탈퇴
+                    </Button>
                   </div>
-                  <div className="c-mypage__profile-row">
-                    <span className="c-mypage__profile-label">이메일 주소</span>
-                    <span className="c-mypage__profile-value">{profile.email ?? '-'}</span>
-                  </div>
-                  <div className="c-mypage__profile-row">
-                    <span className="c-mypage__profile-label">휴대폰 번호</span>
-                    <span className="c-mypage__profile-value">{profile.contact ? formatPhoneNumber(profile.contact) : '-'}</span>
-                  </div>
-                </div>
-              )}
-              {profile && (
-                <button type="button" className="c-mypage__edit-btn" onClick={openEditModal}>
-                  정보 수정
-                </button>
-              )}
-              <button
-                type="button"
-                className="c-mypage__withdraw"
-                onClick={() => {
-                  setWithdrawError(null);
-                  setShowWithdrawModal(true);
-                  setShowWithdrawModal(true);
-                }}
-              >
-                회원 탈퇴
-              </button>
-            </div>
+                </CardContent>
+              </Card>
 
-            <div className="c-mypage__section-head">
-              <h2 className="c-mypage__section-title">내가 쓴 후기</h2>
-              <button type="button" className="c-mypage__edit-btn" onClick={() => setShowWritableReviews(true)}>
-                후기 쓰러 가기
-              </button>
-            </div>
-            {reviewLoading ? (
-                  <p className="c-mypage__empty">불러오는 중...</p>
-                ) : reviewError ? (
-                  <p className="c-mypage__empty">{reviewError}</p>
-                ) : myReviews.length === 0 ? (
-                  <p className="c-mypage__empty">아직 작성한 후기가 없습니다.</p>
-                ) : (
-                  <div className="c-ticket-grid">
-                    {pagedReviews.map((r) => {
-                      // 작성 시점에 저장된 업체명/박람회명을 우선 쓰고, 이 기능 도입 전 후기는 내 상담 내역에서 찾아 보완한다.
-                  const fallback = boothInfoById.get(r.boothId);
-                  const booth = {
-                    companyName: r.companyName || fallback?.companyName,
-                    expoTitle: r.expoTitle || fallback?.expoTitle,
-                  };
-                      return (
-                        <div key={r.reviewId} className="c-ticket-card c-my-review">
-                          <div className="c-ticket-card__head">
-                            <div>
-                              <h3>{booth?.companyName || `${r.boothNo} 부스`}</h3>
-                              <p className="c-ticket-card__submeta">
-                                {booth?.expoTitle && `${booth.expoTitle} · `}
+              <div className="mt-8 mb-4 flex items-center justify-between">
+                <h2 className="m-0 text-lg font-bold">내가 쓴 후기</h2>
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowWritableReviews(true)}>
+                  후기 쓰러 가기
+                </Button>
+              </div>
+
+              {reviewLoading ? (
+                <EmptyState>불러오는 중...</EmptyState>
+              ) : reviewError ? (
+                <EmptyState tone="error">{reviewError}</EmptyState>
+              ) : myReviews.length === 0 ? (
+                <EmptyState>아직 작성한 후기가 없습니다.</EmptyState>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {pagedReviews.map((r) => {
+                    // 작성 시점에 저장된 업체명/박람회명을 우선 쓰고, 이 기능 도입 전 후기는 내 상담 내역에서 찾아 보완한다.
+                    const fallback = boothInfoById.get(r.boothId);
+                    const booth = {
+                      companyName: r.companyName || fallback?.companyName,
+                      expoTitle: r.expoTitle || fallback?.expoTitle,
+                    };
+                    return (
+                      <Card key={r.reviewId} className="gap-3">
+                        <CardContent className="flex flex-col gap-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="m-0 truncate text-base font-semibold">{booth.companyName || `${r.boothNo} 부스`}</h3>
+                              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+                                {booth.expoTitle && `${booth.expoTitle} · `}
                                 {r.boothNo} 부스
                                 {r.reviewType === 'CONSULT' && r.vehicleName && ` · ${r.vehicleName}`}
                               </p>
                             </div>
-                            <span className="c-ticket-card__badge is-approved">{REVIEW_TYPE_LABEL[r.reviewType]}</span>
+                            <Badge className="shrink-0 bg-emerald-100 text-emerald-700">{REVIEW_TYPE_LABEL[r.reviewType]}</Badge>
                           </div>
-                          <p className="c-my-review__content">{r.content}</p>
+                          <p className="m-0 line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed">{r.content}</p>
                           {r.images?.length > 0 && (
-                            <div className="c-my-review__images">
+                            <div className="flex flex-wrap gap-1.5">
                               {r.images.map((img) => (
-                                <img key={img.imageId ?? img.imageUrl} src={toAssetUrl(img.imageUrl)} alt="후기 사진" />
+                                <img
+                                  key={img.imageId ?? img.imageUrl}
+                                  src={toAssetUrl(img.imageUrl)}
+                                  alt="후기 사진"
+                                  className="size-16 rounded-md object-cover"
+                                />
                               ))}
                             </div>
                           )}
-                          <p className="c-ticket-card__meta">작성일 {fmtDateTime(r.createdAt)}</p>
-                          <div className="c-my-review__actions">
-                            <button type="button" onClick={() => setEditingReview(r)}>
+                          <p className="m-0 text-xs text-muted-foreground">작성일 {fmtDateTime(r.createdAt)}</p>
+                          <div className="flex gap-2">
+                            <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setEditingReview(r)}>
                               수정
-                            </button>
-                            <button type="button" className="is-danger" onClick={() => handleDeleteReview(r)}>
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" className="flex-1 text-destructive" onClick={() => handleDeleteReview(r)}>
                               삭제
-                            </button>
+                            </Button>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-            {myReviews.length > REVIEWS_PER_PAGE && (
-              <div className="c-my-review__pagination">
-                <button type="button" onClick={() => setReviewPage(currentReviewPage - 1)} disabled={currentReviewPage === 1}>
-                  ‹
-                </button>
-                {Array.from({ length: reviewTotalPages }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    className={n === currentReviewPage ? 'is-active' : ''}
-                    onClick={() => setReviewPage(n)}
-                  >
-                    {n}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setReviewPage(currentReviewPage + 1)}
-                  disabled={currentReviewPage === reviewTotalPages}
-                >
-                  ›
-                </button>
-              </div>
-            )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+              <Pagination page={currentReviewPage} totalPages={reviewTotalPages} onChange={setReviewPage} />
             </>
           ) : tab === 'tickets' ? (
             <>
-              <div className="c-mypage__ticket-filters">
+              <div className="mb-4 flex flex-wrap gap-1.5">
                 {TICKET_FILTERS.map((f) => (
-                  <button
+                  <Button
                     key={f.key}
                     type="button"
-                    className={f.key === ticketFilter ? 'is-active' : ''}
+                    size="sm"
+                    variant={f.key === ticketFilter ? 'default' : 'outline'}
+                    className="rounded-full"
                     onClick={() => setTicketFilter(f.key)}
                   >
                     {f.label}
                     {f.key !== '전체' && ` (${filterCount[f.key]})`}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {loading ? (
-                <p className="c-mypage__empty">불러오는 중...</p>
+                <EmptyState>불러오는 중...</EmptyState>
               ) : loadError ? (
-                <p className="c-mypage__empty">{loadError}</p>
+                <EmptyState tone="error">{loadError}</EmptyState>
               ) : tickets.length === 0 ? (
-                <p className="c-mypage__empty">
+                <EmptyState>
                   {ticketFilter === '전체'
                     ? '사용할 수 있는 입장권이 없습니다. 사용완료·환불·만료된 입장권은 각 탭에서 확인하세요.'
                     : `${ticketFilter} 상태인 입장권이 없습니다.`}
-                </p>
+                </EmptyState>
               ) : (
-                <div className="c-ticket-groups">
+                <div className="flex flex-col gap-4">
                   {groupedTickets.map((g) => (
-                    <div key={g.expoId} className={`c-ticket-group ${g.hasToday ? 'has-today' : ''}`}>
-                      <div className="c-ticket-group__head">
+                    <Card key={g.expoId} className={cn('gap-0 py-0', g.hasToday && 'ring-2 ring-primary/40')}>
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b p-4">
                         <div>
-                          <h3>{g.expoTitle}</h3>
-                          <p className="c-ticket-card__meta">
-                            <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
+                          <h3 className="m-0 text-base font-semibold">{g.expoTitle}</h3>
+                          <p className="m-0 mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CalendarDays className="size-3.5" />
                             박람회 전체 기간 {fmtDate(g.startsAt)} - {fmtDate(g.endsAt)}
                           </p>
-                          <p className="c-ticket-card__meta">
-                            <span className="c-ticket-card__icon c-ticket-card__icon--pin" />
+                          <p className="m-0 mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <MapPin className="size-3.5" />
                             {g.venue}
                           </p>
                         </div>
-                        {g.hasToday && (
-                          <span className="c-ticket-group__today-badge">오늘 체크인 가능한 QR 있음</span>
-                        )}
+                        {g.hasToday && <Badge>오늘 체크인 가능한 QR 있음</Badge>}
                       </div>
-                      <div className="c-ticket-group__dates">
-                                                {g.items.map((t) => {
+                      <div className="divide-y">
+                        {g.items.map((t) => {
                           const todayCheckable = t._status === '사용가능' && isTicketCheckableToday(t);
                           const disabledActions = t._status === '만료' || t._status === '환불';
                           return (
                             <div
                               key={t.id}
-                              className={`c-ticket-date-row ${todayCheckable ? 'is-today' : ''}`}
+                              className={cn('flex flex-wrap items-center gap-4 p-4', todayCheckable && 'bg-primary/5')}
                             >
-                              <div
-                                className="c-ticket-date-row__qr"
+                              <button
+                                type="button"
+                                className={cn(
+                                  'flex size-16 shrink-0 items-center justify-center rounded-lg border bg-white p-1',
+                                  disabledActions ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'
+                                )}
                                 onClick={() => !disabledActions && setZoomTicket(t)}
-                                style={disabledActions ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                                aria-label="QR 크게 보기"
                               >
                                 {t.qrImageBase64 ? (
-                                  <img
-                                    src={`data:image/png;base64,${t.qrImageBase64}`}
-                                    alt="입장 QR 코드"
-                                    width={56}
-                                    height={56}
-                                  />
+                                  <img src={`data:image/png;base64,${t.qrImageBase64}`} alt="입장 QR 코드" width={56} height={56} />
                                 ) : (
                                   <QrPlaceholder size={56} />
                                 )}
-                              </div>
-                              <div className="c-ticket-date-row__info">
-                                <div className="c-ticket-date-row__top">
-                                  <span className="c-ticket-date-row__date">{fmtDate(t.visitDate)}</span>
-                                  <span
-                                    className={`c-ticket-card__badge ${
-                                      t._status === '사용완료'
-                                        ? 'is-used'
-                                        : t._status === '환불'
-                                        ? 'is-refunded'
-                                        : t._status === '만료'
-                                        ? 'is-expired'
-                                        : t._status === '사용예정'
-                                        ? 'is-upcoming'
-                                        : ''
-                                    }`}
-                                  >
+                              </button>
+                              <div className="min-w-0 flex-1 basis-56">
+                                <div className="mb-1 flex flex-wrap items-center gap-2">
+                                  <span className="text-sm font-semibold">{fmtDate(t.visitDate)}</span>
+                                  <Badge variant="secondary" className={TICKET_STATUS_BADGE[t._status]}>
                                     {t._status}
-                                  </span>
-                                  {todayCheckable && (
-                                    <span className="c-ticket-card__visitdate-today">오늘 체크인 가능</span>
-                                  )}
+                                  </Badge>
+                                  {todayCheckable && <span className="text-xs font-semibold text-primary">오늘 체크인 가능</span>}
                                 </div>
-                                <p className="c-ticket-card__muted">
-                                  {t.holderName} <span className="c-ticket-card__dot" /> {t.ticketType}
+                                <p className="m-0 text-xs text-muted-foreground">
+                                  {t.holderName} · {t.ticketType}
                                 </p>
-                                <p className="c-ticket-card__muted">
+                                <p className="m-0 text-xs text-muted-foreground">
                                   예매번호 {t.bookingNo} · 구매일 {t.purchasedAt}
                                 </p>
                               </div>
-                              <div className="c-ticket-date-row__actions">
-                                <button type="button" onClick={() => setZoomTicket(t)} disabled={disabledActions}>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Button type="button" variant="outline" size="sm" onClick={() => setZoomTicket(t)} disabled={disabledActions}>
                                   QR 크게 보기
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   type="button"
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => downloadTicketImage(t, `QR_${t.bookingNo}`)}
                                   disabled={disabledActions}
                                 >
                                   이미지 저장
-                                </button>
+                                </Button>
                                 {isReviewWindowOpen(t) && (
-                                  <button type="button" onClick={() => setReviewExpoId(t.expoId)}>
+                                  <Button type="button" size="sm" onClick={() => setReviewExpoId(t.expoId)}>
                                     후기 작성하러 가기
-                                  </button>
+                                  </Button>
                                 )}
                                 {t.isPaid && (
                                   <TicketActionsMenu
@@ -605,290 +596,222 @@ function CustomerMyPage() {
                         })}
                       </div>
                       {g.canCollapse && (
-                        <button type="button" className="c-ticket-group__more" onClick={() => toggleExpoExpanded(g.expoId)}>
-                          {g.hiddenUpcomingCount > 0 ? `사용예정 ${g.hiddenUpcomingCount}개 더 보기 ▼` : '접기 ▲'}
-                        </button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="rounded-t-none border-t text-primary"
+                          onClick={() => toggleExpoExpanded(g.expoId)}
+                        >
+                          {g.hiddenUpcomingCount > 0 ? (
+                            <>
+                              사용예정 {g.hiddenUpcomingCount}개 더 보기 <ChevronDown />
+                            </>
+                          ) : (
+                            <>
+                              접기 <ChevronUp />
+                            </>
+                          )}
+                        </Button>
                       )}
-                    </div>
+                    </Card>
                   ))}
                 </div>
               )}
             </>
           ) : tab === 'consultations' ? (
             <>
-              <div className="c-mypage__ticket-filters">
+              <div className="mb-4 flex flex-wrap gap-1.5">
                 {CONSULTATION_FILTERS.map((f) => (
-                  <button
+                  <Button
                     key={f.key}
                     type="button"
-                    className={f.key === consultFilter ? 'is-active' : ''}
+                    size="sm"
+                    variant={f.key === consultFilter ? 'default' : 'outline'}
+                    className="rounded-full"
                     onClick={() => setConsultFilter(f.key)}
                   >
                     {f.label}
                     {f.key !== '전체' && ` (${consultFilterCount[f.key]})`}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {consultLoading ? (
-                <p className="c-mypage__empty">불러오는 중...</p>
+                <EmptyState>불러오는 중...</EmptyState>
               ) : consultError ? (
-                <p className="c-mypage__empty">{consultError}</p>
+                <EmptyState tone="error">{consultError}</EmptyState>
               ) : filteredConsultations.length === 0 ? (
-                <p className="c-mypage__empty">
+                <EmptyState>
                   {consultFilter === '전체'
                     ? '예정된 상담이 없습니다. 지난 상담이나 반려·취소·완료·미방문 건은 각 탭에서 확인하세요.'
                     : `${consultFilter} 상태인 상담이 없습니다.`}
-                </p>
+                </EmptyState>
               ) : (
-              <div className="c-ticket-grid">
-                {filteredConsultations.map((c) => (
-                  <button
-                    type="button"
-                    key={c.consultationId}
-                    className={`c-ticket-card c-consult-card ${c.status === 'REJECTED' ? 'c-ticket-card--rejected' : ''}`}
-                    onClick={() => setSelectedConsultation(c)}
-                  >
-                    <div className="c-ticket-card__head">
-                      <div>
-                        <h3>{c.expoTitle}</h3>
-                        <p className="c-ticket-card__submeta">
-                          {c.companyName || (c.boothNo ? `${c.boothNo} 부스` : '참가업체 정보 없음')}
-                          {c.companyName && c.boothNo && ` · ${c.boothNo} 부스`}
-                        </p>
-                      </div>
-                      <span className={`c-ticket-card__badge ${CONSULTATION_STATUS_BADGE[c.status] ?? ''}`}>
-                        {CONSULTATION_STATUS_LABEL[c.status] ?? c.status}
-                      </span>
-                    </div>
-                    <p className="c-ticket-card__meta">{consultationTypeLabel(c)} 상담</p>
-                    <p className="c-ticket-card__meta">
-                      <span className="c-ticket-card__icon c-ticket-card__icon--calendar" />
-                      희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}
-                    </p>
-                    <p className="c-ticket-card__meta">신청일 {fmtDateTime(c.createdAt)}</p>
-                    <p className="c-ticket-card__meta">이름: {c.customerName ?? '-'}</p>
-                    <p className="c-ticket-card__meta">연락처: {c.customerPhone ?? '-'}</p>
-                    <p className="c-ticket-card__meta">이메일: {c.customerEmail ?? '-'}</p>
-                  </button>
-                ))}
-              </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {filteredConsultations.map((c) => (
+                    <button
+                      type="button"
+                      key={c.consultationId}
+                      className="cursor-pointer border-0 bg-transparent p-0 text-left"
+                      onClick={() => setSelectedConsultation(c)}
+                    >
+                      <Card className="h-full gap-2 transition-shadow hover:shadow-md">
+                        <CardContent className="flex flex-col gap-1.5">
+                          <div className="mb-1 flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h3 className="m-0 truncate text-base font-semibold">{c.expoTitle}</h3>
+                              <p className="m-0 mt-0.5 text-xs text-muted-foreground">
+                                {c.companyName || (c.boothNo ? `${c.boothNo} 부스` : '참가업체 정보 없음')}
+                                {c.companyName && c.boothNo && ` · ${c.boothNo} 부스`}
+                              </p>
+                            </div>
+                            <Badge variant="secondary" className={cn('shrink-0', CONSULTATION_STATUS_BADGE[c.status])}>
+                              {CONSULTATION_STATUS_LABEL[c.status] ?? c.status}
+                            </Badge>
+                          </div>
+                          <p className="m-0 text-sm font-medium">{consultationTypeLabel(c)} 상담</p>
+                          <p className="m-0 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CalendarDays className="size-3.5" />
+                            희망 일시 {c.preferredDate} {c.preferredTime?.slice(0, 5)}
+                          </p>
+                          <p className="m-0 text-xs text-muted-foreground">신청일 {fmtDateTime(c.createdAt)}</p>
+                          <p className="m-0 text-xs text-muted-foreground">이름: {c.customerName ?? '-'}</p>
+                          <p className="m-0 text-xs text-muted-foreground">연락처: {c.customerPhone ?? '-'}</p>
+                          <p className="m-0 text-xs text-muted-foreground">이메일: {c.customerEmail ?? '-'}</p>
+                        </CardContent>
+                      </Card>
+                    </button>
+                  ))}
+                </div>
               )}
             </>
           ) : (
-            <p className="c-mypage__empty">준비 중인 화면입니다.</p>
+            <EmptyState>준비 중인 화면입니다.</EmptyState>
           )}
         </main>
       </div>
+
       {zoomTicket && (
-        <div className="c-modal__backdrop" onClick={() => setZoomTicket(null)}>
-          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setZoomTicket(null)}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <h2>{zoomTicket.expoTitle}</h2>
-            <div className="ef-qr-box" style={{ margin: '16px auto' }}>
-              {zoomTicket.qrImageBase64 ? (
-                <img
-                  src={`data:image/png;base64,${zoomTicket.qrImageBase64}`}
-                  alt="입장 QR 코드"
-                  width={200}
-                  height={200}
-                />
-              ) : (
-                <QrPlaceholder size={200} />
-              )}
-            </div>
-            <p className="c-mypage__zoom-meta">체크인 가능일 {fmtDate(zoomTicket.visitDate)}</p>
-            <p className="c-mypage__zoom-meta">예매번호 {zoomTicket.bookingNo}</p>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              style={{ marginTop: 12 }}
-              onClick={() => downloadTicketImage(zoomTicket, `QR_${zoomTicket.bookingNo}`)}
-            >
+        <AppDialog
+          onClose={() => setZoomTicket(null)}
+          title={zoomTicket.expoTitle}
+          centered
+          footer={
+            <Button variant="outline" onClick={() => downloadTicketImage(zoomTicket, `QR_${zoomTicket.bookingNo}`)}>
               이미지 저장
-            </button>
+            </Button>
+          }
+        >
+          <div className="mx-auto flex size-56 items-center justify-center rounded-xl border bg-white p-2">
+            {zoomTicket.qrImageBase64 ? (
+              <img src={`data:image/png;base64,${zoomTicket.qrImageBase64}`} alt="입장 QR 코드" width={200} height={200} />
+            ) : (
+              <QrPlaceholder size={200} />
+            )}
           </div>
-        </div>
+          <div className="text-center text-sm text-muted-foreground">
+            <p className="m-0">체크인 가능일 {fmtDate(zoomTicket.visitDate)}</p>
+            <p className="m-0">예매번호 {zoomTicket.bookingNo}</p>
+          </div>
+        </AppDialog>
       )}
+
       {paymentDetailTicket && (
         <PaymentDetailModal ticket={paymentDetailTicket} onClose={() => setPaymentDetailTicket(null)} />
       )}
       {refundTicket && (
-        <RefundRequestModal
-          ticket={refundTicket}
-          onClose={() => setRefundTicket(null)}
-          onRefunded={loadTickets}
-        />
+        <RefundRequestModal ticket={refundTicket} onClose={() => setRefundTicket(null)} onRefunded={loadTickets} />
       )}
+
       {showEditModal && (
-        <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>
-          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setShowEditModal(false)}
-              disabled={saving}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <h2>정보 수정</h2>
-            <label className="ef-field">
-              <span>이름</span>
-              <input value={editForm.name} onChange={handleEditField('name')} />
-            </label>
-            <label className="ef-field">
-              <span>휴대폰 번호</span>
-              <input
-                value={editForm.contact}
-                onChange={(e) => setEditForm((prev) => ({ ...prev, contact: formatPhoneNumber(e.target.value) }))}
-              />
-            </label>
-            {saveError && <p className="c-modal__error">{saveError}</p>}
-            <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
-              {saving ? '저장 중...' : '저장'}
-            </button>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              onClick={() => setShowEditModal(false)}
-              disabled={saving}
-            >
-              취소
-            </button>
-          </div>
-        </div>
+        <AppDialog
+          onClose={() => !saving && setShowEditModal(false)}
+          dismissible={!saving}
+          title="정보 수정"
+        >
+          <Form {...editForm}>
+            <form className="flex flex-col gap-4" onSubmit={editForm.handleSubmit(handleSaveProfile)} noValidate>
+              <TextField control={editForm.control} name="name" label="이름" />
+              <TextField control={editForm.control} name="contact" label="휴대폰 번호" transform={formatPhoneNumber} />
+              {saveError && <p className="m-0 text-sm text-destructive">{saveError}</p>}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
+                  취소
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? '저장 중...' : '저장'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AppDialog>
       )}
 
       {showWithdrawModal && (
-        <div
-          className="c-modal__backdrop"
-          onClick={() => !withdrawing && setShowWithdrawModal(false)}
-        >
-          <div className="c-withdraw-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setShowWithdrawModal(false)}
-              disabled={withdrawing}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-
-            <div className="c-withdraw-modal__header">
-              <span className="c-withdraw-modal__icon" aria-hidden="true">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" strokeLinecap="round" />
-                </svg>
-              </span>
-              <div>
-                <h2>회원 탈퇴 안내</h2>
-                <p className="c-withdraw-modal__lead">
-                  회원 탈퇴 전 아래 내용을 꼭 확인해주세요.
-                  <br />
-                  탈퇴 후에는 계정 복구가 불가능하며, 일부 정보는 법령에 따라 보관될 수 있습니다.
-                </p>
-              </div>
-            </div>
-
-            {hasUnusedPaidTicket && (
-              <div className="c-withdraw-modal__box c-withdraw-modal__box--info">
-                <span className="c-withdraw-modal__box-icon" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="3" y="7" width="18" height="10" rx="2" />
-                    <path d="M9 7v10M15 7v10" strokeDasharray="2 2" />
-                  </svg>
-                </span>
-                <div className="c-withdraw-modal__box-body">
-                  <strong>미사용 유료 입장권이 있습니다.</strong>
-                  <p>
-                    보유 중인 유료 입장권이 있어요. 탈퇴 시 해당 입장권은 자동으로 환불되지 않습니다.
-                    <br />
-                    입장권을 사용하거나, 아래의 환불 절차를 먼저 진행한 후 탈퇴해주세요.
-                  </p>
-                </div>
-                <button type="button" className="c-withdraw-modal__link-btn" onClick={goToTicketsFromWithdrawModal}>
-                  입장권 확인하기 ›
-                </button>
-              </div>
-            )}
-
-            <div className="c-withdraw-modal__box">
-              <span className="c-withdraw-modal__box-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                  <path d="M9 12h6M9 16h6" strokeLinecap="round" />
-                </svg>
-              </span>
-              <div className="c-withdraw-modal__box-body">
-                <strong>환불 및 사용 안내</strong>
-                <ul>
-                  <li>유료 입장권은 탈퇴와 별도로 직접 환불 신청이 필요합니다.</li>
-                  <li>환불은 결제 수단 및 정책에 따라 처리되며, 자세한 내용은 고객센터를 통해 확인해주세요.</li>
-                  <li>탈퇴 후에는 입장권 사용이 불가능합니다.</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="c-withdraw-modal__box c-withdraw-modal__box--danger">
-              <span className="c-withdraw-modal__box-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="4" y="4" width="6" height="6" />
-                  <rect x="14" y="4" width="6" height="6" />
-                  <rect x="4" y="14" width="6" height="6" />
-                  <path d="M14 14h3v3h-3zM20 14v3M17 20h3" />
-                </svg>
-              </span>
-              <div className="c-withdraw-modal__box-body">
-                <strong>보유한 QR의 효력이 즉시 만료됩니다.</strong>
-                <ul>
-                  <li>탈퇴 시, 발급받은 모든 입장권 QR 코드가 즉시 비활성화됩니다.</li>
-                  <li>탈퇴 후에는 해당 QR로 행사장 입장이 불가능합니다.</li>
-                </ul>
-              </div>
-            </div>
-
-            <label className="c-withdraw-modal__agree">
-              <input
-                type="checkbox"
-                checked={withdrawAgreed}
-                onChange={(e) => setWithdrawAgreed(e.target.checked)}
-                disabled={withdrawing}
-              />
-              위 내용을 모두 확인하였으며, 이에 동의합니다.
-            </label>
-
-            {withdrawError && <p className="c-modal__error" style={{ margin: '0 0 4px' }}>{withdrawError}</p>}
-
-            <div className="c-withdraw-modal__actions">
-              <button
-                type="button"
-                className="c-withdraw-modal__cancel"
-                onClick={() => setShowWithdrawModal(false)}
-                disabled={withdrawing}
-              >
+        <AppDialog
+          onClose={() => !withdrawing && setShowWithdrawModal(false)}
+          dismissible={!withdrawing}
+          size="md"
+          icon={<UserRound />}
+          title="회원 탈퇴 안내"
+          description="회원 탈퇴 전 아래 내용을 꼭 확인해주세요. 탈퇴 후에는 계정 복구가 불가능하며, 일부 정보는 법령에 따라 보관될 수 있습니다."
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setShowWithdrawModal(false)} disabled={withdrawing}>
                 취소
-              </button>
-              <button
-                type="button"
-                className="c-withdraw-modal__confirm"
-                onClick={handleWithdraw}
-                disabled={withdrawing || !withdrawAgreed}
-              >
+              </Button>
+              <Button variant="destructive" onClick={handleWithdraw} disabled={withdrawing || !withdrawAgreed}>
                 {withdrawing ? '처리 중...' : '회원 탈퇴하기'}
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </>
+          }
+        >
+          {hasUnusedPaidTicket && (
+            <Alert>
+              <Ticket />
+              <AlertTitle>미사용 유료 입장권이 있습니다.</AlertTitle>
+              <AlertDescription>
+                <p className="m-0">
+                  보유 중인 유료 입장권이 있어요. 탈퇴 시 해당 입장권은 자동으로 환불되지 않습니다. 입장권을 사용하거나, 환불 절차를 먼저 진행한 후 탈퇴해주세요.
+                </p>
+                <Button type="button" variant="link" className="mt-1 h-auto p-0" onClick={goToTicketsFromWithdrawModal}>
+                  입장권 확인하기 ›
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Alert>
+            <FileText />
+            <AlertTitle>환불 및 사용 안내</AlertTitle>
+            <AlertDescription>
+              <ul className="m-0 list-disc pl-4">
+                <li>유료 입장권은 탈퇴와 별도로 직접 환불 신청이 필요합니다.</li>
+                <li>환불은 결제 수단 및 정책에 따라 처리되며, 자세한 내용은 고객센터를 통해 확인해주세요.</li>
+                <li>탈퇴 후에는 입장권 사용이 불가능합니다.</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+
+          <Alert variant="destructive">
+            <QrCode />
+            <AlertTitle>보유한 QR의 효력이 즉시 만료됩니다.</AlertTitle>
+            <AlertDescription>
+              <ul className="m-0 list-disc pl-4">
+                <li>탈퇴 시, 발급받은 모든 입장권 QR 코드가 즉시 비활성화됩니다.</li>
+                <li>탈퇴 후에는 해당 QR로 행사장 입장이 불가능합니다.</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+
+          <Label className="cursor-pointer font-normal">
+            <Checkbox checked={withdrawAgreed} onCheckedChange={(v) => setWithdrawAgreed(v === true)} disabled={withdrawing} />
+            위 내용을 모두 확인하였으며, 이에 동의합니다.
+          </Label>
+
+          {withdrawError && <p className="m-0 text-sm text-destructive">{withdrawError}</p>}
+        </AppDialog>
       )}
+
       {selectedConsultation && (
         <ConsultationDetailModal
           consultation={selectedConsultation}
@@ -901,7 +824,8 @@ function CustomerMyPage() {
         <VisitedBoothsModal
           expoId={reviewExpoId}
           reviewedBoothIds={myReviews.filter((r) => r.reviewType === 'BOOTH').map((r) => r.boothId)}
-          onClose={() => setReviewExpoId(null)} />
+          onClose={() => setReviewExpoId(null)}
+        />
       )}
       {showWritableReviews && (
         <WritableReviewsModal
@@ -919,7 +843,7 @@ function CustomerMyPage() {
           onCreated={loadMyReviews}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
 

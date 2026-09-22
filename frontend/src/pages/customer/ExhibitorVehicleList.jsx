@@ -1,10 +1,16 @@
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import ReviewWriteModal from '../../components/customer/ReviewWriteModal';
 import ReviewDetailModal from '../../components/customer/ReviewDetailModal';
 import BulkConsultPromo from '../../components/customer/BulkConsultPromo';
 import { getBoothReviews, getCustomerExpo, getCustomerExpoVehicles, toAssetUrl } from '../../api/expo';
-import './ExhibitorVehicleList.css';
+import { boothNoLabel, mergeExhibitorGroups } from '../../utils/exhibitorGroups';
+import { EmptyState, PageContainer, PageHero } from '@/components/layout/Page';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
@@ -28,31 +34,36 @@ function ExhibitorVehicleList() {
     setSearchParams(next, { replace: true });
   };
 
-  const loadReviews = () =>
-    getBoothReviews(boothId)
-      .then(setReviews)
-      .catch(() => setReviews({ totalCount: 0, consultReviews: [], boothReviews: [] }));
+  // group.boothIds 전체(같은 신청으로 묶인 부스)의 후기를 합쳐서 보여준다.
+  const loadReviews = (boothIds) =>
+    Promise.all(boothIds.map((id) => getBoothReviews(id).catch(() => null)))
+      .then((results) => {
+        const ok = results.filter(Boolean);
+        setReviews({
+          totalCount: ok.reduce((sum, r) => sum + (r.totalCount ?? 0), 0),
+          consultReviews: ok.flatMap((r) => r.consultReviews ?? []),
+          boothReviews: ok.flatMap((r) => r.boothReviews ?? []),
+        });
+      });
 
   useEffect(() => {
     Promise.all([getCustomerExpo(expoId), getCustomerExpoVehicles(expoId)])
       .then(([expoRes, groupsRes]) => {
         setExpo(expoRes);
         setGroups(groupsRes);
-        const found = groupsRes.find((g) => String(g.boothId) === boothId);
+        const merged = mergeExhibitorGroups(groupsRes);
+        const found = merged.find((g) => g.boothIds.some((id) => String(id) === boothId));
         if (!found) {
           setLoadError('참가업체 정보를 찾을 수 없습니다.');
           return;
         }
         setGroup(found);
+        loadReviews(found.boothIds);
       })
       .catch((err) =>
         setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.')
       );
   }, [expoId, boothId]);
-
-  useEffect(() => {
-    loadReviews();
-  }, [boothId]);
 
   const filteredVehicles = useMemo(
     () => group?.vehicles.filter((v) => v.name.toLowerCase().includes(keyword.toLowerCase())) ?? [],
@@ -60,143 +71,145 @@ function ExhibitorVehicleList() {
   );
 
   if (loadError) {
-    return <p className="c-vehicle-list__status">{loadError}</p>;
+    return <EmptyState tone="error">{loadError}</EmptyState>;
   }
   if (!expo || !group) {
-    return <p className="c-vehicle-list__status">불러오는 중...</p>;
+    return <EmptyState>불러오는 중...</EmptyState>;
   }
 
+  const reviewList = reviewTab === 'CONSULT' ? reviews?.consultReviews : reviews?.boothReviews;
+
   return (
-    <div className="c-vehicle-list">
-      <section className="c-vehicle-list__hero">
-        <p className="c-vehicle-list__eyebrow">EXHIBITION MANAGEMENT PORTAL</p>
-        <h1>{expo.title}</h1>
-        <p>
-          {fmtDate(expo.startsAt)} ~ {fmtDate(expo.endsAt)} | {expo.venue}
-        </p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITION MANAGEMENT PORTAL"
+        title={expo.title}
+        description={`${fmtDate(expo.startsAt)} ~ ${fmtDate(expo.endsAt)} | ${expo.venue}`}
+      />
 
-      <div className="c-vehicle-list__toolbar">
-        <Link to={`/customer/expos/${expoId}`} className="c-vehicle-group__link">
-          &lt; 참가업체 목록으로
-        </Link>
-        <div className="c-vehicle-list__search-wrap">
-          <span className="c-vehicle-list__search-icon" />
-          <input
-            className="c-vehicle-list__search"
-            placeholder="차량명을 검색하세요."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="c-vehicle-list__body">
-        <div className="c-vehicle-list__main">
-        <section className="c-vehicle-group">
-          <div className="c-vehicle-group__header">
-            <span className="c-vehicle-group__logo">{group.title.slice(0, 1)}</span>
-            <h2>{group.title}</h2>
-            <span className="c-vehicle-group__booth">부스 {group.boothNo}</span>
+      <PageContainer>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            to={`/customer/expos/${expoId}`}
+            className="flex items-center gap-1 text-sm text-muted-foreground no-underline hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" /> 참가업체 목록으로
+          </Link>
+          <div className="relative w-full max-w-xs">
+            <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-10 pl-8"
+              placeholder="차량명을 검색하세요."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+            />
           </div>
-
-          {filteredVehicles.length === 0 && (
-            <p className="c-vehicle-list__status">조건에 맞는 차량이 없습니다.</p>
-          )}
-
-          <div className="c-vehicle-group__grid">
-            {filteredVehicles.map((v) => (
-              <Link
-                key={v.vehicleId}
-                to={`/customer/expos/${expoId}/vehicles/${v.vehicleId}`}
-                className="c-vehicle-card"
-              >
-                <div className="c-vehicle-card__thumb">
-                  {v.images[0] && <img src={toAssetUrl(v.images[0].imageUrl)} alt={v.name} />}
-                </div>
-                <div className="c-vehicle-card__body">
-                  <h3>{v.name}</h3>
-                  <div className="c-vehicle-card__tags">
-                    {v.tags.map((t) => (
-                      <span key={t} className="c-vehicle-card__tag">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                  <span className="c-vehicle-card__link">
-                    상세보기 <span className="c-vehicle-card__arrow" />
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="c-review-section">
-          <div className="c-review-header">
-            <div className="c-review-title-wrap">
-              <div className="c-review-title">후기 내역</div>
-              <div className="c-review-description">해당 차량 및 부스와 관련된 방문 후기를 확인할 수 있습니다.</div>
-            </div>
-            {reviews && <div className="c-review-count">전체 <strong>{reviews.totalCount}</strong>건</div>}
-          </div>
-
-          <div className="c-review-tabs">
-            <button
-              type="button"
-              className={`c-review-tab${reviewTab === 'CONSULT' ? ' is-active' : ''}`}
-              onClick={() => setReviewTab('CONSULT')}
-            >
-              상담후기
-            </button>
-            <button
-              type="button"
-              className={`c-review-tab${reviewTab === 'BOOTH' ? ' is-active' : ''}`}
-              onClick={() => setReviewTab('BOOTH')}
-            >
-              부스후기
-            </button>
-          </div>
-
-          <div className="c-review-list">
-            {(() => {
-              const list = reviewTab === 'CONSULT' ? reviews?.consultReviews : reviews?.boothReviews;
-              if (!list) {
-                return <p className="c-review-empty">불러오는 중...</p>;
-              }
-              if (list.length === 0) {
-                return <p className="c-review-empty">아직 등록된 후기가 없습니다.</p>;
-              }
-              return list.map((r) => (
-                <button
-                  type="button"
-                  key={r.reviewId}
-                  className="c-review-item"
-                  onClick={() => setSelectedReview(r)}
-                >
-                  <div className="c-review-user">
-                    <div className="c-review-user-name">{r.customerName}</div>
-                    <div className="c-review-date">{fmtDate(r.createdAt)}</div>
-                  </div>
-                  {r.images?.[0] && (
-                    <div className="c-review-thumb">
-                      <img src={toAssetUrl(r.images[0].imageUrl)} alt="" />
-                    </div>
-                  )}
-                  <div className="c-review-main">
-                    <div className="c-review-tag">{r.vehicleName || `부스 ${r.boothNo}`}</div>
-                    <div className="c-review-text">{r.content}</div>
-                  </div>
-                  <div className="c-review-arrow">›</div>
-                </button>
-              ));
-            })()}
-          </div>
-        </section>
         </div>
 
-        <BulkConsultPromo expoId={expoId} groups={groups} lockedBoothId={boothId} />
-      </div>
+        <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
+          <div className="flex min-w-0 flex-col gap-10">
+            <section>
+              <div className="mb-4 flex items-center gap-3">
+                <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-base font-bold text-primary">
+                  {group.title.slice(0, 1)}
+                </span>
+                <h2 className="m-0 text-xl font-bold">{group.title}</h2>
+                <Badge variant="secondary">부스 {boothNoLabel(group.boothNos)}</Badge>
+              </div>
+
+              {filteredVehicles.length === 0 && <EmptyState>조건에 맞는 차량이 없습니다.</EmptyState>}
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredVehicles.map((v) => (
+                  <Link key={v.vehicleId} to={`/customer/expos/${expoId}/vehicles/${v.vehicleId}`} className="no-underline">
+                    <Card className="h-full gap-0 overflow-hidden py-0 transition-shadow hover:shadow-md">
+                      <div className="aspect-[4/3] bg-muted">
+                        {v.images[0] && (
+                          <img src={toAssetUrl(v.images[0].imageUrl)} alt={v.name} className="size-full object-cover" />
+                        )}
+                      </div>
+                      <CardContent className="flex flex-col gap-2 p-4">
+                        <h3 className="m-0 text-base font-semibold text-foreground">{v.name}</h3>
+                        <div className="flex flex-wrap gap-1">
+                          {v.tags.map((t) => (
+                            <Badge key={t} variant="secondary" className="font-normal">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                        <span className="mt-1 flex items-center gap-0.5 text-sm font-medium text-primary">
+                          상세보기 <ChevronRight className="size-4" />
+                        </span>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <section>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="m-0 text-xl font-bold">후기 내역</h2>
+                  <p className="mt-1 mb-0 text-sm text-muted-foreground">
+                    해당 차량 및 부스와 관련된 방문 후기를 확인할 수 있습니다.
+                  </p>
+                </div>
+                {reviews && (
+                  <p className="m-0 text-sm text-muted-foreground">
+                    전체 <strong className="text-foreground">{reviews.totalCount}</strong>건
+                  </p>
+                )}
+              </div>
+
+              <Tabs value={reviewTab} onValueChange={setReviewTab} className="mb-3">
+                <TabsList>
+                  <TabsTrigger value="CONSULT">상담후기</TabsTrigger>
+                  <TabsTrigger value="BOOTH">부스후기</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              {!reviewList ? (
+                <EmptyState>불러오는 중...</EmptyState>
+              ) : reviewList.length === 0 ? (
+                <EmptyState>아직 등록된 후기가 없습니다.</EmptyState>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {reviewList.map((r) => (
+                    <button
+                      type="button"
+                      key={r.reviewId}
+                      className="flex w-full cursor-pointer items-center gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50"
+                      onClick={() => setSelectedReview(r)}
+                    >
+                      <div className="w-24 shrink-0">
+                        <div className="text-sm font-semibold">{r.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{fmtDate(r.createdAt)}</div>
+                      </div>
+                      {r.images?.[0] && (
+                        <img
+                          src={toAssetUrl(r.images[0].imageUrl)}
+                          alt=""
+                          className="size-14 shrink-0 rounded-lg object-cover"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <Badge variant="secondary" className="mb-1">
+                          {r.vehicleName || `부스 ${r.boothNo}`}
+                        </Badge>
+                        <div className="line-clamp-2 text-sm text-muted-foreground">{r.content}</div>
+                      </div>
+                      <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <BulkConsultPromo expoId={expoId} groups={groups} lockedBoothId={boothId} />
+        </div>
+      </PageContainer>
 
       {writeReviewType && (
         <ReviewWriteModal

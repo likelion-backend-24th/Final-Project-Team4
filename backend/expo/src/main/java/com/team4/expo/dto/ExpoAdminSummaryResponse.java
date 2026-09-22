@@ -15,6 +15,8 @@ public class ExpoAdminSummaryResponse {
     private final ExpoStatus status;
     private final LocalDateTime applyStartsAt;
     private final LocalDateTime applyEndsAt;
+    private final LocalDateTime startsAt;   // 박람회 자체 시작일 - 프론트에서 진행 단계(phaseOf) 계산에 사용
+    private final LocalDateTime endsAt;     // 박람회 자체 종료일 - 프론트에서 진행 단계(phaseOf) 계산에 사용
     private final int totalBooths;
     private final int availableBooths;
     private final int totalApplications;

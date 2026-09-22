@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
-import logoIcon from '../assets/logo-icon.png';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 import { clearAuth, useIsLoggedIn, useProfileVersion } from '../api/auth';
 import { getMyProfile } from '../api/identity';
 import { exhibitorNotificationApi } from '../api/notifications';
 import NotificationBell from './NotificationBell';
 import AccountMenu from './AccountMenu';
-import './Header.css';
+import { AppHeader } from './layout/AppHeader';
 
 // 알림 종류별로 클릭 시 이동할 화면 (참가업체용)
 const NOTIFICATION_TARGET = {
@@ -15,6 +14,11 @@ const NOTIFICATION_TARGET = {
   BOOTH_REJECTED: '/mypage',
   CONSULTATION_RECEIVED: '/consultations',
 };
+
+const NAV_ITEMS = [
+  { to: '/consultations', label: '상담 신청 관리' },
+  { to: '/leads', label: 'QR 리드 확보' },
+];
 
 function Header() {
   const navigate = useNavigate();
@@ -41,26 +45,11 @@ function Header() {
   };
 
   return (
-    <header className="app-header">
-      <Link to="/" className="app-header__brand">
-        <img src={logoIcon} alt="" className="app-header__logo" />
-        <span>MOBILITY EXPO</span>
-      </Link>
-      <nav className="app-header__nav">
-        <NavLink to="/consultations" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          상담 신청 관리
-        </NavLink>
-        <NavLink to="/leads" className={({ isActive }) => (isActive ? 'is-active' : '')}>
-          QR 리드 확보
-        </NavLink>
-      </nav>
-      <div className="app-header__account">
-        <NotificationBell api={exhibitorNotificationApi} targetMap={NOTIFICATION_TARGET} />
-        <AccountMenu label={companyName} mypageTo="/mypage" onLogout={handleLogout} />
-      </div>
-    </header>
+    <AppHeader brandTo="/" navItems={NAV_ITEMS}>
+      <NotificationBell api={exhibitorNotificationApi} targetMap={NOTIFICATION_TARGET} />
+      <AccountMenu label={companyName} mypageTo="/mypage" onLogout={handleLogout} />
+    </AppHeader>
   );
 }
-
 
 export default Header;

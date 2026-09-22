@@ -1,18 +1,27 @@
-import { useEffect, useRef, useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getAdminExpo, updateExpo, deleteExpo, closeExpo, openExpo, uploadExpoBannerImage, toAssetUrl } from '../../api/expo';
-import './AdminExpoCreate.css';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { BannerUpload, ExpoBasicFields, expoSchema } from '@/components/admin/ExpoBasicFields';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form } from '@/components/ui/form';
 
 // 서버가 내려주는 "YYYY-MM-DDTHH:mm:ss" 를 datetime-local 입력이 요구하는 "YYYY-MM-DDTHH:mm"로 자름
 const toInputValue = (iso) => (iso ? iso.slice(0, 16) : '');
 
 // 박람회 정보 수정 - 부스 목록은 대상이 아님(등록 이후엔 별도 관리). 등록 화면(AdminExpoCreate)과
-// 같은 "기본 정보" 필드만 다루므로 스타일을 그대로 재사용한다.
+// 같은 "기본 정보" 필드 컴포넌트를 재사용한다.
 function AdminExpoEdit() {
   const { expoId } = useParams();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState(null);
+  const form = useForm({ resolver: zodResolver(expoSchema) });
+  const [loaded, setLoaded] = useState(false);
   const [status, setStatus] = useState(null);
   const [hasApplications, setHasApplications] = useState(false);
   const [loadError, setLoadError] = useState(null);
@@ -20,17 +29,15 @@ function AdminExpoEdit() {
   const [error, setError] = useState(null);
 
   const [bannerImageUrl, setBannerImageUrl] = useState(null);
-  const bannerInputRef = useRef(null);
   const [bannerFile, setBannerFile] = useState(null);
-  const [bannerPreview, setBannerPreview] = useState(null);
 
-  const loadExpo = () =>
+  useEffect(() => {
     getAdminExpo(expoId)
       .then((res) => {
         setStatus(res.status);
         setHasApplications(res.hasApplications);
         setBannerImageUrl(res.bannerImageUrl);
-        setForm({
+        form.reset({
           title: res.title,
           venue: res.venue,
           description: res.description ?? '',
@@ -38,44 +45,23 @@ function AdminExpoEdit() {
           applyEndsAt: toInputValue(res.applyEndsAt),
           startsAt: toInputValue(res.startsAt),
           endsAt: toInputValue(res.endsAt),
-          admissionFee: res.admissionFee,
+          admissionFee: String(res.admissionFee),
         });
+        setLoaded(true);
       })
       .catch((err) => setLoadError(err.response?.data?.error?.message ?? '박람회 정보를 불러오지 못했습니다.'));
+  }, [expoId, form]);
 
-  useEffect(() => {
-    loadExpo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expoId]);
-
-  const setField = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-
-  const handleBannerFileChange = (e) => {
-    const file = e.target.files?.[0] ?? null;
-    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
-    setBannerFile(file);
-    setBannerPreview(file ? URL.createObjectURL(file) : null);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const onSubmit = async (values) => {
     setError(null);
-
-    if (form.admissionFee === '' || Number(form.admissionFee) < 0) {
-      setError('당일 입장료를 0 이상으로 입력해주세요.');
-      return;
-    }
-
     setSubmitting(true);
     try {
       await updateExpo(expoId, {
-        ...form,
-        admissionFee: Number(form.admissionFee),
-        description: form.description?.trim() ? form.description.trim() : null,
+        ...values,
+        admissionFee: Number(values.admissionFee),
+        description: values.description.trim() || null,
       });
-      if (bannerFile) {
-        await uploadExpoBannerImage(expoId, bannerFile);
-      }
+      if (bannerFile) await uploadExpoBannerImage(expoId, bannerFile);
       alert('박람회 정보를 수정했습니다.');
       navigate('/admin/applications');
     } catch (err) {
@@ -119,144 +105,68 @@ function AdminExpoEdit() {
   };
 
   if (loadError) {
-    return <p className="admin-expo-create__error" style={{ margin: '40px' }}>{loadError}</p>;
+    return (
+      <AdminSidebarLayout breadcrumb="박람회 수정">
+        <EmptyState tone="error">{loadError}</EmptyState>
+      </AdminSidebarLayout>
+    );
   }
-  if (!form) {
-    return <p style={{ margin: '40px' }}>불러오는 중...</p>;
+  if (!loaded) {
+    return (
+      <AdminSidebarLayout breadcrumb="박람회 수정">
+        <EmptyState>불러오는 중...</EmptyState>
+      </AdminSidebarLayout>
+    );
   }
 
   return (
-    <div className="admin-expo-create">
-      <section className="admin-expo-create__hero">
-        <p className="admin-expo-create__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>박람회 수정</h1>
-        <p>박람회 기본 정보를 수정합니다. 부스 신청이 있는 박람회는 일정을 바꿀 수 없습니다.</p>
-      </section>
+    <AdminSidebarLayout breadcrumb="박람회 수정">
+      <PageHeader
+        title="박람회 수정"
+        description="박람회 기본 정보를 수정합니다. 부스 신청이 있는 박람회는 일정을 바꿀 수 없습니다."
+      />
 
-      <form className="admin-expo-create__form" onSubmit={handleSubmit}>
-        <section className="admin-expo-create__panel">
-          <h2>기본 정보</h2>
-          <div className="admin-expo-create__grid">
-            <label>
-              박람회명
-              <input value={form.title} onChange={setField('title')} required />
-            </label>
-            <label>
-              장소
-              <input value={form.venue} onChange={setField('venue')} required />
-            </label>
-            <label>
-              신청 시작
-              <input
-                type="datetime-local"
-                value={form.applyStartsAt}
-                onChange={setField('applyStartsAt')}
-                disabled={hasApplications}
-                required
-              />
-            </label>
-            <label>
-              신청 마감
-              <input
-                type="datetime-local"
-                value={form.applyEndsAt}
-                onChange={setField('applyEndsAt')}
-                disabled={hasApplications}
-                required
-              />
-            </label>
-            <label>
-              개최 시작
-              <input
-                type="datetime-local"
-                value={form.startsAt}
-                onChange={setField('startsAt')}
-                disabled={hasApplications}
-                required
-              />
-            </label>
-            <label>
-              개최 종료
-              <input
-                type="datetime-local"
-                value={form.endsAt}
-                onChange={setField('endsAt')}
-                disabled={hasApplications}
-                required
-              />
-            </label>
-            <label>
-              당일 입장료(원)
-              <input type="number" min={0} value={form.admissionFee} onChange={setField('admissionFee')} required />
-            </label>
-          </div>
-          <p className="admin-expo-create__hint">규칙: 신청 시작 &lt; 신청 마감 ≤ 개최 시작 &lt; 개최 종료</p>
-          {hasApplications && (
-            <p className="admin-expo-create__hint">부스 신청이 있어 일정 필드는 수정할 수 없습니다.</p>
-          )}
+      <div className="mx-auto w-full max-w-4xl">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>기본 정보</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ExpoBasicFields control={form.control} lockSchedule={hasApplications}>
+                  <BannerUpload existingUrl={toAssetUrl(bannerImageUrl)} onFileChange={setBannerFile} />
+                </ExpoBasicFields>
+              </CardContent>
+            </Card>
 
-          <div className="admin-expo-create__desc-field">
-            <label>
-              행사 소개 (선택, 최대 1000자)
-              <textarea
-                rows={3}
-                maxLength={1000}
-                placeholder="비워두면 고객 화면에 기본 소개 문구가 대신 표시됩니다."
-                value={form.description}
-                onChange={setField('description')}
-              />
-            </label>
-          </div>
-
-          <div className="admin-expo-create__banner-field">
-            <label>
-              배너 이미지 (PNG/JPEG/WEBP, 5MB 이하)
-              <input
-                ref={bannerInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={handleBannerFileChange}
-              />
-            </label>
-            {(bannerPreview ?? toAssetUrl(bannerImageUrl)) && (
-              <img
-                src={bannerPreview ?? toAssetUrl(bannerImageUrl)}
-                alt="배너 미리보기"
-                className="admin-expo-create__banner-preview"
-              />
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-          </div>
-        </section>
 
-        {error && <p className="admin-expo-create__error">{error}</p>}
-
-        <div className="admin-expo-create__actions">
-          <div className="admin-expo-create__buttons">
-            <button type="button" className="admin-expo-create__row-del" onClick={handleDelete}>
-              박람회 삭제
-            </button>
-            {status === 'OPEN' && (
-              <button type="button" className="admin-expo-create__row-del" onClick={handleClose}>
-                비공개로 전환
-              </button>
-            )}
-            {status === 'DRAFT' && (
-              <button type="button" className="admin-expo-create__gen-btn" onClick={handleOpen}>
-                공개하기
-              </button>
-            )}
-          </div>
-          <div className="admin-expo-create__buttons">
-            <button type="button" className="admin-expo-create__cancel" onClick={() => navigate('/admin/applications')}>
-              취소
-            </button>
-            <button type="submit" className="admin-expo-create__submit" disabled={submitting}>
-              {submitting ? '저장 중...' : '저장'}
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" className="text-destructive" onClick={handleDelete}>
+                  박람회 삭제
+                </Button>
+                {status === 'OPEN' && (
+                  <Button type="button" variant="outline" onClick={handleClose}>비공개로 전환</Button>
+                )}
+                {status === 'DRAFT' && (
+                  <Button type="button" variant="secondary" onClick={handleOpen}>공개하기</Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => navigate('/admin/applications')}>취소</Button>
+                <Button type="submit" disabled={submitting}>{submitting ? '저장 중...' : '저장'}</Button>
+              </div>
+            </div>
+           </form>
+        </Form>
+      </div>
+    </AdminSidebarLayout>
   );
 }
 

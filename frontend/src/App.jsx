@@ -34,13 +34,17 @@ import AdminExpoCreate from './pages/admin/AdminExpoCreate';
 import AdminExpoEdit from './pages/admin/AdminExpoEdit';
 import AdminRevenueStats from './pages/admin/AdminRevenueStats';
 import AdminStats from './pages/admin/AdminStats';
+import AdminMemberList from './pages/admin/AdminMemberList';
+import AdminMemberDetail from './pages/admin/AdminMemberDetail';
 
-// 역할별 헤더만 다르고 본문, 푸터 배치는 공통
+// 역할별 헤더만 다르고 본문, 푸터 배치는 공통.
+// 관리자 페이지는 각자 AdminSidebarLayout으로 자체 래핑하므로 이 Layout/AdminHeader는
+// 관리자 화면에서는 쓰이지 않고, 로그인한 관리자가 약관/개인정보 처리방침(LegalLayout)을 볼 때만 쓰인다.
 function Layout({ header, children }) {
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen flex-col">
       {header}
-      <div className="app-layout__body">{children}</div>
+      <div className="flex-1">{children}</div>
       <Footer />
     </div>
   );
@@ -72,7 +76,7 @@ function LegalLayout({ children }) {
 function ExhibitorHome() {
   const role = getRole();
   if (role === 'USER') return <Navigate to="/customer" replace />;
-  if (role === 'ADMIN') return <Navigate to="/admin/applications" replace />;
+  if (role === 'ADMIN') return <Navigate to="/admin" replace />;
   return (
     <ExhibitorLayout>
       <ExpoList />
@@ -125,13 +129,16 @@ function App() {
       />
       <Route path="/customer/mypage" element={<CustomerLayout><CustomerMyPage /></CustomerLayout>} />
 
-      <Route path="/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-      <Route path="/admin/expos/new" element={<AdminLayout><AdminExpoCreate /></AdminLayout>} />
-      <Route path="/admin/expos/:expoId/edit" element={<AdminLayout><AdminExpoEdit /></AdminLayout>} />
-      <Route path="/admin/applications" element={<AdminLayout><AdminExpoList /></AdminLayout>} />
-      <Route path="/admin/applications/:expoId" element={<AdminLayout><AdminExpoDetail /></AdminLayout>} />
-      <Route path="/admin/stats" element={<AdminLayout><AdminStats /></AdminLayout>} />
-      <Route path="/admin/stats/payments" element={<AdminLayout><AdminRevenueStats /></AdminLayout>} />
+      {/* 관리자 페이지는 전부 AdminSidebarLayout으로 자체 래핑 - 여기선 Layout/AdminHeader를 안 씀 */}
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/admin/expos/new" element={<AdminExpoCreate />} />
+      <Route path="/admin/expos/:expoId/edit" element={<AdminExpoEdit />} />
+      <Route path="/admin/applications" element={<AdminExpoList />} />
+      <Route path="/admin/applications/:expoId" element={<AdminExpoDetail />} />
+      <Route path="/admin/stats" element={<AdminStats />} />
+      <Route path="/admin/stats/payments" element={<AdminRevenueStats />} />
+      <Route path="/admin/members" element={<AdminMemberList />} />
+      <Route path="/admin/members/:userId" element={<AdminMemberDetail />} />
     </Routes>
   );
 }

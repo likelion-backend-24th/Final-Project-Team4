@@ -2,7 +2,13 @@ import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import * as PortOne from "@portone/browser-sdk/v2";
 import { payGroup } from "../api/payment";
-import "./Payment.css";
+import { PageContainer, PageHero } from "@/components/layout/Page";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // PortOne 결제 채널 식별용 공개 ID들 (비밀값 아님 - 프론트에 그대로 둬도 되는 값).
 // 실제 카드 검증 비밀키(API Secret)는 절대 여기 두지 않고, 백엔드 환경변수(PORTONE_API_SECRET)로만 관리함.
@@ -30,9 +36,7 @@ function Payment() {
 
   const handlePay = async () => {
     if (!amount) {
-      setError(
-        "결제 금액을 확인할 수 없습니다. 마이페이지에서 다시 시도해주세요.",
-      );
+      setError("결제 금액을 확인할 수 없습니다. 마이페이지에서 다시 시도해주세요.");
       return;
     }
     setPaying(true);
@@ -72,97 +76,89 @@ function Payment() {
       alert("결제가 완료되었습니다.");
       navigate("/mypage");
     } catch (err) {
-      setError(
-        err.response?.data?.error?.message ??
-          "결제 처리 중 오류가 발생했습니다.",
-      );
+      setError(err.response?.data?.error?.message ?? "결제 처리 중 오류가 발생했습니다.");
     } finally {
       setPaying(false);
     }
   };
 
   return (
-    <div className="payment">
-      <section className="payment__hero">
-        <p className="payment__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>참가비 결제</h1>
-        <p>
-          참가 신청 승인이 완료된 박람회의 부스 임차 및 참가 비용을 안전하게
-          결제합니다.
-        </p>
-      </section>
+    <div>
+      <PageHero
+        eyebrow="EXHIBITOR MANAGEMENT PORTAL"
+        title="참가비 결제"
+        description="참가 신청 승인이 완료된 박람회의 부스 임차 및 참가 비용을 안전하게 결제합니다."
+      />
 
-      <div className="payment__body">
-        <div className="payment__main">
-          <section className="payment__panel">
-            <h2>결제 수단 선택</h2>
-            <div className="payment__methods">
-              {METHODS.map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  className={m === method ? "is-active" : ""}
-                  onClick={() => setMethod(m)}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-          </section>
+      <PageContainer size="md">
+        <div className="grid items-start gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="flex flex-col gap-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">결제 수단 선택</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={method} onValueChange={setMethod}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    {METHODS.map((m) => (
+                      <TabsTrigger key={m} value={m}>
+                        {m}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </Tabs>
+              </CardContent>
+            </Card>
 
-          <section className="payment__panel">
-            <div className="payment__panel-header">
-              <h2>결제 진행 안내</h2>
-              <span className="payment__test-tag">테스트 채널</span>
-            </div>
-            <p className="payment__notice">
-              '결제하기' 클릭 시 실제 PortOne 결제창이 새로 열립니다. 결제
-              수단 정보(카드번호 등)는 그 결제창에서 직접 입력합니다. 테스트
-              채널로 연결되어 있어 실제 대금은 빠져나가지 않습니다.
-            </p>
-          </section>
+            <Card>
+              <CardHeader className="flex-row items-center justify-between">
+                <CardTitle className="text-base">결제 진행 안내</CardTitle>
+                <Badge variant="secondary">테스트 채널</Badge>
+              </CardHeader>
+              <CardContent>
+                <p className="m-0 text-sm leading-relaxed text-muted-foreground">
+                  &apos;결제하기&apos; 클릭 시 실제 PortOne 결제창이 새로 열립니다. 결제 수단 정보(카드번호 등)는 그
+                  결제창에서 직접 입력합니다. 테스트 채널로 연결되어 있어 실제 대금은 빠져나가지 않습니다.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="lg:sticky lg:top-24">
+            <CardHeader>
+              <CardTitle className="text-base">청구 내역 요약</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div>
+                <p className="m-0 text-xs text-muted-foreground">신청 박람회</p>
+                <p className="m-0 mt-0.5 text-sm font-semibold">{expoTitle || "-"}</p>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">신청 그룹</span>
+                <strong>{groupId}</strong>
+              </div>
+              <Separator />
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">최종 청구 금액</span>
+                <strong className="text-2xl font-extrabold">₩{amount.toLocaleString()}</strong>
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button type="button" size="lg" className="h-11" onClick={handlePay} disabled={paying}>
+                {paying ? "결제 처리 중..." : `₩${amount.toLocaleString()} 안전 결제하기`}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate("/mypage")}>
+                결제 취소
+              </Button>
+            </CardContent>
+          </Card>
         </div>
-
-        <aside className="payment__side">
-          <h3>청구 내역 요약</h3>
-          <p className="payment__label">신청 박람회</p>
-          <p className="payment__value">{expoTitle || "-"}</p>
-
-          <div className="payment__row">
-            <span>신청 그룹</span>
-            <strong>{groupId}</strong>
-          </div>
-
-          <div className="payment__total">
-            <span>최종 청구 금액</span>
-            <strong>₩{amount.toLocaleString()}</strong>
-          </div>
-
-          {error && (
-            <p className="payment__notice" style={{ color: "#d33" }}>
-              {error}
-            </p>
-          )}
-
-          <button
-            type="button"
-            className="payment__cta"
-            onClick={handlePay}
-            disabled={paying}
-          >
-            {paying
-              ? "결제 처리 중..."
-              : `₩${amount.toLocaleString()} 안전 결제하기`}
-          </button>
-          <button
-            type="button"
-            className="payment__cancel"
-            onClick={() => navigate("/mypage")}
-          >
-            결제 취소
-          </button>
-        </aside>
-      </div>
+      </PageContainer>
     </div>
   );
 }

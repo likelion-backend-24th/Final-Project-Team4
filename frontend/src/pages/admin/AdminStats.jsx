@@ -1,3 +1,4 @@
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getAdminExpoList } from '../../api/expo';
@@ -9,17 +10,20 @@ import DonutChart from '../../components/DonutChart';
 import RefundLogList from '../../components/RefundLogList';
 import { WEEKDAYS, buildCalendar, offsetIsoDate, shiftIsoDate, toIsoDate } from '../../utils/calendar';
 import { EMPTY_DAY, mergeDaily, ratio, won } from '../../utils/statsFormat';
-import './AdminApplications.css';
-import './AdminRevenueStats.css';
-import './AdminDashboard.css';
-import './AdminStats.css';
+import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
+import { EmptyState, PageHeader } from '@/components/layout/Page';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 // 전일 대비 증감 문구와 색(up, down)
 const vsPrev = (cur, prev, unit) => {
   const diff = cur - prev;
   return {
     text: `전일 대비 ${diff >= 0 ? '+' : '-'}${Math.abs(diff).toLocaleString()}${unit}`,
-    tone: diff === 0 ? '' : diff > 0 ? 'up' : 'down',
+    tone: diff === 0 ? '' : diff > 0 ? 'text-emerald-600' : 'text-red-600',
   };
 };
 
@@ -115,179 +119,216 @@ function AdminStats() {
   }));
 
   return (
-    <div className="admin-applications">
-      <section className="admin-applications__hero">
-        <p className="admin-applications__eyebrow">EXHIBITOR MANAGEMENT PORTAL</p>
-        <h1>통계</h1>
-        <p>박람회 입장, 매출, 방문자 등의 상세 통계를 확인할 수 있습니다.</p>
-      </section>
+    <AdminSidebarLayout breadcrumb="통계">
+      <PageHeader title="통계" description="박람회 입장, 매출, 방문자 등의 상세 통계를 확인할 수 있습니다." />
 
-      <section className="admin-revenue-stats__filters">
-        <select value={expoId} onChange={(e) => setParams({ expoId: e.target.value, month })}>
-          {expos.map((expo) => (
-            <option key={expo.expoId} value={expo.expoId}>{expo.title}</option>
-          ))}
-        </select>
-        <button type="button" onClick={() => moveMonth(-1)} aria-label="이전 달">&lt;</button>
-        <span className="admin-stats__month">{year}년 {mon}월</span>
-        <button type="button" onClick={() => moveMonth(1)} aria-label="다음 달">&gt;</button>
-        <button
-          type="button"
-          className="admin-stats__today"
-          onClick={() => setParams({ expoId, month: todayIso.slice(0, 7), date: todayIso })}
-        >
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <Select value={expoId} onValueChange={(v) => setParams({ expoId: v, month })}>
+          <SelectTrigger className="h-10 w-full sm:w-72">
+            <SelectValue placeholder="박람회 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {expos.map((expo) => (
+              <SelectItem key={expo.expoId} value={String(expo.expoId)}>{expo.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button type="button" variant="outline" size="icon" aria-label="이전 달" onClick={() => moveMonth(-1)}>
+          <ChevronLeft />
+        </Button>
+        <span className="min-w-28 text-center text-sm font-semibold">{year}년 {mon}월</span>
+        <Button type="button" variant="outline" size="icon" aria-label="다음 달" onClick={() => moveMonth(1)}>
+          <ChevronRight />
+        </Button>
+        <Button type="button" variant="outline" onClick={() => setParams({ expoId, month: todayIso.slice(0, 7), date: todayIso })}>
           오늘
-        </button>
-        <Link to="/admin/stats/payments" className="admin-stats__link">결제 내역 표로 보기</Link>
-      </section>
+        </Button>
+        <Link to="/admin/stats/payments" className="ml-auto text-sm text-primary">결제 내역 표로 보기</Link>
+      </div>
 
-      {loadError && <p className="admin-applications__error">{loadError}</p>}
+      {loadError && <EmptyState tone="error" className="my-0">{loadError}</EmptyState>}
 
-      <section className="admin-dashboard__card">
-        <h3>일별 현황</h3>
-        <div className="admin-stats__calendar">
-          {WEEKDAYS.map((w) => (
-            <div key={w} className="admin-stats__dow">{w}</div>
-          ))}
-          {buildCalendar(year, mon - 1).map((d, i) => {
-            if (d === null) return <div key={`blank-${i}`} />;
-            const iso = toIsoDate(year, mon - 1, d);
-            return (
-              <button
-                key={iso}
-                type="button"
-                className={`admin-stats__cell${iso === selected ? ' is-selected' : ''}${iso === todayIso ? ' is-today' : ''}`}
-                disabled={iso > todayIso}
-                onClick={() => setParams({ expoId, month, date: iso })}
-              >
-                <b>{d}</b>
-                <span className="admin-stats__net">입장: {(daily[iso] ?? EMPTY_DAY).visit}</span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="admin-stats__hint">셀의 숫자는 그날 입장(체크인) 인원입니다.</p>
-      </section>
+      <div className="flex flex-col gap-6">
+        <Card>
+          <CardContent>
+            <h3 className="m-0 mb-3 text-sm font-semibold">일별 현황</h3>
+            <div className="grid grid-cols-7 gap-1.5">
+              {WEEKDAYS.map((w) => (
+                <div key={w} className="py-1 text-center text-xs text-muted-foreground">{w}</div>
+              ))}
+              {buildCalendar(year, mon - 1).map((d, i) => {
+                if (d === null) return <div key={`blank-${i}`} />;
+                const iso = toIsoDate(year, mon - 1, d);
+                const isSelected = iso === selected;
+                const isToday = iso === todayIso;
+                const isFuture = iso > todayIso;
+                return (
+                  <button
+                    key={iso}
+                    type="button"
+                    disabled={isFuture}
+                    onClick={() => setParams({ expoId, month, date: iso })}
+                    className={cn(
+                      'flex min-h-16 flex-col items-start gap-0.5 rounded-lg border border-border bg-background p-1.5 text-left text-xs text-muted-foreground',
+                      !isFuture && 'cursor-pointer hover:border-muted-foreground/40',
+                      isFuture && 'cursor-default text-muted-foreground/40',
+                      isToday && 'border-primary',
+                      isSelected && 'border-2 border-primary bg-primary/5'
+                    )}
+                  >
+                    <b className={cn('text-xs text-foreground', isFuture && 'text-muted-foreground/40')}>{d}</b>
+                    <span className="text-xs font-semibold text-foreground">입장: {(daily[iso] ?? EMPTY_DAY).visit}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2.5 text-xs text-muted-foreground">셀의 숫자는 그날 입장(체크인) 인원입니다.</p>
+          </CardContent>
+        </Card>
 
-      {selected && (
-        <>
-          <section className="admin-applications__stats admin-stats__summary">
-            <div className="admin-stat-card">
-              <p>총 입장 인원</p>
-              <strong>{stat.visit.toLocaleString()}명</strong>
-              <span className={`admin-dashboard__sub is-${visitCompare.tone}`}>{visitCompare.text}</span>
-            </div>
-            <div className="admin-stat-card">
-              <p>무료 입장권</p>
-              <strong>{stat.free.toLocaleString()}명</strong>
-              <span className="admin-dashboard__sub">{ratio(stat.free, stat.visit)}%</span>
-            </div>
-            <div className="admin-stat-card">
-              <p>유료 입장권</p>
-              <strong>{stat.paid.toLocaleString()}명</strong>
-              <span className="admin-dashboard__sub">{ratio(stat.paid, stat.visit)}%</span>
-            </div>
-            <div className="admin-stat-card">
-              <p>취소표</p>
-              <strong className="is-rejected">{stat.cancel}장</strong>
-              <span className="admin-dashboard__sub">환불 금액 {won(stat.refund)}</span>
-            </div>
-            <div className="admin-stat-card">
-              <p>해당일 순매출</p>
-              <strong>{won(stat.net)}</strong>
-              <span className={`admin-dashboard__sub is-${netCompare.tone}`}>{netCompare.text}</span>
-            </div>
-          </section>
-
-          <div className="admin-dashboard__grid admin-dashboard__grid--wide-right">
-            <section className="admin-dashboard__card">
-              <h3>입장권 유형별 비율</h3>
-              <div className="admin-dashboard__chart">
-                <DonutChart
-                  centerLabel="총 입장 인원"
-                  items={[
-                    { label: '무료 입장권', value: stat.free, color: '#bfdbfe' },
-                    { label: '유료 입장권', value: stat.paid, color: '#2f6bff' },
-                  ]}
-                />
-              </div>
+        {selected && (
+          <>
+            <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <Card>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">총 입장 인원</p>
+                  <strong className="mt-1 block text-2xl font-extrabold">{stat.visit.toLocaleString()}명</strong>
+                  <span className={cn('text-xs', visitCompare.tone)}>{visitCompare.text}</span>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">무료 입장권</p>
+                  <strong className="mt-1 block text-2xl font-extrabold">{stat.free.toLocaleString()}명</strong>
+                  <span className="text-xs text-muted-foreground">{ratio(stat.free, stat.visit)}%</span>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">유료 입장권</p>
+                  <strong className="mt-1 block text-2xl font-extrabold">{stat.paid.toLocaleString()}명</strong>
+                  <span className="text-xs text-muted-foreground">{ratio(stat.paid, stat.visit)}%</span>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">취소표</p>
+                  <strong className="mt-1 block text-2xl font-extrabold text-red-600">{stat.cancel}장</strong>
+                  <span className="text-xs text-muted-foreground">환불 금액 {won(stat.refund)}</span>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <p className="m-0 text-xs text-muted-foreground">해당일 순매출</p>
+                  <strong className="mt-1 block text-2xl font-extrabold">{won(stat.net)}</strong>
+                  <span className={cn('text-xs', netCompare.tone)}>{netCompare.text}</span>
+                </CardContent>
+              </Card>
             </section>
 
-            <section className="admin-dashboard__card">
-              <h3>
-                시간대별 입장 인원 ({selected})
-                <span className="admin-stats__toggle">
-                  {HOUR_MODES.map((m) => (
-                    <button
-                      key={m.key}
-                      type="button"
-                      className={hourMode === m.key ? 'is-active' : ''}
-                      onClick={() => setHourMode(m.key)}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </span>
-              </h3>
-              <div className="admin-dashboard__chart">
-                <BarChart items={hourItems} />
-              </div>
-            </section>
-          </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_2fr]">
+              <Card>
+                <CardContent>
+                  <h3 className="m-0 mb-3 text-sm font-semibold">입장권 유형별 비율</h3>
+                  <div className="flex min-h-40 flex-col justify-center">
+                    <DonutChart
+                      centerLabel="총 입장 인원"
+                      items={[
+                        { label: '무료 입장권', value: stat.free, color: '#bfdbfe' },
+                        { label: '유료 입장권', value: stat.paid, color: '#2f6bff' },
+                      ]}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
 
-          <div className="admin-dashboard__grid admin-dashboard__grid--three">
-            <section className="admin-dashboard__card">
-              <h3>입장권 상세</h3>
-              <table className="admin-applications__table">
-                <thead>
-                  <tr>
-                    <th>구분</th>
-                    <th>입장</th>
-                    <th>비율</th>
-                    <th>매출액</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>무료</td>
-                    <td>{stat.free}명</td>
-                    <td>{ratio(stat.free, stat.visit)}%</td>
-                    <td>0원</td>
-                  </tr>
-                  <tr>
-                    <td>유료</td>
-                    <td>{stat.paid}명</td>
-                    <td>{ratio(stat.paid, stat.visit)}%</td>
-                    <td>{won(ticketRevenue)}</td>
-                  </tr>
-                  <tr>
-                    <td className="is-strong">합계</td>
-                    <td className="is-strong">{stat.visit}명</td>
-                    <td className="is-strong">{stat.visit === 0 ? 0 : 100}%</td>
-                    <td className="is-strong">{won(ticketRevenue)}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p className="admin-stats__hint">
-                입장 인원은 체크인 수, 매출액은 그날 결제된 당일 입장권 금액입니다.
-              </p>
-            </section>
+              <Card>
+                <CardContent>
+                  <h3 className="m-0 mb-3 flex flex-wrap items-center justify-between gap-2 text-sm font-semibold">
+                    시간대별 입장 인원 ({selected})
+                    <span className="inline-flex gap-1">
+                      {HOUR_MODES.map((m) => (
+                        <button
+                          key={m.key}
+                          type="button"
+                          onClick={() => setHourMode(m.key)}
+                          className={cn(
+                            'rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground',
+                            hourMode === m.key && 'border-primary bg-primary/10 text-primary'
+                          )}
+                        >
+                          {m.label}
+                        </button>
+                      ))}
+                    </span>
+                  </h3>
+                  <div className="flex min-h-40 flex-col justify-center">
+                    <BarChart items={hourItems} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-            <section className="admin-dashboard__card">
-              <h3>입장 현황 ({selected})</h3>
-              <CheckInLogList logs={logs} />
-              <p className="admin-stats__hint">최근 입장 20건까지 노출됩니다.</p>
-            </section>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <Card>
+                <CardContent>
+                  <h3 className="m-0 mb-3 text-sm font-semibold">입장권 상세</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>구분</TableHead>
+                        <TableHead>입장</TableHead>
+                        <TableHead>비율</TableHead>
+                        <TableHead>매출액</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>무료</TableCell>
+                        <TableCell>{stat.free}명</TableCell>
+                        <TableCell>{ratio(stat.free, stat.visit)}%</TableCell>
+                        <TableCell>0원</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>유료</TableCell>
+                        <TableCell>{stat.paid}명</TableCell>
+                        <TableCell>{ratio(stat.paid, stat.visit)}%</TableCell>
+                        <TableCell>{won(ticketRevenue)}</TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell className="font-semibold">합계</TableCell>
+                        <TableCell className="font-semibold">{stat.visit}명</TableCell>
+                        <TableCell className="font-semibold">{stat.visit === 0 ? 0 : 100}%</TableCell>
+                        <TableCell className="font-semibold">{won(ticketRevenue)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                  <p className="mt-2.5 text-xs text-muted-foreground">
+                    입장 인원은 체크인 수, 매출액은 그날 결제된 당일 입장권 금액입니다.
+                  </p>
+                </CardContent>
+              </Card>
 
-            <section className="admin-dashboard__card">
-              <h3>취소표 내역 ({selected})</h3>
-              <RefundLogList logs={refundLogs} />
-              <p className="admin-stats__hint">최근 환불 20건까지 노출됩니다.</p>
-            </section>
-          </div>
-        </>
-      )}
-    </div>
+              <Card>
+                <CardContent>
+                  <h3 className="m-0 mb-3 text-sm font-semibold">입장 현황 ({selected})</h3>
+                  <CheckInLogList logs={logs} />
+                  <p className="mt-2.5 text-xs text-muted-foreground">최근 입장 20건까지 노출됩니다.</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent>
+                  <h3 className="m-0 mb-3 text-sm font-semibold">취소표 내역 ({selected})</h3>
+                  <RefundLogList logs={refundLogs} />
+                  <p className="mt-2.5 text-xs text-muted-foreground">최근 환불 20건까지 노출됩니다.</p>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+      </div>
+    </AdminSidebarLayout>
   );
 }
 

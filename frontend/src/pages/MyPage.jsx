@@ -1,4 +1,6 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { ChartColumn, ChevronDown, ChevronRight, ChevronUp, CreditCard, FileText, Settings, Undo2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { getMyBoothApplications } from "../api/expo";
 import { getMyPayments, refundBoothPayment } from "../api/payment";
@@ -7,23 +9,30 @@ import { clearAuth, notifyProfileUpdated } from "../api/auth";
 import { isFoodBooth } from "../utils/boothType";
 import { formatPhoneNumber } from "../utils/phone";
 import { REFUND_REASONS } from "../mock/customerData";
-import "../components/customer/Modal.css";
-import "../components/customer/EntryFlowModal.css";
-import "./MyPage.css";
+import { SelectField, TextField } from "../components/form/fields";
+import { AppDialog, InfoList } from "@/components/layout/AppDialog";
+import { EmptyState, PageContainer } from "@/components/layout/Page";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const STATUS_BADGE = {
-  심사중: "badge--pending",
-  "신청 승인": "badge--approved",
-  반려: "badge--rejected",
-  임시저장: "badge--pending",
-  취소됨: "badge--rejected",
-  미결제: "badge--unpaid",
-  결제완료: "badge--paid",
-  결제실패: "badge--rejected",
-  결제중: "badge--pending",
-  "참가 예정": "badge--pending",
-  참가중: "badge--approved",
-  "참가 완료": "badge--done",
+const STATUS_TONE = {
+  심사중: "bg-amber-100 text-amber-700",
+  "신청 승인": "bg-blue-100 text-blue-700",
+  반려: "bg-red-100 text-red-700",
+  임시저장: "bg-amber-100 text-amber-700",
+  취소됨: "bg-red-100 text-red-700",
+  미결제: "bg-slate-100 text-slate-600",
+  결제완료: "bg-emerald-100 text-emerald-700",
+  결제실패: "bg-red-100 text-red-700",
+  결제중: "bg-amber-100 text-amber-700",
+  "참가 확정": "bg-emerald-100 text-emerald-700",
+  "참가 예정": "bg-amber-100 text-amber-700",
+  참가중: "bg-emerald-100 text-emerald-700",
+  "참가 완료": "bg-slate-100 text-slate-600",
 };
 
 const STATUS_LABEL = {
@@ -138,8 +147,8 @@ function MyPage() {
 
   // 부스 참가 취소(전액 환불) 모달 - "참가 확정" 상태 그룹에서만 열림
   const [refundTarget, setRefundTarget] = useState(null); // { groupId, expoTitle, amount } | null
-  const [refundReason, setRefundReason] = useState(REFUND_REASONS[0].value);
-  const [refundCustomReason, setRefundCustomReason] = useState("");
+  const refundForm = useForm({ defaultValues: { reason: REFUND_REASONS[0].value, customReason: "" } });
+  const refundReason = refundForm.watch("reason");
   const [refunding, setRefunding] = useState(false);
   const [refundError, setRefundError] = useState(null);
 
@@ -152,21 +161,20 @@ function MyPage() {
         .filter((a) => a.status === "CONFIRMED")
         .reduce((sum, a) => sum + a.fee, 0),
     });
-    setRefundReason(REFUND_REASONS[0].value);
-    setRefundCustomReason("");
+    refundForm.reset({ reason: REFUND_REASONS[0].value, customReason: "" });
     setRefundError(null);
   };
 
-  const handleRefund = async () => {
-    const isOther = refundReason === "기타";
-    if (isOther && !refundCustomReason.trim()) {
+  const handleRefund = async (values) => {
+    const isOther = values.reason === "기타";
+    if (isOther && !values.customReason.trim()) {
       setRefundError("취소 사유를 입력해 주세요.");
       return;
     }
     setRefunding(true);
     setRefundError(null);
     try {
-      const reason = isOther ? refundCustomReason.trim() : refundReason;
+      const reason = isOther ? values.customReason.trim() : values.reason;
       await refundBoothPayment({ bookingId: refundTarget.groupId, reason });
       setRefundTarget(null);
       await Promise.all([loadApplications(), loadPayments()]);
@@ -256,12 +264,16 @@ function MyPage() {
   const [withdrawError, setWithdrawError] = useState(null);
 
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const editForm = useForm({
+    defaultValues: {
+      managerName: "", contact: "", companyName: "", representativeName: "", industry: "", companyContact: "", companyAddress: "",
+    },
+  });
 
   const openEditModal = () => {
-    setEditForm({
+    editForm.reset({
       managerName: profile.managerName ?? "",
       contact: profile.contact ?? "",
       companyName: profile.companyName ?? "",
@@ -274,18 +286,11 @@ function MyPage() {
     setShowEditModal(true);
   };
 
-  const PHONE_FIELDS = ["contact", "companyContact"];
-  const handleEditField = (field) => (e) =>
-    setEditForm((prev) => ({
-      ...prev,
-      [field]: PHONE_FIELDS.includes(field) ? formatPhoneNumber(e.target.value) : e.target.value,
-    }));
-
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (values) => {
     setSaving(true);
     setSaveError(null);
     try {
-      const updated = await updateExhibitorProfile(editForm);
+      const updated = await updateExhibitorProfile(values);
       setProfile(updated);
       notifyProfileUpdated();
       setShowEditModal(false);
@@ -319,550 +324,399 @@ function MyPage() {
   };
 
   return (
-    <div className="mypage">
-      <div className="mypage__main">
-        <section className="mypage__card">
-          <div className="mypage__card-header">
-            <h2>업체 및 담당자 정보</h2>
-            <button type="button" className="mypage__edit-btn" onClick={openEditModal} disabled={!profile}>
-              정보 수정
-            </button>
-          </div>
-          <div className="mypage__divider" />
-          {profileError && <p className="mypage__cell-muted">{profileError}</p>}
-          {!profile && !profileError && (
-            <p className="mypage__cell-muted">불러오는 중...</p>
-          )}
+    <PageContainer className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle className="text-lg">업체 및 담당자 정보</CardTitle>
+          <Button type="button" variant="outline" size="sm" onClick={openEditModal} disabled={!profile}>
+            정보 수정
+          </Button>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {profileError && <EmptyState tone="error">{profileError}</EmptyState>}
+          {!profile && !profileError && <EmptyState>불러오는 중...</EmptyState>}
           {profile && (
             <>
-              <h3 className="mypage__profile-subtitle">회원정보 (담당자)</h3>
-              <div className="mypage__profile-grid">
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">담당자명</span>
-                    <span className="mypage__profile-value">
-                      {profile.managerName ?? "-"}
-                    </span>
-                  </div>
-                </div>
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">이메일 주소</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.email ?? "-"}
-                    </span>
-                  </div>
-                </div>
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">휴대폰 번호</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.contact ? formatPhoneNumber(profile.contact) : "-"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mypage__divider" />
-
-              <h3 className="mypage__profile-subtitle">업체정보</h3>
-              <div className="mypage__profile-grid">
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">업체명</span>
-                    <span className="mypage__profile-value">
-                      {profile.companyName ?? "-"}
-                    </span>
-                  </div>
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">사업자등록번호</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.businessNo ?? "-"}
-                    </span>
-                  </div>
-                </div>
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">대표자명</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.representativeName ?? "-"}
-                    </span>
-                  </div>
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">업종</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.industry ?? "-"}
-                    </span>
-                  </div>
-                </div>
-                <div className="mypage__profile-col">
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">대표 전화번호</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.companyContact ? formatPhoneNumber(profile.companyContact) : "-"}
-                    </span>
-                  </div>
-                  <div className="mypage__profile-row">
-                    <span className="mypage__profile-label">업체주소</span>
-                    <span className="mypage__profile-value mypage__profile-value--regular">
-                      {profile.companyAddress ?? "-"}
-                    </span>
-                  </div>
-                </div>
-              </div>
+              <ProfileSection
+                title="회원정보 (담당자)"
+                rows={[
+                  ['담당자명', profile.managerName ?? '-'],
+                  ['이메일 주소', profile.email ?? '-'],
+                  ['휴대폰 번호', profile.contact ? formatPhoneNumber(profile.contact) : '-'],
+                ]}
+              />
+              <Separator />
+              <ProfileSection
+                title="업체정보"
+                rows={[
+                  ['업체명', profile.companyName ?? '-'],
+                  ['사업자등록번호', profile.businessNo ?? '-'],
+                  ['대표자명', profile.representativeName ?? '-'],
+                  ['업종', profile.industry ?? '-'],
+                  ['대표 전화번호', profile.companyContact ? formatPhoneNumber(profile.companyContact) : '-'],
+                  ['업체주소', profile.companyAddress ?? '-'],
+                ]}
+              />
             </>
           )}
-          <button
-            type="button"
-            className="mypage__withdraw"
-            onClick={() => {
-              setWithdrawError(null);
-              setShowWithdrawModal(true);
-            }}
-          >
-            회원 탈퇴
-          </button>
-        </section>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={() => {
+                setWithdrawError(null);
+                setShowWithdrawModal(true);
+              }}
+            >
+              회원 탈퇴
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
-                <section className="mypage__card">
-          <h2>부스 참가 신청 현황</h2>
-          {loadError && <p className="mypage__cell-muted">{loadError}</p>}
-          {applicationGroups.length === 0 && !loadError && (
-            <p className="mypage__cell-muted">신청 내역이 없습니다.</p>
-          )}
-          <div className="mypage__group-list">
-            {applicationGroups.map((group) => {
-              const isOpen = openId === group.groupId;
-              const totalCount = group.applications.length;
-              const pendingCount = group.applications.filter((a) => a.status === "SUBMITTED").length;
-              const reviewComplete = pendingCount === 0;
-              const payableApps = group.applications.filter((a) => a.status === "PAYMENT_PENDING");
-              const payableTotal = payableApps.reduce((sum, a) => sum + a.fee, 0);
-              const confirmedApps = group.applications.filter((a) => a.status === "CONFIRMED");
-              const rejectedApps = group.applications.filter((a) => a.status === "REJECTED" && a.rejectReason);
-              const assemblyApps = group.applications.filter((a) => !isFoodBooth(a.boothType));
-              const foodApps = group.applications.filter((a) => isFoodBooth(a.boothType));
-              // 부스 관리 화면은 차량 전시용이라 확정된 조립 부스가 있을 때만 바로가기를 보여줌 (먹거리 부스만 있으면 숨김)
-              const manageApp = confirmedApps.find((a) => !isFoodBooth(a.boothType));
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">부스 참가 신청 현황</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {loadError && <EmptyState tone="error">{loadError}</EmptyState>}
+          {applicationGroups.length === 0 && !loadError && <EmptyState>신청 내역이 없습니다.</EmptyState>}
+          {applicationGroups.map((group) => {
+            const isOpen = openId === group.groupId;
+            const totalCount = group.applications.length;
+            const pendingCount = group.applications.filter((a) => a.status === 'SUBMITTED').length;
+            const reviewComplete = pendingCount === 0;
+            const payableApps = group.applications.filter((a) => a.status === 'PAYMENT_PENDING');
+            const payableTotal = payableApps.reduce((sum, a) => sum + a.fee, 0);
+            const confirmedApps = group.applications.filter((a) => a.status === 'CONFIRMED');
+            const rejectedApps = group.applications.filter((a) => a.status === 'REJECTED' && a.rejectReason);
+            const assemblyApps = group.applications.filter((a) => !isFoodBooth(a.boothType));
+            const foodApps = group.applications.filter((a) => isFoodBooth(a.boothType));
+            // 부스 관리 화면은 차량 전시용이라 확정된 조립 부스가 있을 때만 바로가기를 보여줌 (먹거리 부스만 있으면 숨김)
+            const manageApp = confirmedApps.find((a) => !isFoodBooth(a.boothType));
 
-              const boothSection = (label, apps) =>
-                apps.length > 0 && (
-                  <div className="mypage__booth-section" key={label}>
-                    <span className="mypage__booth-section-label">{label}</span>
-                    <div className="mypage__booth-chip-row">
-                      {apps.map((app) => (
-                        <span key={app.applicationId} className="mypage__booth-chip">
-                          {app.boothNo}
-                          <span className={`mypage__badge ${STATUS_BADGE[STATUS_LABEL[app.status]] ?? ""}`}>
-                            {STATUS_LABEL[app.status] ?? app.status}
-                          </span>
-                          {app.status === "CONFIRMED" && (
-                            <button
-                              type="button"
-                              className="mypage__booth-chip-insights"
-                              title="방문 통계·후기 보기"
-                              onClick={() => navigate(`/mypage/booths/${app.boothId}/insights`)}
-                            >
-                              📊
-                            </button>
-                          )}
-                        </span>
-                      ))}
-                    </div>
+            const boothSection = (label, apps) =>
+              apps.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2" key={label}>
+                  <span className="w-16 shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {apps.map((app) => (
+                      <span key={app.applicationId} className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs">
+                        {app.boothNo}
+                        <StatusBadge status={STATUS_LABEL[app.status] ?? app.status} />
+                      </span>
+                    ))}
                   </div>
-                );
-
-              return (
-                <div className="mypage__group-card" key={group.groupId}>
-                  <div className="mypage__group-row">
-                    <div className="mypage__group-main">
-                      <div className="mypage__group-title-row">
-                        <span className="mypage__cell-strong">{group.expoTitle}</span>
-                        <span className="mypage__group-date">{fmtDate(group.createdAt)} 신청</span>
-                        <span className={`mypage__status-dot ${reviewComplete ? "is-complete" : "is-pending"}`}>
-                          {reviewComplete ? "심사 완료" : `심사 중 (${totalCount - pendingCount}/${totalCount} 완료)`}
-                        </span>
-                      </div>
-
-                      {boothSection("조립 부스", assemblyApps)}
-                      {boothSection("먹거리 부스", foodApps)}
-                    </div>
-
-                    <div className="mypage__group-side">
-                      {payableApps.length > 0 && reviewComplete && (
-                        <button
-                          type="button"
-                          className="mypage__action-btn"
-                          onClick={() =>
-                            navigate(`/payment/${group.groupId}`, {
-                              state: { amount: payableTotal, expoTitle: group.expoTitle },
-                            })
-                          }
-                        >
-                          <span className="mypage__action-btn-label">
-                            <span aria-hidden="true">💳</span>
-                            결제하기 ({payableApps.length}개 부스 · {payableTotal.toLocaleString()}원)
-                          </span>
-                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
-                        </button>
-                      )}
-                      {payableApps.length === 0 && manageApp && (
-                        <button
-                          type="button"
-                          className="mypage__action-btn"
-                          onClick={() => navigate(`/mypage/booths/${manageApp.boothId}`)}
-                        >
-                          <span className="mypage__action-btn-label">
-                            <span aria-hidden="true">⚙️</span>
-                            부스 관리 바로가기
-                          </span>
-                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
-                        </button>
-                      )}
-                      {payableApps.length === 0 && confirmedApps.length > 0 && (
-                        <button
-                          type="button"
-                          className="mypage__action-btn mypage__action-btn--secondary"
-                          onClick={() => openRefundModal(group)}
-                        >
-                          <span className="mypage__action-btn-label">
-                            <span aria-hidden="true">↩️</span>
-                            부스 참가 취소(환불)
-                          </span>
-                          <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
-                        </button>
-                      )}
-                      {payableApps.length > 0 && !reviewComplete && (
-                        <button type="button" className="mypage__action-btn mypage__action-btn--disabled" disabled>
-                          <span className="mypage__action-btn-label">
-                            <span aria-hidden="true">💳</span>
-                            결제 대기 중
-                          </span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="mypage__action-btn mypage__action-btn--secondary"
-                        onClick={() => setOpenId(isOpen ? null : group.groupId)}
-                      >
-                        <span className="mypage__action-btn-label">
-                          <span aria-hidden="true">📄</span>
-                          {isOpen ? "접기" : "신청 상세 보기"}
-                        </span>
-                        <span className="mypage__action-btn-arrow" aria-hidden="true">›</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {isOpen && (
-                    <dl className="mypage__detail">
-                      <dt>전시 품목</dt>
-                      <dd>{group.exhibitionItem}</dd>
-                      <dt>전시 컨셉 설명</dt>
-                      <dd>{group.conceptDescription}</dd>
-                      <dt>부대시설 요청</dt>
-                      <dd>{facilityLabel(group)}</dd>
-                      <dt>추가 요청 사항</dt>
-                      <dd>{group.additionalRequest || "-"}</dd>
-                      {rejectedApps.length > 0 && (
-                        <>
-                          <dt>반려된 부스</dt>
-                          <dd>
-                            {rejectedApps.map((app) => `${app.boothNo}: ${app.rejectReason}`).join(" / ")}
-                          </dd>
-                        </>
-                      )}
-                    </dl>
-                  )}
                 </div>
               );
-            })}
-          </div>
-        </section>
 
-        <section className="mypage__card">
-          <h2>참가비 결제 내역</h2>
-          {paymentsError && <p className="mypage__cell-muted">{paymentsError}</p>}
-          <div className="mypage__table-scroll">
-            <table className="mypage__table">
-              <thead>
-                <tr>
-                  <th className="mypage__col-flex">박람회명</th>
-                  <th className="mypage__col-150">청구 금액</th>
-                  <th className="mypage__col-120">결제 상태</th>
-                  <th className="mypage__col-140">결제 일시</th>
-                  <th className="mypage__col-120 mypage__col-right">영수증</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paymentHistory.length === 0 && !paymentsError && (
-                  <tr>
-                    <td colSpan={5} className="mypage__cell-muted">
-                      결제 내역이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {paymentHistory.map((p) => (
-                  <tr key={p.id}>
-                    <td className="mypage__cell-strong">{p.expoTitle}</td>
-                    <td className="mypage__cell-strong">
-                      ₩{p.amount.toLocaleString()}
-                    </td>
-                    <td>
-                      <span
-                        className={`mypage__badge ${STATUS_BADGE[p.status] ?? ""}`}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                    <td className={p.paidAt ? "" : "mypage__cell-muted"}>
-                      {p.paidAt ?? "-"}
-                    </td>
-                    <td className="mypage__col-right">
-                      {p.status === "결제완료" ? (
-                        <button className="mypage__link">출력하기</button>
-                      ) : (
-                        <span className="mypage__cell-muted">발급 불가</span>
+            return (
+              <div className="rounded-xl border" key={group.groupId}>
+                <div className="flex flex-wrap items-start justify-between gap-4 p-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold">{group.expoTitle}</span>
+                      <span className="text-xs text-muted-foreground">{fmtDate(group.createdAt)} 신청</span>
+                      <Badge variant="secondary" className={reviewComplete ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}>
+                        {reviewComplete ? '심사 완료' : `심사 중 (${totalCount - pendingCount}/${totalCount} 완료)`}
+                      </Badge>
+                      {confirmedApps.length > 0 && (
+                        <button
+                          type="button"
+                          className="flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs font-medium text-primary"
+                          title="방문 통계·후기 보기 (참가 확정된 부스 전체 합산)"
+                          onClick={() => navigate(`/mypage/booths/${confirmedApps[0].boothId}/insights`)}
+                        >
+                          <ChartColumn className="size-3.5" /> 통계
+                        </button>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                    </div>
+                    {boothSection('조립 부스', assemblyApps)}
+                    {boothSection('먹거리 부스', foodApps)}
+                  </div>
 
-        <section className="mypage__card">
-          <h2>부스 참가 이력</h2>
-          <div className="mypage__table-scroll">
-            <table className="mypage__table">
-              <thead>
-                <tr>
-                  <th className="mypage__col-flex">박람회명</th>
-                  <th className="mypage__col-150">전시 장소</th>
-                  <th className="mypage__col-140">개최 기간</th>
-                  <th className="mypage__col-120 mypage__col-right">상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {participationHistory.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="mypage__cell-muted">
-                      참가 이력이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {participationHistory.map((h) => (
-                  <tr key={h.id}>
-                    <td className="mypage__cell-strong">{h.expoTitle}</td>
-                    <td>{h.venue}</td>
-                    <td>{h.period}</td>
-                    <td className="mypage__col-right">
-                      <span
-                        className={`mypage__badge ${STATUS_BADGE[h.status] ?? ""}`}
+                  <div className="flex w-full flex-col gap-1.5 sm:w-64">
+                    {payableApps.length > 0 && reviewComplete && (
+                      <Button
+                        type="button"
+                        className="justify-between"
+                        onClick={() =>
+                          navigate(`/payment/${group.groupId}`, {
+                            state: { amount: payableTotal, expoTitle: group.expoTitle },
+                          })
+                        }
                       >
-                        {h.status}
+                        <span className="flex items-center gap-2">
+                          <CreditCard />
+                          결제하기 ({payableApps.length}개 부스 · {payableTotal.toLocaleString()}원)
+                        </span>
+                        <ChevronRight />
+                      </Button>
+                    )}
+                    {payableApps.length === 0 && manageApp && (
+                      <Button type="button" className="justify-between" onClick={() => navigate(`/mypage/booths/${manageApp.boothId}`)}>
+                        <span className="flex items-center gap-2">
+                          <Settings />
+                          부스 관리 바로가기
+                        </span>
+                        <ChevronRight />
+                      </Button>
+                    )}
+                    {payableApps.length === 0 && confirmedApps.length > 0 && (
+                      <Button type="button" variant="outline" className="justify-between" onClick={() => openRefundModal(group)}>
+                        <span className="flex items-center gap-2">
+                          <Undo2 />
+                          부스 참가 취소(환불)
+                        </span>
+                        <ChevronRight />
+                      </Button>
+                    )}
+                    {payableApps.length > 0 && !reviewComplete && (
+                      <Button type="button" variant="outline" disabled className="justify-start">
+                        <CreditCard />
+                        결제 대기 중
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="justify-between"
+                      onClick={() => setOpenId(isOpen ? null : group.groupId)}
+                    >
+                      <span className="flex items-center gap-2">
+                        <FileText />
+                        {isOpen ? '접기' : '신청 상세 보기'}
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+                      {isOpen ? <ChevronUp /> : <ChevronDown />}
+                    </Button>
+                  </div>
+                </div>
 
-      <section className="mypage__banner">
-        <p className="mypage__banner-eyebrow">MOBILITY EXPO EXHIBITOR PORTAL</p>
-        <h2 className="mypage__banner-title">
-          다음 박람회 참가도 지금 준비해보세요.
-        </h2>
-        <p className="mypage__banner-desc">
-          현재 모집 중인 박람회 목록에서 새로운 부스 참가 신청을 이어서 진행할
-          수 있습니다.
+                {isOpen && (
+                  <dl className="m-0 grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 border-t bg-muted/30 p-4 text-sm">
+                    <dt className="text-muted-foreground">전시 품목</dt>
+                    <dd className="m-0">{group.exhibitionItem}</dd>
+                    <dt className="text-muted-foreground">전시 컨셉 설명</dt>
+                    <dd className="m-0">{group.conceptDescription}</dd>
+                    <dt className="text-muted-foreground">부대시설 요청</dt>
+                    <dd className="m-0">{facilityLabel(group)}</dd>
+                    <dt className="text-muted-foreground">추가 요청 사항</dt>
+                    <dd className="m-0">{group.additionalRequest || '-'}</dd>
+                    {rejectedApps.length > 0 && (
+                      <>
+                        <dt className="text-muted-foreground">반려된 부스</dt>
+                        <dd className="m-0">{rejectedApps.map((app) => `${app.boothNo}: ${app.rejectReason}`).join(' / ')}</dd>
+                      </>
+                    )}
+                  </dl>
+                )}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">참가비 결제 내역</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {paymentsError && <EmptyState tone="error">{paymentsError}</EmptyState>}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>박람회명</TableHead>
+                <TableHead>청구 금액</TableHead>
+                <TableHead>결제 상태</TableHead>
+                <TableHead>결제 일시</TableHead>
+                <TableHead className="text-right">영수증</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paymentHistory.length === 0 && !paymentsError && (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
+                    결제 내역이 없습니다.
+                  </TableCell>
+                </TableRow>
+              )}
+              {paymentHistory.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.expoTitle}</TableCell>
+                  <TableCell className="font-medium">₩{p.amount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={p.status} />
+                  </TableCell>
+                  <TableCell className={p.paidAt ? '' : 'text-muted-foreground'}>{p.paidAt ?? '-'}</TableCell>
+                  <TableCell className="text-right">
+                    {p.status === '결제완료' ? (
+                      <Button type="button" variant="link" size="sm" className="h-auto p-0">
+                        출력하기
+                      </Button>
+                    ) : (
+                      <span className="text-muted-foreground">발급 불가</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">부스 참가 이력</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>박람회명</TableHead>
+                <TableHead>전시 장소</TableHead>
+                <TableHead>개최 기간</TableHead>
+                <TableHead className="text-right">상태</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {participationHistory.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                    참가 이력이 없습니다.
+                  </TableCell>
+                </TableRow>
+              )}
+              {participationHistory.map((h) => (
+                <TableRow key={h.id}>
+                  <TableCell className="font-medium">{h.expoTitle}</TableCell>
+                  <TableCell>{h.venue}</TableCell>
+                  <TableCell>{h.period}</TableCell>
+                  <TableCell className="text-right">
+                    <StatusBadge status={h.status} />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <section className="rounded-2xl bg-slate-900 px-6 py-8 text-white md:px-10">
+        <p className="m-0 mb-2 text-xs font-semibold tracking-[0.2em] text-sky-400">MOBILITY EXPO EXHIBITOR PORTAL</p>
+        <h2 className="m-0 text-2xl font-bold">다음 박람회 참가도 지금 준비해보세요.</h2>
+        <p className="mt-2 mb-0 text-sm text-slate-300">
+          현재 모집 중인 박람회 목록에서 새로운 부스 참가 신청을 이어서 진행할 수 있습니다.
         </p>
       </section>
 
       {showEditModal && (
-        <div className="c-modal__backdrop" onClick={() => !saving && setShowEditModal(false)}>
-          <div className="c-modal" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setShowEditModal(false)}
-              disabled={saving}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <h2>정보 수정</h2>
-            <div className="ef-field-row">
-              <label className="ef-field">
-                <span>담당자명</span>
-                <input value={editForm.managerName} onChange={handleEditField("managerName")} />
-              </label>
-              <label className="ef-field">
-                <span>휴대폰 번호</span>
-                <input value={editForm.contact} onChange={handleEditField("contact")} />
-              </label>
-            </div>
-            <div className="ef-field-row">
-              <label className="ef-field">
-                <span>업체명</span>
-                <input value={editForm.companyName} onChange={handleEditField("companyName")} />
-              </label>
-              <label className="ef-field">
-                <span>대표자명</span>
-                <input value={editForm.representativeName} onChange={handleEditField("representativeName")} />
-              </label>
-            </div>
-            <div className="ef-field-row">
-              <label className="ef-field">
-                <span>업종</span>
-                <input value={editForm.industry} onChange={handleEditField("industry")} />
-              </label>
-              <label className="ef-field">
-                <span>대표 전화번호</span>
-                <input value={editForm.companyContact} onChange={handleEditField("companyContact")} />
-              </label>
-            </div>
-            <label className="ef-field">
-              <span>업체주소</span>
-              <input value={editForm.companyAddress} onChange={handleEditField("companyAddress")} />
-            </label>
-            {saveError && <p className="c-modal__error">{saveError}</p>}
-            <button type="button" className="c-modal__primary" onClick={handleSaveProfile} disabled={saving}>
-              {saving ? "저장 중..." : "저장"}
-            </button>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              onClick={() => setShowEditModal(false)}
-              disabled={saving}
-            >
-              취소
-            </button>
-          </div>
-        </div>
+        <AppDialog onClose={() => !saving && setShowEditModal(false)} dismissible={!saving} size="md" title="정보 수정">
+          <Form {...editForm}>
+            <form className="flex flex-col gap-4" onSubmit={editForm.handleSubmit(handleSaveProfile)} noValidate>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TextField control={editForm.control} name="managerName" label="담당자명" />
+                <TextField control={editForm.control} name="contact" label="휴대폰 번호" transform={formatPhoneNumber} />
+                <TextField control={editForm.control} name="companyName" label="업체명" />
+                <TextField control={editForm.control} name="representativeName" label="대표자명" />
+                <TextField control={editForm.control} name="industry" label="업종" />
+                <TextField control={editForm.control} name="companyContact" label="대표 전화번호" transform={formatPhoneNumber} />
+              </div>
+              <TextField control={editForm.control} name="companyAddress" label="업체주소" />
+              {saveError && <p className="m-0 text-sm text-destructive">{saveError}</p>}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setShowEditModal(false)} disabled={saving}>
+                  취소
+                </Button>
+                <Button type="submit" disabled={saving}>
+                  {saving ? '저장 중...' : '저장'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AppDialog>
       )}
 
       {refundTarget && (
-        <div className="c-modal__backdrop" onClick={() => !refunding && setRefundTarget(null)}>
-          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setRefundTarget(null)}
-              disabled={refunding}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <h2>부스 참가 취소</h2>
-            <p className="c-modal__desc" style={{ marginBottom: 16 }}>
-              {refundTarget.expoTitle}
-              <br /><br />
-              참가비 전액이 환불되고 <br />배정된 부스 자리가 반납됩니다.
-            </p>
-
-            <dl className="c-modal__info">
-              <div className="c-modal__info-row">
-                <dt>환불 금액</dt>
-                <dd>{refundTarget.amount.toLocaleString()}원</dd>
-              </div>
-            </dl>
-
-            <label className="ef-field">
-              <span>취소 사유 *</span>
-              <select value={refundReason} onChange={(e) => setRefundReason(e.target.value)}>
-                {REFUND_REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {refundReason === "기타" && (
-              <label className="ef-field" style={{ marginTop: 8 }}>
-                <span>사유 입력 *</span>
-                <input
-                  type="text"
-                  value={refundCustomReason}
-                  onChange={(e) => setRefundCustomReason(e.target.value)}
+        <AppDialog
+          onClose={() => !refunding && setRefundTarget(null)}
+          dismissible={!refunding}
+          title="부스 참가 취소"
+          description={`${refundTarget.expoTitle} — 참가비 전액이 환불되고 배정된 부스 자리가 반납됩니다.`}
+        >
+          <InfoList items={[{ label: '환불 금액', value: `${refundTarget.amount.toLocaleString()}원` }]} />
+          <Form {...refundForm}>
+            <form className="flex flex-col gap-4" onSubmit={refundForm.handleSubmit(handleRefund)} noValidate>
+              <SelectField control={refundForm.control} name="reason" label="취소 사유" required options={REFUND_REASONS} />
+              {refundReason === '기타' && (
+                <TextField
+                  control={refundForm.control}
+                  name="customReason"
+                  label="사유 입력"
+                  required
                   placeholder="취소 사유를 입력해 주세요"
                   maxLength={200}
                 />
-              </label>
-            )}
-
-            {refundError && <p className="c-modal__error">{refundError}</p>}
-
-            <button
-              type="button"
-              className="c-modal__primary c-modal__primary--danger"
-              style={{ marginTop: 16 }}
-              onClick={handleRefund}
-              disabled={refunding}
-            >
-              {refunding ? "처리 중..." : "취소 및 환불 신청"}
-            </button>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              onClick={() => setRefundTarget(null)}
-              disabled={refunding}
-            >
-              닫기
-            </button>
-          </div>
-        </div>
+              )}
+              {refundError && <p className="m-0 text-sm text-destructive">{refundError}</p>}
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setRefundTarget(null)} disabled={refunding}>
+                  닫기
+                </Button>
+                <Button type="submit" variant="destructive" disabled={refunding}>
+                  {refunding ? '처리 중...' : '취소 및 환불 신청'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </AppDialog>
       )}
 
       {showWithdrawModal && (
-        <div
-          className="c-modal__backdrop"
-          onClick={() => !withdrawing && setShowWithdrawModal(false)}
+        <AppDialog
+          onClose={() => !withdrawing && setShowWithdrawModal(false)}
+          dismissible={!withdrawing}
+          title="회원 탈퇴"
+          description="탈퇴 시 모든 서비스 이용이 제한되며, 가입하신 이메일로는 다시 가입할 수 없습니다. 정말 탈퇴하시겠습니까?"
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setShowWithdrawModal(false)} disabled={withdrawing}>
+                취소
+              </Button>
+              <Button variant="destructive" onClick={handleWithdraw} disabled={withdrawing}>
+                {withdrawing ? '처리 중...' : '탈퇴하기'}
+              </Button>
+            </>
+          }
         >
-          <div className="c-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="c-modal__close"
-              onClick={() => setShowWithdrawModal(false)}
-              disabled={withdrawing}
-              aria-label="닫기"
-            >
-              ✕
-            </button>
-            <h2>회원 탈퇴</h2>
-            <p className="c-modal__desc">
-              탈퇴 시 모든 서비스 이용이 제한되며,
-              <br />
-              가입하신 이메일로는 다시 가입할 수 없습니다. 
-              <br />
-              정말 탈퇴하시겠습니까?
-            </p>
-            {withdrawError && <p className="c-modal__error">{withdrawError}</p>}
-            <button
-              type="button"
-              className="c-modal__primary c-modal__primary--danger"
-              onClick={handleWithdraw}
-              disabled={withdrawing}
-            >
-              {withdrawing ? "처리 중..." : "탈퇴하기"}
-            </button>
-            <button
-              type="button"
-              className="c-modal__secondary"
-              onClick={() => setShowWithdrawModal(false)}
-              disabled={withdrawing}
-            >
-              취소
-            </button>
-          </div>
-        </div>
+          {withdrawError && <p className="m-0 text-sm text-destructive">{withdrawError}</p>}
+        </AppDialog>
       )}
+    </PageContainer>
+  );
+}
+
+function ProfileSection({ title, rows }) {
+  return (
+    <div>
+      <h3 className="m-0 mb-2 text-sm font-semibold text-muted-foreground">{title}</h3>
+      <dl className="m-0 grid gap-x-8 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="m-0 mt-0.5 text-sm font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  return (
+    <Badge variant="secondary" className={STATUS_TONE[status]}>
+      {status}
+    </Badge>
   );
 }
 

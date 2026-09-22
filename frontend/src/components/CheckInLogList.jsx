@@ -1,3 +1,6 @@
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
 const TICKET_LABEL = { FREE: '무료 입장', PAID: '유료 입장' };
 
 // 입장(체크인) 내역 표. logs: [{ checkedInAt, customerName, ticketType }]
@@ -6,33 +9,33 @@ function CheckInLogList({ logs, limit = 20 }) {
   const rows = logs.slice(0, limit);
 
   return (
-    <table className="admin-applications__table">
-      <thead>
-        <tr>
-          <th>시간</th>
-          <th>이름</th>
-          <th>입장권 유형</th>
-          <th>입장 방법</th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>시간</TableHead>
+          <TableHead>이름</TableHead>
+          <TableHead>입장권 유형</TableHead>
+          <TableHead>입장 방법</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {rows.length === 0 && (
-          <tr><td colSpan={4} style={{ color: '#64748b' }}>입장 기록이 없습니다.</td></tr>
+          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">입장 기록이 없습니다.</TableCell></TableRow>
         )}
         {rows.map((r, i) => (
-          <tr key={i}>
-            <td>{r.checkedInAt.slice(11, 16)}</td>
-            <td>{r.customerName}</td>
-            <td>
-              <span className={`admin-badge ${r.ticketType === 'PAID' ? 'admin-badge--approved' : 'admin-badge--reserved'}`}>
+          <TableRow key={i}>
+            <TableCell>{r.checkedInAt.slice(11, 16)}</TableCell>
+            <TableCell>{r.customerName}</TableCell>
+            <TableCell>
+              <Badge variant="secondary" className={r.ticketType === 'PAID' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>
                 {TICKET_LABEL[r.ticketType] ?? r.ticketType}
-              </span>
-            </td>
-            <td>QR 체크인</td>
-          </tr>
+              </Badge>
+            </TableCell>
+            <TableCell>QR 체크인</TableCell>
+          </TableRow>
         ))}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 

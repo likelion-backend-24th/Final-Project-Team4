@@ -1,3 +1,4 @@
+import { CalendarDays, Check, CircleAlert, Eye, FileText, Info, LogIn, MapPin, QrCode } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as PortOne from '@portone/browser-sdk/v2';
@@ -9,8 +10,16 @@ import { getMyProfile } from '../../api/identity';
 import { payAdmission } from '../../api/payment';
 import { applyVisit, getMyReservations, checkInReservation } from '../../api/reservation';
 import { toAssetUrl } from '../../api/expo';
-import './Modal.css';
-import './EntryFlowModal.css';
+import { AppDialog, InfoList } from '@/components/layout/AppDialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 
 // PortOne 결제 채널 식별용 공개 ID들 (비밀값 아님 - 프론트에 그대로 둬도 되는 값).
 // 실제 카드 검증 비밀키(API Secret)는 절대 여기 두지 않고, 백엔드 환경변수(PORTONE_API_SECRET)로만 관리함.
@@ -25,24 +34,6 @@ const PAY_METHOD_CODE = {
 
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).replace(/-/g, '.') : '');
 
-const IconCalendar = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <rect x="3" y="5" width="18" height="16" rx="2" />
-    <path d="M3 10h18M8 3v4M16 3v4" strokeLinecap="round" />
-  </svg>
-);
-const IconPin = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21z" />
-    <circle cx="12" cy="9.5" r="2.5" />
-  </svg>
-);
-const IconDoc = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-    <path d="M9 12h6M9 16h6" strokeLinecap="round" />
-  </svg>
-);
 
 // 관리자가 아직 행사 소개 문구를 입력하지 않은 박람회용 기본 문구.
 // ExpoDetail.jsx의 "개요" 탭에 있는 문구와 동일한 톤으로 맞춤(제목만 다르게 끼워넣음).
@@ -62,6 +53,22 @@ function todayDateString() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function pickDefaultTicketIndex(tickets) {
+  const today = todayDateString();
+  const isUsable = (t) => t.status !== 'CANCELLED';
+
+  const todayIdx = tickets.findIndex((t) => isUsable(t) && t.visitDate === today);
+  if (todayIdx !== -1) return todayIdx;
+
+  const upcoming = tickets
+    .map((t, i) => ({ t, i }))
+    .filter(({ t }) => isUsable(t))
+    .sort((a, b) => a.t.visitDate.localeCompare(b.t.visitDate));
+  if (upcoming.length > 0) return upcoming[0].i;
+
+  return 0;
 }
 
 // 박람회 기간(startsAt~endsAt)의 날짜 목록 ('YYYY-MM-DD' 배열).
@@ -165,6 +172,7 @@ function EntryFlowModal({ expo, onClose }) {
   const [payError, setPayError] = useState(null);
   const [paidPayment, setPaidPayment] = useState(null);
   const [holderName, setHolderName] = useState(null);
+  const [existingIndex, setExistingIndex] = useState(0);
 
   const freeMode = isFreeReservation(expo);
   const admissionFee = expo.admissionFee ?? 0;
@@ -338,6 +346,7 @@ function EntryFlowModal({ expo, onClose }) {
   const showExistingQr = () => {
     setCheckInError(null);
     setTickets(existingTickets);
+    setExistingIndex(pickDefaultTicketIndex(existingTickets));
     setStep('existing-qr');
   };
 
@@ -358,16 +367,26 @@ function EntryFlowModal({ expo, onClose }) {
     }
   };
 
-  return (
-    <div className="c-modal__backdrop" onClick={onClose}>
-    <div
-      className={`c-modal ef-modal ${step === 'choose' ? 'ef-modal--choose' : ''}`}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button type="button" className="c-modal__close" onClick={onClose} aria-label="닫기">
-        ✕
-      </button>
+  const stepTitle = {
+    choose: '입장 방법 선택',
+    'login-required': '로그인이 필요합니다',
+    'select-date': '방문 날짜를 선택해주세요',
+    'existing-qr': '입장권 QR',
+    'checkin-done': '입장 체크 완료',
+    'entry-guide': '사전 체크인 완료',
+    payment: '결제 수단 선택',
+    'pay-done': '결제 완료',
+    'pay-issue-failed': '결제 완료 · QR 발급 실패',
+    'ticket-qr': '입장 준비 완료!',
+    'guest-info': '박람회 정보 둘러보기',
+  }[step];
 
+  return (
+    <AppDialog
+      onClose={onClose}
+      size={step === 'choose' ? 'xl' : 'sm'}
+      title={<span className={step === 'choose' ? 'sr-only' : undefined}>{stepTitle}</span>}
+    >
       {step === 'choose' && (
         <ChooseMethod
           expo={expo}
@@ -381,75 +400,98 @@ function EntryFlowModal({ expo, onClose }) {
         />
       )}
 
-        {step === 'login-required' && (
-          <LoginRequired onLogin={goLogin} onGuest={() => setStep('guest-info')} />
-        )}
+      {step === 'login-required' && <LoginRequired onLogin={goLogin} onGuest={() => setStep('guest-info')} />}
 
-        {step === 'select-date' && (
-          <SelectDate
-            expo={expo}
-            freeMode={freeMode}
-            existingTickets={existingTickets}
-            selectedDates={selectedDates}
-            onToggleDate={toggleDate}
-            totalFee={totalFee}
-            onConfirm={confirmDates}
-            applying={applying}
-            applyError={applyError}
-          />
-        )}
+      {step === 'select-date' && (
+        <SelectDate
+          expo={expo}
+          freeMode={freeMode}
+          existingTickets={existingTickets}
+          selectedDates={selectedDates}
+          onToggleDate={toggleDate}
+          totalFee={totalFee}
+          onConfirm={confirmDates}
+          applying={applying}
+          applyError={applyError}
+        />
+      )}
 
-        {step === 'existing-qr' && tickets.length > 0 && (
-          <ExistingTicketQr
-            expo={expo}
-            ticket={tickets[0]}
-            checkInError={checkInError}
-            onCheckIn={() => checkInTicket(tickets[0])}
-            onLookAround={goDetail}
-          />
-        )}
+      {step === 'existing-qr' && tickets.length > 0 && (
+        <ExistingTicketQr
+          expo={expo}
+          ticket={tickets}
+          selectedIndex={Math.min(existingIndex, tickets.length - 1)}
+          onSelectIndex={setExistingIndex}
+          checkInError={checkInError}
+          onCheckIn={() => checkInTicket(tickets[existingIndex])}
+          onLookAround={goDetail}
+        />
+      )}
 
-        {step === 'checkin-done' && <CheckInDone onLookAround={goDetail} onMyPage={goMyPage} />}
+      {step === 'checkin-done' && <CheckInDone onLookAround={goDetail} onMyPage={goMyPage} />}
 
-        {step === 'entry-guide' && <EntryGuide onLookAround={goDetail} onMyPage={goMyPage} />}
+      {step === 'entry-guide' && <EntryGuide onLookAround={goDetail} onMyPage={goMyPage} />}
 
-        {step === 'payment' && (
-          <Payment
-            amount={totalFee}
-            payMethod={payMethod}
-            setPayMethod={setPayMethod}
-            agree={agree}
-            setAgree={setAgree}
-            paying={paying}
-            payError={payError}
-            onPaid={handlePay}
-          />
-        )}
+      {step === 'payment' && (
+        <Payment
+          amount={totalFee}
+          payMethod={payMethod}
+          setPayMethod={setPayMethod}
+          agree={agree}
+          setAgree={setAgree}
+          paying={paying}
+          payError={payError}
+          onPaid={handlePay}
+        />
+      )}
 
-        {step === 'pay-done' && (
-          <PayDone amount={totalFee} payMethod={payMethod} onCheckQr={issuePaidTickets} onLookAround={goDetail} />
-        )}
+      {step === 'pay-done' && (
+        <PayDone amount={totalFee} payMethod={payMethod} onCheckQr={issuePaidTickets} onLookAround={goDetail} />
+      )}
 
-        {step === 'pay-issue-failed' && (
-          <PayIssueFailed amount={totalFee} payMethod={payMethod} onMyPage={goMyPage} onLookAround={goDetail} />
-        )}
+      {step === 'pay-issue-failed' && (
+        <PayIssueFailed amount={totalFee} payMethod={payMethod} onMyPage={goMyPage} onLookAround={goDetail} />
+      )}
 
-        {step === 'ticket-qr' && tickets.length > 0 && (
-          <TicketQr
-            expo={expo}
-            ticket={tickets[0]}
-            extraCount={tickets.length - 1}
-            notice={applyNotice}
-            onNext={() => setStep('entry-guide')}
-            nextLabel="다음"
-          />
-        )}
+      {step === 'ticket-qr' && tickets.length > 0 && (
+        <TicketQr
+          expo={expo}
+          ticket={tickets[0]}
+          extraCount={tickets.length - 1}
+          notice={applyNotice}
+          onNext={() => setStep('entry-guide')}
+          nextLabel="다음"
+        />
+      )}
 
-        {step === 'guest-info' && <GuestInfo onLookAround={goDetail} onLogin={goLogin} />}
-      </div>
+      {step === 'guest-info' && <GuestInfo onLookAround={goDetail} onLogin={goLogin} />}
+    </AppDialog>
+  );
+}
+
+// 각 단계 공통 - 위쪽 원형 아이콘 + 안내 문구 + 하단 버튼 묶음
+function StepIntro({ icon, title, desc }) {
+  return (
+    <div className="flex flex-col items-center gap-2 text-center">
+      {icon && (
+        <span className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary [&_svg]:size-6">
+          {icon}
+        </span>
+      )}
+      {title && <h2 className="m-0 text-lg font-semibold">{title}</h2>}
+      {desc && <p className="m-0 text-sm leading-relaxed text-muted-foreground">{desc}</p>}
     </div>
   );
 }
+
+function StepActions({ children }) {
+  return <div className="flex flex-col gap-2">{children}</div>;
+}
+
+const ENTRY_OPTIONS = {
+  existing: { icon: QrCode, title: 'QR 사전 입장', desc: '이미 발급받은 입장권으로 바로 입장합니다.' },
+  apply: { icon: CalendarDays, title: '방문 날짜 선택하고 입장권 받기', desc: '방문할 날짜를 선택하면 즉시 QR 입장권이 발급됩니다.' },
+};
 
 function ChooseMethod({ expo, hasExisting, loggedIn, onQrExisting, onApply, onGuest, onBrowse, onCancel }) {
   const [method, setMethod] = useState(hasExisting ? 'existing' : 'apply');
@@ -466,121 +508,104 @@ function ChooseMethod({ expo, hasExisting, loggedIn, onQrExisting, onApply, onGu
     else onGuest();
   };
 
+  const options = [
+    ...(hasExisting ? [['existing', ENTRY_OPTIONS.existing]] : []),
+    ['apply', ENTRY_OPTIONS.apply],
+    ['browse', { icon: Eye, title: browseLabel, desc: browseDesc }],
+  ];
+
   return (
-    <div className="ef-choose">
-      <div className="ef-choose__summary">
+    <div className="grid gap-6 md:grid-cols-[1fr_1.1fr]">
+      <div className="flex flex-col gap-4">
         <div
-          className="ef-choose__banner"
+          className="relative flex h-40 flex-col justify-end gap-2 overflow-hidden rounded-xl bg-slate-800 bg-cover bg-center p-4 text-white"
           style={expo.bannerImageUrl ? { backgroundImage: `url(${toAssetUrl(expo.bannerImageUrl)})` } : undefined}
         >
-          <span className={`ef-choose__badge ${expo.phase === '진행중' ? 'is-live' : ''}`}>{expo.phase}</span>
-          <h3 className="ef-choose__title">{expo.title}</h3>
+          <Badge className="w-fit" variant={expo.phase === '진행중' ? 'default' : 'secondary'}>
+            {expo.phase}
+          </Badge>
+          <h3 className="m-0 text-xl leading-tight font-bold drop-shadow">{expo.title}</h3>
         </div>
 
-        <div className="ef-choose__info">
-          <div className="ef-choose__info-row">
-            <IconCalendar />
+        <div className="flex flex-col gap-3 text-sm">
+          <div className="flex items-start gap-2.5">
+            <CalendarDays className="mt-0.5 size-[18px] text-muted-foreground" />
             <div>
-              <p className="ef-choose__info-label">행사 기간</p>
-              <p className="ef-choose__info-value">
+              <p className="m-0 text-xs text-muted-foreground">행사 기간</p>
+              <p className="m-0 font-medium">
                 {fmtDate(expo.startsAt)} - {fmtDate(expo.endsAt)}
               </p>
             </div>
           </div>
-          <div className="ef-choose__info-row">
-            <IconPin />
+          <div className="flex items-start gap-2.5">
+            <MapPin className="mt-0.5 size-[18px] text-muted-foreground" />
             <div>
-              <p className="ef-choose__info-label">행사 장소</p>
-              <p className="ef-choose__info-value">{expo.venue}</p>
+              <p className="m-0 text-xs text-muted-foreground">행사 장소</p>
+              <p className="m-0 font-medium">{expo.venue}</p>
             </div>
           </div>
         </div>
 
-        <div className="ef-choose__divider" />
+        <Separator />
 
-        <div className="ef-choose__desc">
-          <div className="ef-choose__desc-title">
-            <IconDoc />
-            <h4>행사 소개</h4>
-          </div>
-          <p>{expo.description?.trim() ? expo.description : defaultExpoDescription(expo.title)}</p>
+        <div>
+          <h4 className="m-0 mb-1.5 flex items-center gap-1.5 text-sm font-semibold">
+            <FileText className="size-4" /> 행사 소개
+          </h4>
+          <p className="m-0 text-sm leading-relaxed text-muted-foreground">
+            {expo.description?.trim() ? expo.description : defaultExpoDescription(expo.title)}
+          </p>
         </div>
       </div>
 
-      <div className="ef-choose__panel">
-        <h2 className="ef-left">입장 방법을 선택해주세요</h2>
-        <p className="c-modal__desc ef-left">선택한 방법에 따라 입장권이 발급됩니다.</p>
-
-        <div className="ef-choose__options">
-          {hasExisting && (
-            <label className={`ef-choose__radio ${method === 'existing' ? 'is-selected' : ''}`}>
-              <input
-                type="radio"
-                name="entry-method"
-                checked={method === 'existing'}
-                onChange={() => setMethod('existing')}
-              />
-              <span className="ef-choose__radio-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <rect x="3" y="3" width="7" height="7" rx="1" />
-                  <rect x="14" y="3" width="7" height="7" rx="1" />
-                  <rect x="3" y="14" width="7" height="7" rx="1" />
-                </svg>
-              </span>
-              <span className="ef-choose__radio-body">
-                <strong>QR 사전 입장</strong>
-                <span>이미 발급받은 입장권으로 바로 입장합니다.</span>
-              </span>
-            </label>
-          )}
-
-          <label className={`ef-choose__radio ${method === 'apply' ? 'is-selected' : ''}`}>
-            <input type="radio" name="entry-method" checked={method === 'apply'} onChange={() => setMethod('apply')} />
-            <span className="ef-choose__radio-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect x="3" y="4" width="18" height="17" rx="2" />
-                <path d="M3 9h18M8 3v3M16 3v3" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className="ef-choose__radio-body">
-              <strong>방문 날짜 선택하고 입장권 받기</strong>
-              <span>방문할 날짜를 선택하면 즉시 QR 입장권이 발급됩니다.</span>
-            </span>
-          </label>
-
-          <label className={`ef-choose__radio ${method === 'browse' ? 'is-selected' : ''}`}>
-            <input type="radio" name="entry-method" checked={method === 'browse'} onChange={() => setMethod('browse')} />
-            <span className="ef-choose__radio-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </span>
-            <span className="ef-choose__radio-body">
-              <strong>{browseLabel}</strong>
-              <span>{browseDesc}</span>
-            </span>
-          </label>
+      <div className="flex flex-col gap-4">
+        <div>
+          <h2 className="m-0 text-lg font-semibold">입장 방법을 선택해주세요</h2>
+          <p className="mt-1 mb-0 text-sm text-muted-foreground">선택한 방법에 따라 입장권이 발급됩니다.</p>
         </div>
 
-        <button type="button" className="c-modal__primary" onClick={handleConfirm}>
-          선택한 방법으로 진행하기
-        </button>
-        <button type="button" className="c-modal__secondary" onClick={onCancel}>
-          취소
-        </button>
+        <RadioGroup value={method} onValueChange={setMethod} className="gap-2">
+          {options.map(([value, { icon: Icon, title, desc }]) => (
+            <Label
+              key={value}
+              htmlFor={`entry-${value}`}
+              className={cn(
+                'cursor-pointer items-start gap-3 rounded-xl border p-3.5 font-normal transition-colors',
+                method === value ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+              )}
+            >
+              <RadioGroupItem id={`entry-${value}`} value={value} className="mt-1" />
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Icon className="size-5" />
+              </span>
+              <span className="grid gap-0.5">
+                <strong className="text-sm">{title}</strong>
+                <span className="text-xs leading-snug text-muted-foreground">{desc}</span>
+              </span>
+            </Label>
+          ))}
+        </RadioGroup>
 
-        <div className="ef-choose__notice">
-          <p className="ef-choose__notice-title">
-            <span className="ef-choose__notice-icon">i</span>
-            안내사항
-          </p>
-          <ul>
-            <li>선택한 방법으로 입장권이 발급되며, 현장에서 QR 코드로 입장합니다.</li>
-            <li>입장권은 1인 1매 기준으로 발급됩니다.</li>
-            <li>행사 일정 및 운영 시간은 주최 측 사정에 따라 변경될 수 있습니다.</li>
-          </ul>
-        </div>
+        <StepActions>
+          <Button type="button" size="lg" onClick={handleConfirm}>
+            선택한 방법으로 진행하기
+          </Button>
+          <Button type="button" size="lg" variant="outline" onClick={onCancel}>
+            취소
+          </Button>
+        </StepActions>
+
+        <Alert>
+          <Info />
+          <AlertTitle>안내사항</AlertTitle>
+          <AlertDescription>
+            <ul className="m-0 list-disc pl-4">
+              <li>선택한 방법으로 입장권이 발급되며, 현장에서 QR 코드로 입장합니다.</li>
+              <li>입장권은 1인 1매 기준으로 발급됩니다.</li>
+              <li>행사 일정 및 운영 시간은 주최 측 사정에 따라 변경될 수 있습니다.</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
       </div>
     </div>
   );
@@ -589,20 +614,11 @@ function ChooseMethod({ expo, hasExisting, loggedIn, onQrExisting, onApply, onGu
 function LoginRequired({ onLogin, onGuest }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </div>
-      <h2>로그인이 필요합니다</h2>
-      <p className="c-modal__desc">유료 입장권 결제는 로그인한 회원만 이용할 수 있습니다.</p>
-      <button type="button" className="c-modal__primary" onClick={onLogin}>
-        로그인하러 가기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onGuest}>
-        로그인 없이 둘러보기
-      </button>
+      <StepIntro icon={<LogIn />} title="로그인이 필요합니다" desc="유료 입장권 결제는 로그인한 회원만 이용할 수 있습니다." />
+      <StepActions>
+        <Button size="lg" onClick={onLogin}>로그인하러 가기</Button>
+        <Button size="lg" variant="outline" onClick={onGuest}>로그인 없이 둘러보기</Button>
+      </StepActions>
     </>
   );
 }
@@ -627,160 +643,167 @@ function SelectDate({
   const cancelledDates = new Set(existingTickets.filter((t) => t.status === 'CANCELLED').map((t) => t.visitDate));
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-          <rect x="3" y="4" width="18" height="17" rx="2" />
-          <path d="M3 9h18M8 3v3M16 3v3" strokeLinecap="round" />
-        </svg>
-      </div>
-      <h2>방문 날짜를 선택해주세요</h2>
-      <p className="c-modal__desc">
-        {freeMode
-          ? '박람회 시작 전 사전 신청은 무료로 QR이 발급됩니다.'
-          : '박람회가 이미 시작되어 선택한 날짜 수만큼 입장권 결제가 필요합니다.'}
-      </p>
-      <div className="ef-date-list">
+      <StepIntro
+        icon={<CalendarDays />}
+        title="방문 날짜를 선택해주세요"
+        desc={
+          freeMode
+            ? '박람회 시작 전 사전 신청은 무료로 QR이 발급됩니다.'
+            : '박람회가 이미 시작되어 선택한 날짜 수만큼 입장권 결제가 필요합니다.'
+        }
+      />
+      <div className="flex max-h-64 flex-col gap-1.5 overflow-y-auto rounded-lg border p-2">
         {dates.map((d) => {
           const isPast = d < today;
           const isAlreadyIssued = !isPast && alreadyIssuedDates.has(d);
           const disabled = isPast || isAlreadyIssued;
           return (
-            <label key={d} className={`ef-checkbox-row ef-date-item${disabled ? ' is-disabled' : ''}`}>
-              <input
-                type="checkbox"
-                checked={selectedDates.includes(d)}
-                disabled={disabled}
-                onChange={() => onToggleDate(d)}
-              />
+            <Label
+              key={d}
+              className={cn(
+                'cursor-pointer rounded-md px-2.5 py-2 font-normal hover:bg-muted',
+                disabled && 'cursor-not-allowed text-muted-foreground opacity-60 hover:bg-transparent'
+              )}
+            >
+              <Checkbox checked={selectedDates.includes(d)} disabled={disabled} onCheckedChange={() => onToggleDate(d)} />
               <span>
                 {fmtDate(d)}
                 {isPast && ' (지난 날짜)'}
                 {isAlreadyIssued && (cancelledDates.has(d) ? ' (환불됨)' : ' (발급완료)')}
               </span>
-            </label>
+            </Label>
           );
         })}
       </div>
-      <p className="ef-date-fee">
+      <p className="m-0 text-center text-sm font-semibold">
         {freeMode ? '결제 금액 : 무료' : `결제 예정 금액 : ₩${totalFee.toLocaleString()}`}
       </p>
-      {applyError && <p className="ef-error">{applyError}</p>}
-      <button
-        type="button"
-        className="c-modal__primary"
-        disabled={selectedDates.length === 0 || applying}
-        onClick={onConfirm}
-      >
+      {applyError && <p className="m-0 text-sm text-destructive">{applyError}</p>}
+      <Button size="lg" disabled={selectedDates.length === 0 || applying} onClick={onConfirm}>
         {applying ? '신청 중...' : freeMode ? '무료 QR 발급받기' : '결제하러 가기'}
-      </button>
+      </Button>
     </>
+  );
+}
+
+function QrImage({ ticket }) {
+  return (
+    <div className="mx-auto flex size-44 items-center justify-center rounded-xl border bg-white p-2">
+      {ticket.qrImageBase64 ? (
+        <img src={`data:image/png;base64,${ticket.qrImageBase64}`} alt="입장 QR 코드" width={160} height={160} />
+      ) : (
+        <QrPlaceholder size={160} />
+      )}
+    </div>
   );
 }
 
 function TicketQr({ expo, ticket, extraCount, notice, onNext, nextLabel }) {
   return (
     <>
-      <p className="ef-ready-badge">
-        <span className="ef-ready-badge__dot" />
+      <p className="m-0 flex items-center justify-center gap-2 text-sm font-semibold text-emerald-600">
+        <span className="size-2 rounded-full bg-emerald-500" />
         입장 준비 완료!
       </p>
-      <p className="c-modal__desc">현장에서 이 QR을 제시해주세요.</p>
-      {notice && <p className="ef-error ef-error--info">{notice}</p>}
-      <div className="ef-qr-box">
-        {ticket.qrImageBase64 ? (
-          <img
-            src={`data:image/png;base64,${ticket.qrImageBase64}`}
-            alt="입장 QR 코드"
-            width={160}
-            height={160}
-          />
-        ) : (
-          <QrPlaceholder size={160} />
-        )}
+      <p className="m-0 text-center text-sm text-muted-foreground">현장에서 이 QR을 제시해주세요.</p>
+      {notice && <p className="m-0 rounded-lg bg-primary/5 p-3 text-sm text-primary">{notice}</p>}
+      <QrImage ticket={ticket} />
+      <div className="text-center">
+        <h2 className="m-0 text-lg font-semibold">{expo.title}</h2>
+        <p className="mt-1 mb-0 text-sm text-muted-foreground">
+          {ticket.holderName} · {ticket.ticketType}
+        </p>
+        <p className="mt-2 mb-0 text-sm leading-relaxed text-muted-foreground">
+          방문일 {fmtDate(ticket.visitDate)}
+          <br />
+          {expo.venue}
+          {extraCount > 0 && (
+            <>
+              <br />외 {extraCount}장은 마이페이지에서 확인하실 수 있습니다.
+            </>
+          )}
+        </p>
       </div>
-      <h2 className="ef-qr-title">{expo.title}</h2>
-      <p className="ef-qr-sub">
-        {ticket.holderName} <span className="ef-qr-dot" /> {ticket.ticketType}
-      </p>
-      <p className="ef-qr-meta">
-        방문일 {fmtDate(ticket.visitDate)}
-        <br />
-        {expo.venue}
-        {extraCount > 0 && (
-          <>
-            <br />외 {extraCount}장은 마이페이지에서 확인하실 수 있습니다.
-          </>
-        )}
-      </p>
-      <button type="button" className="c-modal__primary" onClick={onNext}>
-        {nextLabel}
-      </button>
-      <button
-        type="button"
-        className="c-modal__secondary"
-        onClick={() => downloadTicketImage(ticket, `QR_${ticket.bookingNo}`)}
-      >
-        이미지 저장하기
-      </button>
+      <StepActions>
+        <Button size="lg" onClick={onNext}>{nextLabel}</Button>
+        <Button size="lg" variant="outline" onClick={() => downloadTicketImage(ticket, `QR_${ticket.bookingNo}`)}>
+          이미지 저장하기
+        </Button>
+      </StepActions>
     </>
   );
 }
 
 // 이미 발급된 QR 확인 화면. 방문 예약일(visitDate)이 오늘일 때만 "입장 체크" 가능
 // — 체크인을 마치면 "사용완료", 체크인 없이 박람회 기간만 끝나면 "만료"로 갈리며 둘 다 재사용 불가.
-function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround }) {
-  const status = getTicketStatus(ticket);
-  const isInactive = status === '사용완료' || status === '만료';
-  const checkableToday = status === '사용가능' && isTicketCheckableToday(ticket);
+function ExistingTicketQr({ expo, tickets, selectedIndex, onSelectIndex, checkInError, onCheckIn, onLookAround }) {
+  const ticket = tickets[selectedIndex];
+  const status = getTicketStatus(ticket); // '환불' | '사용완료' | '만료' | '사용예정' | '사용가능'
+  const isCancelled = status === '환불';
+  const isInactive = isCancelled || status === '사용완료' || status === '만료';
+  const checkableToday = !isCancelled && status === '사용가능' && isTicketCheckableToday(ticket);
+
   return (
     <>
-      <p className={`ef-ready-badge ${isInactive ? 'is-expired' : ''}`}>
-        <span className="ef-ready-badge__dot" />
-        {status === '사용완료'
-          ? '사용완료된 입장권입니다'
-          : status === '만료'
-            ? '만료된 입장권입니다'
-            : '발급된 QR 입장권'}
+      {tickets.length > 1 && (
+        <Tabs value={String(selectedIndex)} onValueChange={(v) => onSelectIndex(Number(v))}>
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+            {tickets.map((t, i) => (
+              <TabsTrigger
+                key={t.id}
+                value={String(i)}
+                className={cn(t.status === 'CANCELLED' && 'text-red-600')}
+              >
+                {fmtDate(t.visitDate)}
+                {t.status === 'CANCELLED' && ' (환불됨)'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+      )}
+      <p className={cn('m-0 flex items-center justify-center gap-2 text-sm font-semibold', isInactive ? 'text-muted-foreground' : 'text-emerald-600')}>
+        <span className={cn('size-2 rounded-full', isInactive ? 'bg-slate-400' : 'bg-emerald-500')} />
+        {isCancelled
+          ? '환불된 입장권입니다'
+          : status === '사용완료'
+            ? '사용완료된 입장권입니다'
+            : status === '만료'
+              ? '만료된 입장권입니다'
+              : '발급된 QR 입장권'}
       </p>
-      <div className="ef-qr-box">
-        {ticket.qrImageBase64 ? (
-          <img
-            src={`data:image/png;base64,${ticket.qrImageBase64}`}
-            alt="입장 QR 코드"
-            width={160}
-            height={160}
-          />
-        ) : (
-          <QrPlaceholder size={160} />
-        )}
+      {!isCancelled && <QrImage ticket={ticket} />}
+      <div className="text-center">
+        <h2 className="m-0 text-lg font-semibold">{expo.title}</h2>
+        <p className="mt-1 mb-0 text-sm text-muted-foreground">
+          {ticket.holderName} · {ticket.ticketType}
+        </p>
+        <p className="mt-2 mb-0 text-sm leading-relaxed text-muted-foreground">
+          방문 예약일 {fmtDate(ticket.visitDate)}
+          <br />
+          {expo.venue}
+        </p>
       </div>
-      <h2 className="ef-qr-title">{expo.title}</h2>
-      <p className="ef-qr-sub">
-        {ticket.holderName} <span className="ef-qr-dot" /> {ticket.ticketType}
-      </p>
-      <p className="ef-qr-meta">
-        방문 예약일 {fmtDate(ticket.visitDate)}
-        <br />
-        {expo.venue}
-      </p>
-      {status === '사용완료' ? (
-        <p className="ef-error ef-error--info">이미 입장 체크가 완료된 QR입니다.</p>
+      {isCancelled ? (
+        <p className="m-0 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          환불(취소)된 입장권이라 사용할 수 없습니다.
+          {tickets.length > 1 && ' 위에서 다른 날짜를 선택해주세요.'}
+        </p>
+      ) : status === '사용완료' ? (
+        <p className="m-0 rounded-lg bg-muted p-3 text-sm text-muted-foreground">이미 입장 체크가 완료된 QR입니다.</p>
       ) : status === '만료' ? (
-        <p className="ef-error ef-error--info">박람회 기간이 종료되어 사용할 수 없습니다.</p>
+        <p className="m-0 rounded-lg bg-muted p-3 text-sm text-muted-foreground">박람회 기간이 종료되어 사용할 수 없습니다.</p>
       ) : !checkableToday ? (
-        <p className="ef-error ef-error--info">
+        <p className="m-0 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
           방문 예약일({fmtDate(ticket.visitDate)})에만 입장 체크가 가능합니다.
         </p>
       ) : null}
-      {checkInError && <p className="ef-error">{checkInError}</p>}
-      {checkableToday && (
-        <button type="button" className="c-modal__primary" onClick={onCheckIn}>
-          입장 체크하기
-        </button>
-      )}
-      <button type="button" className="c-modal__secondary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
+      {checkInError && <p className="m-0 text-sm text-destructive">{checkInError}</p>}
+      <StepActions>
+        {checkableToday && (
+          <Button size="lg" onClick={onCheckIn}>입장 체크하기</Button>
+        )}
+        <Button size="lg" variant="outline" onClick={onLookAround}>박람회 둘러보기</Button>
+      </StepActions>
     </>
   );
 }
@@ -788,44 +811,45 @@ function ExistingTicketQr({ expo, ticket, checkInError, onCheckIn, onLookAround 
 function CheckInDone({ onLookAround, onMyPage }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
-          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <h2>입장 체크가 완료되었습니다!</h2>
-      <p className="c-modal__desc">이 QR은 이제 사용완료로 표시되어 마이페이지에서 확인할 수 있습니다.</p>
-      <button type="button" className="c-modal__primary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onMyPage}>
-        마이페이지에서 확인하기
-      </button>
+      <StepIntro
+        icon={<Check className="text-green-600" />}
+        title="입장 체크가 완료되었습니다!"
+        desc="이 QR은 이제 사용완료로 표시되어 마이페이지에서 확인할 수 있습니다."
+      />
+      <StepActions>
+        <Button size="lg" onClick={onLookAround}>박람회 둘러보기</Button>
+        <Button size="lg" variant="outline" onClick={onMyPage}>마이페이지에서 확인하기</Button>
+      </StepActions>
     </>
+  );
+}
+
+function BulletList({ items }) {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-1.5 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+      {items.map((t) => (
+        <li key={t} className="flex items-start gap-2">
+          <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+          {t}
+        </li>
+      ))}
+    </ul>
   );
 }
 
 function EntryGuide({ onLookAround, onMyPage }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5">
-          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <h2>사전 체크인이 완료되었습니다!</h2>
-      <p className="c-modal__desc">현장에서 QR을 제시하시면 빠르게 입장하실 수 있습니다.</p>
-      <ul className="ef-bullets">
-        <li>QR은 1인 1회만 사용 가능합니다.</li>
-        <li>현장 입구에서 QR을 제시해주세요.</li>
-        <li>스크린샷 사용 가능합니다.</li>
-      </ul>
-      <button type="button" className="c-modal__primary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onMyPage}>
-        마이페이지에서 다시 보기
-      </button>
+      <StepIntro
+        icon={<Check />}
+        title="사전 체크인이 완료되었습니다!"
+        desc="현장에서 QR을 제시하시면 빠르게 입장하실 수 있습니다."
+      />
+      <BulletList items={['QR은 1인 1회만 사용 가능합니다.', '현장 입구에서 QR을 제시해주세요.', '스크린샷 사용 가능합니다.']} />
+      <StepActions>
+        <Button size="lg" onClick={onLookAround}>박람회 둘러보기</Button>
+        <Button size="lg" variant="outline" onClick={onMyPage}>마이페이지에서 다시 보기</Button>
+      </StepActions>
     </>
   );
 }
@@ -841,83 +865,69 @@ function Payment({ amount, payMethod, setPayMethod, agree, setAgree, paying, pay
 
   return (
     <>
-      <h2 className="ef-left">결제 수단 선택</h2>
-      <p className="c-modal__desc ef-left">원하는 결제 수단을 선택합니다.</p>
-
-      <div className="ef-tabs">
-        {PAY_METHODS.map((m) => (
-          <button
-            key={m.key}
-            type="button"
-            className={payMethod === m.key ? 'is-active' : ''}
-            onClick={() => setPayMethod(m.key)}
-          >
-            {m.label}
-          </button>
-        ))}
+      <div>
+        <h2 className="m-0 text-lg font-semibold">결제 수단 선택</h2>
+        <p className="mt-1 mb-0 text-sm text-muted-foreground">원하는 결제 수단을 선택합니다.</p>
       </div>
 
-      <div className="ef-card-form">
-        <p className="ef-card-form__title">유료 입장권 결제</p>
-        <p className="c-modal__desc" style={{ margin: '0 0 1rem' }}>
-          '결제하기' 클릭 시 실제 PortOne 결제창이 새로 열립니다. 카드/계좌 정보는 그 결제창에서 직접
+      <Tabs value={payMethod} onValueChange={setPayMethod}>
+        <TabsList className="grid w-full grid-cols-3">
+          {PAY_METHODS.map((m) => (
+            <TabsTrigger key={m.key} value={m.key}>
+              {m.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <div className="rounded-xl border p-4">
+        <p className="m-0 mb-2 text-sm font-semibold">유료 입장권 결제</p>
+        <p className="m-0 mb-4 text-sm leading-relaxed text-muted-foreground">
+          &apos;결제하기&apos; 클릭 시 실제 PortOne 결제창이 새로 열립니다. 카드/계좌 정보는 그 결제창에서 직접
           입력합니다. 테스트 채널로 연결되어 있어 실제 대금은 빠져나가지 않습니다.
         </p>
-        <label className="ef-checkbox-row">
-          <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+        <Label className="cursor-pointer items-start font-normal leading-snug">
+          <Checkbox checked={agree} onCheckedChange={(v) => setAgree(v === true)} className="mt-0.5" />
           <span>
             결제 내용을 확인하였으며, 이에 동의합니다. (필수)
             <br />
-            <a href="#!" onClick={(e) => e.preventDefault()}>
+            <a href="#!" onClick={(e) => e.preventDefault()} className="text-xs text-muted-foreground underline">
               이용약관 보기
             </a>
           </span>
-        </label>
+        </Label>
       </div>
 
-      {payError && (
-        <p className="c-modal__desc" style={{ color: '#dc2626' }}>
-          {payError}
-        </p>
-      )}
+      {payError && <p className="m-0 text-sm text-destructive">{payError}</p>}
 
-      <button type="button" className="c-modal__primary" disabled={!canPay} onClick={onPaid}>
+      <Button size="lg" disabled={!canPay} onClick={onPaid}>
         {paying ? '결제 처리 중...' : `₩${amount.toLocaleString()} 결제하기`}
-      </button>
+      </Button>
     </>
+  );
+}
+
+function PaySummary({ amount, payMethod }) {
+  return (
+    <InfoList
+      items={[
+        { label: '결제 일시', value: nowLabel() },
+        { label: '결제 수단', value: PAY_METHODS.find((m) => m.key === payMethod)?.label ?? payMethod },
+        { label: '결제 금액', value: `₩${amount.toLocaleString()}` },
+      ]}
+    />
   );
 }
 
 function PayDone({ amount, payMethod, onCheckQr, onLookAround }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5">
-          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <h2>결제가 완료되었습니다!</h2>
-      <p className="c-modal__desc">입장용 QR이 발급되었습니다.</p>
-      <dl className="c-modal__info">
-        <div className="c-modal__info-row">
-          <dt>결제 일시</dt>
-          <dd>{nowLabel()}</dd>
-        </div>
-        <div className="c-modal__info-row">
-          <dt>결제 수단</dt>
-          <dd>{PAY_METHODS.find((m) => m.key === payMethod)?.label ?? payMethod}</dd>
-        </div>
-        <div className="c-modal__info-row">
-          <dt>결제 금액</dt>
-          <dd>₩{amount.toLocaleString()}</dd>
-        </div>
-      </dl>
-      <button type="button" className="c-modal__primary" onClick={onCheckQr}>
-        QR 확인하기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
+      <StepIntro icon={<Check />} title="결제가 완료되었습니다!" desc="입장용 QR이 발급되었습니다." />
+      <PaySummary amount={amount} payMethod={payMethod} />
+      <StepActions>
+        <Button size="lg" onClick={onCheckQr}>QR 확인하기</Button>
+        <Button size="lg" variant="outline" onClick={onLookAround}>박람회 둘러보기</Button>
+      </StepActions>
     </>
   );
 }
@@ -928,38 +938,16 @@ function PayDone({ amount, payMethod, onCheckQr, onLookAround }) {
 function PayIssueFailed({ amount, payMethod, onMyPage, onLookAround }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 8v5M12 16h.01" strokeLinecap="round" />
-        </svg>
-      </div>
-      <h2>결제는 완료됐지만 QR 발급에 실패했어요</h2>
-      <p className="c-modal__desc">
-        결제 금액은 정상 처리됐지만 입장권(QR) 발급 중 일시적인 오류가 발생했습니다. 잠시 후
-        마이페이지에서 다시 확인해주세요. 계속 보이지 않으면 고객센터로 문의해주시면 결제 내역을
-        확인해 QR을 재발급해드립니다.
-      </p>
-      <dl className="c-modal__info">
-        <div className="c-modal__info-row">
-          <dt>결제 일시</dt>
-          <dd>{nowLabel()}</dd>
-        </div>
-        <div className="c-modal__info-row">
-          <dt>결제 수단</dt>
-          <dd>{PAY_METHODS.find((m) => m.key === payMethod)?.label ?? payMethod}</dd>
-        </div>
-        <div className="c-modal__info-row">
-          <dt>결제 금액</dt>
-          <dd>₩{amount.toLocaleString()}</dd>
-        </div>
-      </dl>
-      <button type="button" className="c-modal__primary" onClick={onMyPage}>
-        마이페이지에서 확인하기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
+      <StepIntro
+        icon={<CircleAlert className="text-destructive" />}
+        title="결제는 완료됐지만 QR 발급에 실패했어요"
+        desc="결제 금액은 정상 처리됐지만 입장권(QR) 발급 중 일시적인 오류가 발생했습니다. 잠시 후 마이페이지에서 다시 확인해주세요. 계속 보이지 않으면 고객센터로 문의해주시면 결제 내역을 확인해 QR을 재발급해드립니다."
+      />
+      <PaySummary amount={amount} payMethod={payMethod} />
+      <StepActions>
+        <Button size="lg" onClick={onMyPage}>마이페이지에서 확인하기</Button>
+        <Button size="lg" variant="outline" onClick={onLookAround}>박람회 둘러보기</Button>
+      </StepActions>
     </>
   );
 }
@@ -967,25 +955,14 @@ function PayIssueFailed({ amount, payMethod, onMyPage, onLookAround }) {
 function GuestInfo({ onLookAround, onLogin }) {
   return (
     <>
-      <div className="c-modal__icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2">
-          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      </div>
-      <h2>박람회 정보를 둘러볼까요?</h2>
-      <p className="c-modal__desc">로그인 없이도 참가업체, 차량 정보를 확인할 수 있습니다.</p>
-      <ul className="ef-bullets">
-        <li>차량 상세 정보, 부스 위치 확인 가능</li>
-        <li>상담 신청을 원하시면 로그인 후 이용해주세요.</li>
-        <li>입장권은 현장에서 구매할 수 있습니다.</li>
-      </ul>
-      <button type="button" className="c-modal__primary" onClick={onLookAround}>
-        박람회 둘러보기
-      </button>
-      <button type="button" className="c-modal__secondary" onClick={onLogin}>
-        로그인하고 더 많은 기능 이용하기
-      </button>
+      <StepIntro icon={<Eye />} title="박람회 정보를 둘러볼까요?" desc="로그인 없이도 참가업체, 차량 정보를 확인할 수 있습니다." />
+      <BulletList
+        items={['차량 상세 정보, 부스 위치 확인 가능', '상담 신청을 원하시면 로그인 후 이용해주세요.', '입장권은 현장에서 구매할 수 있습니다.']}
+      />
+      <StepActions>
+        <Button size="lg" onClick={onLookAround}>박람회 둘러보기</Button>
+        <Button size="lg" variant="outline" onClick={onLogin}>로그인하고 더 많은 기능 이용하기</Button>
+      </StepActions>
     </>
   );
 }
