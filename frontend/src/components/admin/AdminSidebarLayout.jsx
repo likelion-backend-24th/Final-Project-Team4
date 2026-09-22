@@ -12,11 +12,27 @@ import { cn } from '@/lib/utils';
 // 다른 관리자 페이지(박람회 등록/통계)는 기존 AdminHeader(상단 가로 네비) 그대로 유지함.
 // AdminHeader.jsx의 NAV_ITEMS와 동일한 메뉴 구성 - 세로 배치로만 바뀜.
 const NAV_ITEMS = [
-  { to: '/admin/applications', label: '참가 신청 관리', icon: ClipboardList },
-  { to: '/admin/expos/new', label: '박람회 등록', icon: FilePlus2 },
+  {
+    to: '/admin/applications',
+    label: '참가 신청 관리',
+    icon: ClipboardList,
+    children: [{ to: '/admin/expos/new', label: '박람회 등록', icon: FilePlus2 }],
+  },
   { to: '/admin/stats', label: '통계', icon: BarChart3 },
   { to: '/admin/members', label: '회원 관리', icon: Users },
 ];
+
+const navLinkClass = ({ isActive }) =>
+  cn(
+    'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors',
+    isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+  );
+
+const subNavLinkClass = ({ isActive }) =>
+  cn(
+    'flex items-center gap-2.5 rounded-md py-1.5 pr-3 pl-8 text-sm font-medium no-underline transition-colors',
+    isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+  );
 
 // breadcrumb: 상단 바에 보여줄 현재 페이지 이름, children: 본문
 export function AdminSidebarLayout({ breadcrumb, children }) {
@@ -42,23 +58,20 @@ export function AdminSidebarLayout({ breadcrumb, children }) {
         </Link>
 
         <nav className="flex flex-col gap-1 px-3 py-2">
-          {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium no-underline transition-colors',
-                  isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )
-              }
-            >
-              <Icon className="size-4" />
-              {label}
+        {NAV_ITEMS.map((item) => (
+            <div key={item.to} className="flex flex-col gap-1">
+            <NavLink to={item.to} className={navLinkClass}>
+                <item.icon className="size-4" />
+                {item.label}
             </NavLink>
-          ))}
+            {item.children?.map((child) => (
+                <NavLink key={child.to} to={child.to} className={subNavLinkClass}>
+                <child.icon className="size-4" />
+                {child.label}
+                </NavLink>
+            ))}
+            </div>
+        ))}
         </nav>
       </aside>
 
