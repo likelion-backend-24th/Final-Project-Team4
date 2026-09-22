@@ -4,6 +4,7 @@ import logoIcon from '@/assets/logo-icon.png';
 import apiClient from '../../api/client';
 import { clearAuth } from '../../api/auth';
 import AccountMenu from '../AccountMenu';
+import Footer from '../Footer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +76,7 @@ export function AdminSidebarLayout({ breadcrumb, children }) {
         </header>
 
         <main className="flex-1 p-6 md:p-8">{children}</main>
+        <Footer />
       </div>
     </div>
   );
