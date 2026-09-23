@@ -3,8 +3,13 @@ package com.team4.expo.client;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team4.expo.vehicle.dto.VehicleAiAnalysisResponse;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import javax.imageio.ImageIO;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -28,6 +33,14 @@ public class GeminiVehicleAnalysisClient implements VehicleAiAnalysisClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiVehicleAnalysisClient.class);
     private static final int MAX_ATTEMPTS = 2;
+
+    // 스펙 JSON 응답이라 짧다 - 상한 없이 무제한 출력을 막아 토큰 비용을 캡(2026-09-23, 절감 감사).
+    private static final int MAX_OUTPUT_TOKENS = 700;
+
+    // 원본 사진을 그대로 보내면 해상도에 비례해 Vision 입력 토큰이 커진다 - 스펙 추정에 필요한 디테일(배지 텍스트,
+    // 전조등 형태 등)은 이 정도 해상도면 충분해서 긴 변 기준으로 축소 후 전송(2026-09-23, 절감 감사). 이미 이보다
+    // 작은 사진(카탈로그/보도자료 이미지 등)은 그대로 통과한다.
+    private static final int MAX_IMAGE_DIMENSION = 1024;
 
     private final String apiKey;
     private final String model;
@@ -166,10 +179,10 @@ public class GeminiVehicleAnalysisClient implements VehicleAiAnalysisClient {
             List<Object> parts = new ArrayList<>();
             parts.add(Map.of("text", buildPrompt(images.size())));
             for (VehicleImageInput image : images) {
+                byte[] resized = resizeIfNeeded(image.bytes());
                 Map<String, Object> inlineData = Map.of(
-                        "mimeType", image.mimeType() == null || image.mimeType().isBlank()
-                                ? "image/jpeg" : image.mimeType(),
-                        "data", Base64.getEncoder().encodeToString(image.bytes())
+                        "mimeType", "image/jpeg",
+                        "data", Base64.getEncoder().encodeToString(resized)
                 );
                 parts.add(Map.of("inlineData", inlineData));
             }
@@ -177,11 +190,46 @@ public class GeminiVehicleAnalysisClient implements VehicleAiAnalysisClient {
             Map<String, Object> content = Map.of("parts", parts);
             Map<String, Object> body = Map.of(
                     "contents", List.of(content),
-                    "generationConfig", Map.of("responseMimeType", "application/json")
+                    "generationConfig", Map.of(
+                            "responseMimeType", "application/json",
+                            "maxOutputTokens", MAX_OUTPUT_TOKENS)
             );
             return objectMapper.writeValueAsString(body);
         } catch (Exception e) {
             throw new IllegalStateException("Gemini 요청 본문 생성 실패", e);
+        }
+    }
+
+    // 긴 변이 MAX_IMAGE_DIMENSION 이하면 그대로 두고, 넘으면 비율 유지한 채 축소해 JPEG로 다시 인코딩.
+    // 리사이즈 자체가 실패(손상된 이미지 등)하면 원본 그대로 보낸다 - 이 기능은 분석 실패해도 사용자가
+    // 직접 입력하면 되는 fail-open 보조 기능이라, 리사이즈 실패로 아예 막을 필요는 없음.
+    private byte[] resizeIfNeeded(byte[] original) {
+        try {
+            BufferedImage source = ImageIO.read(new ByteArrayInputStream(original));
+            if (source == null) {
+                return original;
+            }
+            int width = source.getWidth();
+            int height = source.getHeight();
+            int longerSide = Math.max(width, height);
+            if (longerSide <= MAX_IMAGE_DIMENSION) {
+                return original;
+            }
+
+            double scale = (double) MAX_IMAGE_DIMENSION / longerSide;
+            int targetWidth = Math.max(1, (int) Math.round(width * scale));
+            int targetHeight = Math.max(1, (int) Math.round(height * scale));
+
+            Image scaled = source.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            BufferedImage resized = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
+            resized.getGraphics().drawImage(scaled, 0, 0, null);
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            ImageIO.write(resized, "jpg", out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            log.warn("차량 이미지 리사이즈 실패, 원본 그대로 전송: {}", e.getMessage());
+            return original;
         }
     }
 

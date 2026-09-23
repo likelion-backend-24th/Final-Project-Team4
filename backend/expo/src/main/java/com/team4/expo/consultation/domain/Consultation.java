@@ -47,6 +47,8 @@ public class Consultation {
 
     private int aiSummaryRetryCount;
 
+    private int reviewDraftRetryCount;
+
     // 참가업체가 현장에서 QR 스캔으로 연락처를 확보하는 데 동의하는지(STORY 11 리드 기능용). 기본 false.
     private boolean leadConsent;
 
@@ -96,6 +98,18 @@ public class Consultation {
     // ConsultationReviewService.regenerateAiSummary()에서 참가업체가 수동으로 재시도할 때 호출. 실패해도 횟수는 차감(남용 방지).
     public void incrementAiSummaryRetryCount() {
         this.aiSummaryRetryCount++;
+    }
+
+    // 상담 1건당 AI 후기 초안(draftReview) 생성 횟수 제한 - 같은 패턴(남용 방지).
+    public static final int MAX_REVIEW_DRAFT_RETRY = 3;
+
+    public boolean canRetryReviewDraft() {
+        return reviewDraftRetryCount < MAX_REVIEW_DRAFT_RETRY;
+    }
+
+    // ConsultationService.draftReview()에서 호출. 실패(fail-open으로 draft=null)해도 호출 자체는 발생했으므로 차감.
+    public void incrementReviewDraftRetryCount() {
+        this.reviewDraftRetryCount++;
     }
 
     // ConsultationReviewService.approveConsultation()에서 호출. REQUESTED -> APPROVED(서비스 레이어에서 상태 검증).

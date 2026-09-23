@@ -39,6 +39,10 @@ public class GeminiSummaryClient implements AiSummaryClient {
     // 과부하(503)/트래픽 제한(429)은 보통 잠깐이면 풀려서 한 번만 재시도한다. 그 외 실패는 재시도해도 의미 없어 바로 포기.
     private static final int MAX_ATTEMPTS = 2;
 
+    // 이 클라이언트가 만드는 응답(요약 불릿/이메일 본문/후기 3~4문장/박람회 소개문)은 전부 짧은 한국어 텍스트라
+    // 800토큰이면 넉넉하다 - 상한 없이 무제한 출력을 막아 토큰 비용을 캡(2026-09-23, 절감 감사).
+    private static final int MAX_OUTPUT_TOKENS = 800;
+
     @Override
     public Optional<String> summarizeConsultation(boolean wantsPurchase, boolean wantsTestDrive,
                                                     String interestedVehicle, boolean hasDriverLicense, String message) {
@@ -76,7 +80,8 @@ public class GeminiSummaryClient implements AiSummaryClient {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String requestBody = objectMapper.writeValueAsString(Map.of(
-                        "contents", new Object[]{Map.of("parts", new Object[]{Map.of("text", prompt)})}));
+                        "contents", new Object[]{Map.of("parts", new Object[]{Map.of("text", prompt)})},
+                        "generationConfig", Map.of("maxOutputTokens", MAX_OUTPUT_TOKENS)));
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"))

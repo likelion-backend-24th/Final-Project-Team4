@@ -24,6 +24,9 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
     private static final Logger log = LoggerFactory.getLogger(GeminiVehicleSearchClient.class);
     private static final int MAX_ATTEMPTS = 2;
 
+    // 응답은 vehicleId 배열 + 한 줄 summary뿐이라 짧다 - 상한 없이 무제한 출력을 막아 토큰 비용을 캡(2026-09-23, 절감 감사).
+    private static final int MAX_OUTPUT_TOKENS = 400;
+
     private final String apiKey;
     private final String model;
     private final ObjectMapper objectMapper;
@@ -50,7 +53,8 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try {
                 String requestBody = objectMapper.writeValueAsString(Map.of(
-                        "contents", new Object[]{Map.of("parts", new Object[]{Map.of("text", prompt)})}));
+                        "contents", new Object[]{Map.of("parts", new Object[]{Map.of("text", prompt)})},
+                        "generationConfig", Map.of("maxOutputTokens", MAX_OUTPUT_TOKENS)));
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent"))
