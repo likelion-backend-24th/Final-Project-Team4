@@ -1,15 +1,15 @@
 package com.team4.expo.controller;
 
 import com.team4.expo.client.PaymentClient;
-import com.team4.expo.domain.ApplicationStatus;
-import com.team4.expo.domain.Booth;
-import com.team4.expo.domain.BoothApplication;
-import com.team4.expo.domain.BoothApplicationGroup;
-import com.team4.expo.domain.Expo;
-import com.team4.expo.repository.BoothApplicationGroupRepository;
-import com.team4.expo.repository.BoothApplicationRepository;
-import com.team4.expo.repository.BoothRepository;
-import com.team4.expo.repository.ExpoRepository;
+import com.team4.expo.booth.domain.ApplicationStatus;
+import com.team4.expo.booth.domain.Booth;
+import com.team4.expo.booth.domain.BoothApplication;
+import com.team4.expo.booth.domain.BoothApplicationGroup;
+import com.team4.expo.expo.domain.Expo;
+import com.team4.expo.booth.repository.BoothApplicationGroupRepository;
+import com.team4.expo.booth.repository.BoothApplicationRepository;
+import com.team4.expo.booth.repository.BoothRepository;
+import com.team4.expo.expo.repository.ExpoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

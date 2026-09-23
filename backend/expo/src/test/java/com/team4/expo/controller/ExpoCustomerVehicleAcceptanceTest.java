@@ -1,15 +1,15 @@
 package com.team4.expo.controller;
 
-import com.team4.expo.domain.Booth;
-import com.team4.expo.domain.Expo;
-import com.team4.expo.domain.Post;
-import com.team4.expo.domain.Vehicle;
-import com.team4.expo.repository.BoothApplicationGroupRepository;
-import com.team4.expo.repository.BoothApplicationRepository;
-import com.team4.expo.repository.BoothRepository;
-import com.team4.expo.repository.ExpoRepository;
-import com.team4.expo.repository.PostRepository;
-import com.team4.expo.repository.VehicleRepository;
+import com.team4.expo.booth.domain.Booth;
+import com.team4.expo.expo.domain.Expo;
+import com.team4.expo.booth.domain.Post;
+import com.team4.expo.vehicle.domain.Vehicle;
+import com.team4.expo.booth.repository.BoothApplicationGroupRepository;
+import com.team4.expo.booth.repository.BoothApplicationRepository;
+import com.team4.expo.booth.repository.BoothRepository;
+import com.team4.expo.expo.repository.ExpoRepository;
+import com.team4.expo.booth.repository.PostRepository;
+import com.team4.expo.vehicle.repository.VehicleRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
