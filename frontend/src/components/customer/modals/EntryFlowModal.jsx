@@ -426,7 +426,7 @@ function EntryFlowModal({ expo, onClose }) {
       {step === 'existing-qr' && tickets.length > 0 && (
         <ExistingTicketQr
           expo={expo}
-          ticket={tickets}
+          tickets={tickets}
           selectedIndex={Math.min(existingIndex, tickets.length - 1)}
           onSelectIndex={setExistingIndex}
           checkInError={checkInError}
