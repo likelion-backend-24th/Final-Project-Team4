@@ -108,25 +108,18 @@ public class GeminiVehicleSearchClient implements VehicleSearchInterpreter {
         }
     }
 
-    // description/features/colors는 자유 텍스트라 수백~2000자까지 길어질 수 있음 - 의미 판단엔 앞부분만으로도
-    // 충분해서(뒤로 갈수록 부가 설명) 잘라서 보냄. 차량 수와 무관하게 매 검색마다 나가는 토큰이라 여기서
-    // 줄이는 게 후보 수 필터링보다 보편적으로 효과 큼(2026-09-15, 담당자 승인 하에 적용).
-    private static final int LONG_FIELD_MAX_LENGTH = 200;
-
-    private static String truncate(String text) {
-        if (text == null || text.length() <= LONG_FIELD_MAX_LENGTH) {
-            return text;
-        }
-        return text.substring(0, LONG_FIELD_MAX_LENGTH) + "...";
-    }
-
+    // 2026-09-15에 description/features/colors를 200자로 잘라 보내는 절단을 적용했었으나, 뒷부분에
+    // 검색 판단에 필요한 정보(예: "가족용" 판단 근거가 되는 트렁크 공간 설명)가 있으면 잘려나가 검색 결과가
+    // 부정확해질 수 있다는 리스크가 실측 없이 남아있었음. 2026-09-23 - CustomerVehicleService.applyHardFilters로
+    // 가격대·차종 조건을 Gemini 호출 전에 미리 걸러 후보 수 자체를 줄이는 방식으로 비용 절감 전략을 바꾸면서
+    // 절단은 원복 - 필드는 원문 그대로 보낸다(정보 손실 없음).
     private record PromptCandidate(Long vehicleId, String name, String tags, Long startPrice, String summary,
                                     String description, String features, String colors,
                                     String range, String battery, String power,
                                     String brand, String category, String drivetrain, Integer seatingCapacity) {
         static PromptCandidate from(VehicleSearchCandidate c) {
             return new PromptCandidate(c.getVehicleId(), c.getName(), c.getTags(), c.getStartPrice(), c.getSummary(),
-                    truncate(c.getDescription()), truncate(c.getFeatures()), truncate(c.getColors()),
+                    c.getDescription(), c.getFeatures(), c.getColors(),
                     c.getRange(), c.getBattery(), c.getPower(),
                     c.getBrand(), c.getCategory(), c.getDrivetrain(), c.getSeatingCapacity());
         }

@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -175,7 +177,12 @@ public class CustomerVehicleService {
             return new VehicleSearchResponse(List.of(), null);
         }
 
-        List<VehicleSearchCandidate> candidates = entries.stream()
+        // 가격대·차종처럼 규칙으로 판단 가능한 조건은 Gemini에 넘기기 전에 먼저 걸러서 후보 수 자체를 줄인다
+        // (2026-09-23, 토큰 비용 절감 - 텍스트 필드를 자르는 대신 후보 수를 줄이는 방식으로 전환).
+        // "가족용"처럼 규칙으로 못 거르는 의미론적 질의는 조건이 하나도 안 잡혀서 원래대로 전체 후보가 그대로 감.
+        List<CandidateEntry> filtered = applyHardFilters(query, entries);
+
+        List<VehicleSearchCandidate> candidates = filtered.stream()
                 .map(e -> toCandidate(e.vehicle()))
                 .toList();
         Optional<VehicleSearchInterpretation> interpretation = vehicleSearchInterpreter.search(query, candidates);
@@ -199,6 +206,59 @@ public class CustomerVehicleService {
                 .toList();
 
         return new VehicleSearchResponse(results, summary);
+    }
+
+    // 가격 질문("300만원대", "5000만원 이하" 등)과 차종("SUV" 등)은 규칙으로 판단 가능해서 Gemini 호출 전에
+    // 미리 거른다. 둘 다 못 찾으면(= 순수 의미론적 질의) 아무것도 안 거르고 전체 후보를 그대로 넘긴다 -
+    // 규칙이 못 잡는 질의를 섣불리 좁혔다가 정답 차량을 후보에서 아예 빼버리는 걸 방지.
+    private static final Pattern PRICE_RANGE = Pattern.compile("(\\d+)\\s*~\\s*(\\d+)\\s*만원");
+    private static final Pattern PRICE_MAX = Pattern.compile("(\\d+)\\s*만원\\s*(이하|이내)");
+    private static final Pattern PRICE_MIN = Pattern.compile("(\\d+)\\s*만원\\s*이상");
+    private static final Pattern PRICE_BAND = Pattern.compile("(\\d+)\\s*만원대");
+    private static final List<String> KNOWN_CATEGORIES = List.of(
+            "세단", "SUV", "스포츠카", "해치백", "미니밴", "트럭", "쿠페", "컨버터블", "이륜차", "전기 이륜차");
+
+    private List<CandidateEntry> applyHardFilters(String query, List<CandidateEntry> entries) {
+        Long priceMin = null;
+        Long priceMax = null;
+
+        Matcher range = PRICE_RANGE.matcher(query);
+        Matcher max = PRICE_MAX.matcher(query);
+        Matcher min = PRICE_MIN.matcher(query);
+        Matcher band = PRICE_BAND.matcher(query);
+        if (range.find()) {
+            priceMin = Long.parseLong(range.group(1)) * 10_000;
+            priceMax = Long.parseLong(range.group(2)) * 10_000;
+        } else if (max.find()) {
+            priceMax = Long.parseLong(max.group(1)) * 10_000;
+        } else if (min.find()) {
+            priceMin = Long.parseLong(min.group(1)) * 10_000;
+        } else if (band.find()) {
+            long base = Long.parseLong(band.group(1)) * 10_000;
+            priceMin = base;
+            priceMax = base + 999_999;
+        }
+
+        String category = KNOWN_CATEGORIES.stream().filter(query::contains).findFirst().orElse(null);
+
+        if (priceMin == null && priceMax == null && category == null) {
+            return entries;
+        }
+
+        Long finalPriceMin = priceMin;
+        Long finalPriceMax = priceMax;
+        String finalCategory = category;
+        List<CandidateEntry> result = entries.stream()
+                .filter(e -> finalPriceMin == null || e.vehicle().getStartPrice() == null
+                        || e.vehicle().getStartPrice() >= finalPriceMin)
+                .filter(e -> finalPriceMax == null || e.vehicle().getStartPrice() == null
+                        || e.vehicle().getStartPrice() <= finalPriceMax)
+                .filter(e -> finalCategory == null || finalCategory.equalsIgnoreCase(e.vehicle().getCategory()))
+                .toList();
+
+        // 조건은 잡았는데 걸리는 차량이 하나도 없으면(예: 실제 없는 가격대) 전체를 보내서 Gemini가
+        // "그 조건엔 없다"는 답을 제대로 내게 한다 - 빈 후보로 보내면 무조건 "없음"으로만 답해버림.
+        return result.isEmpty() ? entries : result;
     }
 
     // 차량 후보로 변환
