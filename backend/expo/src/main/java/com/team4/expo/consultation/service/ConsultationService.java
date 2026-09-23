@@ -260,8 +260,15 @@ public class ConsultationService {
     }
 
     // AI 후기 초안 생성 - 같은 컨텍스트(요구사항+참가업체 메모의 AI 요약본)로 Gemini에 초안을 요청. 실패 시 draft=null(fail-open).
+    // 상담 1건당 MAX_REVIEW_DRAFT_RETRY회로 제한(남용 방지, 2026-09-23).
     public ConsultationReviewDraftResponse draftReview(Long customerId, Long consultationId, String reviewType, String vehicleName) {
         Consultation consultation = findReviewableConsultation(customerId, consultationId);
+
+        if (!consultation.canRetryReviewDraft()) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "AI 후기 초안 재시도 횟수를 초과했습니다.");
+        }
+        consultation.incrementReviewDraftRetryCount();
+
         String exhibitorNote = leadRepository.findByConsultation_Id(consultationId)
                 .map(Lead::getEmailSummary)
                 .orElse(null);
