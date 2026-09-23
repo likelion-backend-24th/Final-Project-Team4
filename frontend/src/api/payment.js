@@ -28,6 +28,11 @@ export const refundBoothPayment = ({ bookingId, reason }) =>
     .post(`/api/exhibitor/payments/${bookingId}/refund`, { reason })
     .then((res) => res.data);
 
+// 모바일에서는 PortOne 결제창이 팝업이 아니라 페이지 이동(redirectUrl)으로 동작해서, 결제 후
+// 돌아온 페이지는 결제를 시작한 컴포넌트와 완전히 다른 새 자바스크립트 컨텍스트임.
+// 결제 시작 전 이 키로 결제 정보를 저장해놓고 돌아온 페이지에서 이어받아 payAdmission을 호출.
+export const PENDING_ADMISSION_PAYMENT_KEY = "pendingAdmissionPayment";
+
 // POST /api/customer/admission-payments - 유료 입장권 결제 (무료 QR이 없는 날짜를 방문할 때).
 // 무료 방문예약처럼 날짜를 여러 개 골라 한 번에 결제하면 그 수만큼 티켓이 각각 발급됨.
 // 결제 대상 고객은 Gateway가 JWT에서 꺼내 X-User-Id로 주입 - body로 customerId를 보내지 않음(서버가 안 받음)

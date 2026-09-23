@@ -7,7 +7,7 @@ import { getTicketStatus, isTicketCheckableToday } from '@/utils/customerData.js
 import { downloadTicketImage } from '@/utils/downloadImage.js';
 import { isLoggedIn } from '@/api/auth.js';
 import { getMyProfile } from '@/api/identity.js';
-import { payAdmission } from '@/api/payment.js';
+import { payAdmission, PENDING_ADMISSION_PAYMENT_KEY } from '@/api/payment.js';
 import { applyVisit, getMyReservations, checkInReservation } from '@/api/reservation.js';
 import { toAssetUrl } from '@/api/expo.js';
 import { AppDialog, InfoList } from '@/components/layout/AppDialog';
@@ -293,6 +293,16 @@ function EntryFlowModal({ expo, onClose }) {
     // 결제 건마다 고유해야 하는 ID. PortOne 결제창과 우리 서버 양쪽에 동일한 값을 사용해서
     // 서버가 나중에 "이 ID로 결제된 게 진짜 맞는지" PortOne에 재확인할 수 있게 함.
     const paymentId = `admission-${crypto.randomUUID()}`;
+    const pendingPayment = {
+      expoId: expo.expoId,
+      visitDates: selectedDates,
+      amount: totalFee,
+      payMethod: PAY_METHOD_CODE[payMethod],
+      paymentId,
+    };
+    // 모바일에서 결제 후 페이지가 이동했다 돌아오면 이 컴포넌트는 사라지고 없으므로, 돌아온 페이지가
+    // 이어받을 수 있게 결제 정보를 미리 저장(CustomerExpoList의 리다이렉트 처리에서 사용).
+    localStorage.setItem(PENDING_ADMISSION_PAYMENT_KEY, JSON.stringify(pendingPayment));
     try {
       const response = await PortOne.requestPayment({
         storeId: PORTONE_STORE_ID,
@@ -302,22 +312,18 @@ function EntryFlowModal({ expo, onClose }) {
         totalAmount: totalFee,
         currency: 'CURRENCY_KRW',
         payMethod: PAY_METHOD_CODE[payMethod],
-        redirectUrl: `${window.location.origin}/customer/expos`,
+        redirectUrl: `${window.location.origin}/customer`,
       });
 
       if (response.code) {
+        localStorage.removeItem(PENDING_ADMISSION_PAYMENT_KEY);
         setPayError(response.message ?? '결제가 취소되었거나 실패했습니다.');
         setPaying(false);
         return;
       }
 
-      const payment = await payAdmission({
-        expoId: expo.expoId,
-        visitDates: selectedDates,
-        amount: totalFee,
-        payMethod: PAY_METHOD_CODE[payMethod],
-        paymentId,
-      });
+      const payment = await payAdmission(pendingPayment);
+      localStorage.removeItem(PENDING_ADMISSION_PAYMENT_KEY);
       setPaidPayment(payment);
 
       // 결제(PAID)는 성공했는데 Reservation 발급 호출이 실패하면 payment.tickets가 비어서 온다
@@ -326,6 +332,7 @@ function EntryFlowModal({ expo, onClose }) {
       const issued = payment.status === 'PAID' && (payment.tickets?.length ?? 0) > 0;
       setStep(issued ? 'pay-done' : 'pay-issue-failed');
     } catch (err) {
+      localStorage.removeItem(PENDING_ADMISSION_PAYMENT_KEY);
       setPayError(err.response?.data?.error?.message ?? '결제 처리 중 오류가 발생했습니다.');
     } finally {
       setPaying(false);

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Calendar, MapPin, Search, Sparkles, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import EntryFlowModal from '@/components/customer/modals/EntryFlowModal';
 import { getCustomerExpoList, searchVehicles, toAssetUrl } from '@/api/expo';
+import { payAdmission, PENDING_ADMISSION_PAYMENT_KEY } from '@/api/payment';
 import { phaseOf, customerPhaseOf } from '@/utils/expoPhase';
 import { CUSTOMER_EXPO_GRADIENTS } from '@/utils/customerData';
 import { EmptyState, PageContainer, PageHero, Pagination } from '@/components/layout/Page';
@@ -53,6 +54,7 @@ const toCard = (e) => ({
 });
 
 function CustomerExpoList() {
+  const navigate = useNavigate();
   // 실제 박람회 목록 (더미 데이터는 사용하지 않음)
   const [expos, setExpos] = useState([]);
   const [loadError, setLoadError] = useState(null);
@@ -94,6 +96,35 @@ function CustomerExpoList() {
         setLoadError(err.response?.data?.error?.message ?? '박람회 목록을 불러오지 못했습니다.'),
       );
   }, []);
+
+  // 모바일 입장권 결제 - PortOne이 팝업 대신 이 페이지(redirectUrl)로 돌려보내는 방식으로 끝난 경우,
+  // EntryFlowModal이 미리 저장해둔 결제 정보로 payAdmission을 이어서 호출해 결제 마무리.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('paymentId');
+    if (!paymentId) return;
+    window.history.replaceState(null, '', window.location.pathname);
+
+    const raw = localStorage.getItem(PENDING_ADMISSION_PAYMENT_KEY);
+    localStorage.removeItem(PENDING_ADMISSION_PAYMENT_KEY);
+    const pending = raw ? JSON.parse(raw) : null;
+    if (!pending || pending.paymentId !== paymentId) return;
+
+    const code = params.get('code');
+    if (code) {
+      alert(params.get('message') || '결제가 취소되었거나 실패했습니다.');
+      return;
+    }
+
+    payAdmission(pending)
+      .then(() => {
+        alert('결제가 완료되었습니다. 나의 입장권에서 확인해주세요.');
+        navigate('/customer/mypage');
+      })
+      .catch((err) =>
+        alert(err.response?.data?.error?.message ?? '결제 처리 중 오류가 발생했습니다.'),
+      );
+  }, [navigate]);
 
   const filtered = useMemo(() => {
     const sort = SORTS.find((s) => s.value === sortOption);
