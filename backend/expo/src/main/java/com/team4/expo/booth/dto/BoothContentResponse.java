@@ -1,0 +1,35 @@
+package com.team4.expo.booth.dto;
+
+import com.team4.expo.booth.domain.Post;
+import lombok.Getter;
+
+import java.time.LocalDateTime;
+
+// 부스 콘텐츠(게시글) 조회/등록/수정 응답
+@Getter
+public class BoothContentResponse {
+
+    private final Long postId;
+    private final Long boothId;
+    private final String title;
+    private final String content;
+    private final LocalDateTime updatedAt;
+
+    public BoothContentResponse(Long postId, Long boothId, String title, String content, LocalDateTime updatedAt) {
+        this.postId = postId;
+        this.boothId = boothId;
+        this.title = title;
+        this.content = content;
+        this.updatedAt = updatedAt;
+    }
+
+    public static BoothContentResponse from(Post post) {
+        return new BoothContentResponse(
+                post.getId(),
+                post.getBooth().getId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getUpdatedAt()
+        );
+    }
+}

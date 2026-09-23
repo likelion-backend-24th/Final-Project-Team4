@@ -2,7 +2,7 @@ package com.team4.expo.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.team4.expo.dto.VehicleAiAnalysisResponse;
+import com.team4.expo.vehicle.dto.VehicleAiAnalysisResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;

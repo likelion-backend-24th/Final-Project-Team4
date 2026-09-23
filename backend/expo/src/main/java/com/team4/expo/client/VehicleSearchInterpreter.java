@@ -1,6 +1,6 @@
 package com.team4.expo.client;
 
-import com.team4.expo.dto.VehicleSearchCandidate;
+import com.team4.expo.vehicle.dto.VehicleSearchCandidate;
 import java.util.List;
 import java.util.Optional;
 

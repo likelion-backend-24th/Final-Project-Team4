@@ -1,6 +1,6 @@
 package com.team4.expo.client;
 
-import com.team4.expo.dto.VehicleAiAnalysisResponse;
+import com.team4.expo.vehicle.dto.VehicleAiAnalysisResponse;
 
 import java.util.List;
 import java.util.Optional;

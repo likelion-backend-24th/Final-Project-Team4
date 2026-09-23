@@ -2,7 +2,7 @@ package com.team4.review.controller;
 
 import com.team4.common.response.ApiResponse;
 import com.team4.review.dto.ExhibitorReviewResponse;
-import com.team4.review.security.GatewayUser;
+import com.team4.common.security.GatewayUser;
 import com.team4.review.service.ReviewService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;

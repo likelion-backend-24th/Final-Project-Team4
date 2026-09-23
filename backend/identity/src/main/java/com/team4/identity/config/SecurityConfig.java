@@ -3,7 +3,7 @@ package com.team4.identity.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ObjectMapperWriter;
-import com.team4.identity.security.GatewayAuthenticationFilter;
+import com.team4.common.security.GatewayAuthenticationFilter;
 import com.team4.identity.security.oauth2.CookieAuthorizationRequestRepository;
 import com.team4.identity.security.oauth2.CustomAuthorizationRequestResolver;
 import com.team4.identity.security.oauth2.CustomOAuth2UserService;

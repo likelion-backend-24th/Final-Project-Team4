@@ -1,11 +1,13 @@
 package com.team4.payment.controller;
 
+import com.team4.common.security.GatewayUser;
 import com.team4.payment.dto.AdmissionPaymentTicketDetailResponse;
 import com.team4.payment.dto.AdmissionRefundResponse;
 import com.team4.payment.dto.RefundRequest;
 import com.team4.payment.entity.AdmissionPayment;
 import com.team4.payment.service.AdmissionPaymentService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,10 +24,10 @@ public class AdmissionPaymentController {
     // X-User-Id 헤더로만 정한다 — body의 customerId를 믿으면 로그인한 사용자가 남의 id로
     // 결제/티켓 발급을 시킬 수 있음.
     @PostMapping
-    public AdmissionPayment pay(@RequestHeader("X-User-Id") Long customerId,
-                                 @RequestBody AdmissionPaymentRequest request) {
+    public AdmissionPayment pay(@AuthenticationPrincipal GatewayUser customer,
+                                @RequestBody AdmissionPaymentRequest request) {
         return admissionPaymentService.pay(
-                customerId,
+                customer.getId(),
                 request.expoId(),
                 request.visitDates(),
                 request.amount(),
@@ -36,17 +38,17 @@ public class AdmissionPaymentController {
 
     // 마이페이지 "나의 입장권" > "..." 메뉴 > 결제 내역 보기
     @GetMapping("/tickets/{ticketId}")
-    public AdmissionPaymentTicketDetailResponse getTicketDetail(@RequestHeader("X-User-Id") Long customerId,
+    public AdmissionPaymentTicketDetailResponse getTicketDetail(@AuthenticationPrincipal GatewayUser customer,
                                                                 @PathVariable Long ticketId){
-        return admissionPaymentService.getTicketDetail(customerId, ticketId);
+        return admissionPaymentService.getTicketDetail(customer.getId(), ticketId);
     }
 
     // 마이페이지 "나의 입장권" > "..." 메뉴 > 환불 신청
     @PostMapping("/tickets/{ticketId}/refund")
-    public AdmissionRefundResponse refundTicket(@RequestHeader("X-User-Id") Long customerId,
+    public AdmissionRefundResponse refundTicket(@AuthenticationPrincipal GatewayUser customer,
                                                 @PathVariable Long ticketId,
                                                 @RequestBody RefundRequest request) {
-        return admissionPaymentService.refundTicket(customerId, ticketId, request.getReason());
+        return admissionPaymentService.refundTicket(customer.getId(), ticketId, request.getReason());
     }
 
     public record AdmissionPaymentRequest(

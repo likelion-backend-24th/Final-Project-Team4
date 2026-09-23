@@ -3,7 +3,7 @@ package com.team4.reservation.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.response.ObjectMapperWriter;
-import com.team4.reservation.security.GatewayAuthenticationFilter;
+import com.team4.common.security.GatewayAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
