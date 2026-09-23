@@ -122,7 +122,7 @@ function CustomerExpoList() {
     <div>
       <PageHero
         eyebrow="EXHIBITION MANAGEMENT PORTAL"
-        title="박람회 목록"
+        title="모빌리티 박람회"
         description="다양한 모빌리티 박람회를 확인하고, 관심 있는 박람회를 선택해 보세요."
       >
         <form
