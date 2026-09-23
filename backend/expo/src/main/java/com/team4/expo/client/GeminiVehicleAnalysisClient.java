@@ -37,9 +37,10 @@ public class GeminiVehicleAnalysisClient implements VehicleAiAnalysisClient {
     // 스펙 JSON 응답이라 짧다 - 상한 없이 무제한 출력을 막아 토큰 비용을 캡(2026-09-23, 절감 감사).
     private static final int MAX_OUTPUT_TOKENS = 700;
 
-    // 원본 사진을 그대로 보내면 해상도에 비례해 Vision 입력 토큰이 커진다 - 스펙 추정에 필요한 디테일(배지 텍스트,
-    // 전조등 형태 등)은 이 정도 해상도면 충분해서 긴 변 기준으로 축소 후 전송(2026-09-23, 절감 감사). 이미 이보다
-    // 작은 사진(카탈로그/보도자료 이미지 등)은 그대로 통과한다.
+    // 2026-09-23 실측(gemini-3.5-flash-lite, 4032x3024 원본 vs 1024x768 축소본 동일 프롬프트 비교):
+    // promptTokenCount가 1172로 완전히 동일(IMAGE 모달리티 1064 토큰 그대로) - 이 모델은 입력 해상도와 무관하게
+    // 이미지를 고정 토큰수로 정규화해서 처리하므로, 리사이즈는 토큰 비용 절감 효과가 없다(가설이 틀렸음, 실측으로 확인).
+    // 그래도 업로드 페이로드 크기(279KB→32KB)와 base64 인코딩·네트워크 전송 비용은 줄어들어 유지한다.
     private static final int MAX_IMAGE_DIMENSION = 1024;
 
     private final String apiKey;
