@@ -96,6 +96,50 @@ class VehicleSearchPreFilterAcceptanceTest {
     }
 
     @Test
+    @DisplayName("'7000만원대'는 7000만~7999만원 범위로 거른다('7천만원대' 표기도 동일)")
+    void 만원대_범위는_끝자리_0개수로_결정() throws Exception {
+        Booth booth = assignedBooth("A-101");
+        saveVehicle(booth, "6900만원 차", 69_000_000L, "세단");
+        saveVehicle(booth, "7500만원 차", 75_000_000L, "세단");
+        saveVehicle(booth, "7999만원 차", 79_990_000L, "세단");
+        saveVehicle(booth, "8000만원 차", 80_000_000L, "세단");
+
+        when(vehicleSearchInterpreter.search(anyString(), any()))
+                .thenReturn(Optional.of(new VehicleSearchInterpretation(List.of(), "요약")));
+
+        for (String query : List.of("7000만원대 차 추천", "7천만원대 차 추천")) {
+            org.mockito.Mockito.clearInvocations(vehicleSearchInterpreter);
+            mockMvc.perform(get("/api/customer/vehicles/search").param("query", query))
+                    .andExpect(status().isOk());
+
+            ArgumentCaptor<List<VehicleSearchCandidate>> captor = ArgumentCaptor.forClass(List.class);
+            verify(vehicleSearchInterpreter).search(anyString(), captor.capture());
+            assertThat(captor.getValue()).extracting(VehicleSearchCandidate::getName)
+                    .containsExactlyInAnyOrder("7500만원 차", "7999만원 차");
+        }
+    }
+
+    @Test
+    @DisplayName("차종은 자유 입력값('SUV차량')도 포함 매칭하고, 차종 미입력 차량은 제외하지 않는다")
+    void 차종_포함매칭_미입력은_유지() throws Exception {
+        Booth booth = assignedBooth("A-101");
+        saveVehicle(booth, "자유입력 SUV", 40_000_000L, "SUV차량");
+        saveVehicle(booth, "차종 미입력", 40_000_000L, null);
+        saveVehicle(booth, "세단", 40_000_000L, "세단");
+
+        when(vehicleSearchInterpreter.search(anyString(), any()))
+                .thenReturn(Optional.of(new VehicleSearchInterpretation(List.of(), "요약")));
+
+        mockMvc.perform(get("/api/customer/vehicles/search").param("query", "suv 추천해줘"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<List<VehicleSearchCandidate>> captor = ArgumentCaptor.forClass(List.class);
+        verify(vehicleSearchInterpreter).search(anyString(), captor.capture());
+        assertThat(captor.getValue()).extracting(VehicleSearchCandidate::getName)
+                .containsExactlyInAnyOrder("자유입력 SUV", "차종 미입력");
+    }
+
+    @Test
     @DisplayName("규칙으로 못 거르는 순수 의미론적 질의는 전체 후보가 그대로 넘어간다")
     void 의미론적_질의는_필터링_안함() throws Exception {
         Booth booth = assignedBooth("A-101");
