@@ -47,7 +47,13 @@ function NotificationBell({ api, targetMap }) {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
 
-  // 마운트 시 SSE 구독. 새 알림 오면 unreadCount 올리고, 드롭다운 열려있으면 목록 맨 위에 얹음
+  // 마운트 시 서버의 안 읽은 개수로 초기화
+  useEffect(() => {
+    api.getUnreadCount().then(setUnreadCount).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api]);
+
+  // SSE 구독. 새 알림 오면 unreadCount 올리고, 드롭다운 열려있으면 목록 맨 위에 얹음
   useEffect(() => {
     const source = api.subscribe((notification) => {
       setUnreadCount((c) => c + 1);
