@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  overflow-y: scroll;
   scrollbar-gutter: stable;
 }
 
@@ -12,6 +13,12 @@ body {
   margin: 0;
   background: #f8fafc;
   color: #0f172a;
+}
+
+/* Radix(react-remove-scroll-bar)가 모달/드롭다운 열릴 때 body에 스크롤바 사라짐을 보정하려고
+   margin-right를 강제로 붙이는데, 위에서 overflow-y: scroll로 스크롤바를 항상 고정해놔서 화면을 왼쪽으로 밀리게 만듦 - 0으로 무효화. */
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
 }
 
 h1, h2, h3 {

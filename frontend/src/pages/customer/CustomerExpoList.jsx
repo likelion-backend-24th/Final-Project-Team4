@@ -234,7 +234,7 @@ function CustomerExpoList() {
                 ))}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Select value={sortOption} onValueChange={setSortOption}>
+                <Select value={sortOption} onValueChange={setSortOption} modal={false}>
                   <SelectTrigger className="h-9 w-44">
                     <SelectValue />
                   </SelectTrigger>
