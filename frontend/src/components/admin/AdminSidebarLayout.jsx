@@ -1,6 +1,6 @@
 import { BarChart3, Bell, Building2, ClipboardList, FilePlus2, LayoutDashboard, UserCheck, Users } from 'lucide-react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import logoIcon from '@/assets/logo-icon.png';
+import logoIcon from '@/assets/M-Logo.png';
 import apiClient from '@/api/client';
 import { clearAuth } from '@/api/auth.js';
 import AccountMenu from '@/components/AccountMenu';
@@ -66,7 +66,7 @@ export function AdminSidebarLayout({ breadcrumb, children }) {
     <div className="flex min-h-screen bg-muted/30">
       <aside className="flex w-60 shrink-0 flex-col border-r border-border bg-background">
         <Link to="/admin" className="flex items-center gap-2.5 px-5 py-5 text-foreground no-underline">
-          <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
+          <img src={logoIcon} alt="" className="size-10 rounded-md object-cover" />
           <span className="font-heading text-sm font-bold tracking-wide">MOBILITY EXPO</span>
         </Link>
 

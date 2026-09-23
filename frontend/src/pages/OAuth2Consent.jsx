@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import logoIcon from '@/assets/logo-icon.png';
+import logoIcon from '@/assets/M-Logo.png';
 import apiClient from '@/api/client';
 import { setAuth } from '@/api/auth';
 import TermsAgreement from '@/components/TermsAgreement';
@@ -32,8 +32,8 @@ function OAuth2Consent() {
     <div className="min-h-screen bg-muted/40">
       <header className="flex items-center border-b border-border bg-background px-4 py-3 md:px-8">
         <Link to="/login" className="flex items-center gap-2.5 text-foreground no-underline">
-          <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
-          <span className="text-sm font-bold tracking-wide">MOBILITY EXPO</span>
+          <img src={logoIcon} alt="" className="size-10 rounded-md object-cover" />
+          <span className="font-heading text-sm font-bold tracking-wide">MOBILITY EXPO</span>
         </Link>
       </header>
 

@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom';
-import logoIcon from '@/assets/logo-icon.png';
+import logoIcon from '@/assets/M-Logo.png';
 import { cn } from '@/lib/utils';
 
 // 세 역할(참가업체/고객/관리자) 헤더가 공유하는 상단 바.
@@ -8,7 +8,7 @@ export function AppHeader({ brandTo, navItems = [], children }) {
   return (
     <header className="sticky top-0 z-40 flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border bg-background/90 px-4 py-3 text-foreground backdrop-blur md:px-8 md:py-3.5">
       <Link to={brandTo} className="flex items-center gap-2.5 text-foreground no-underline">
-        <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
+        <img src={logoIcon} alt="" className="size-10 rounded-md object-cover" />
         <span className="font-heading text-sm font-bold tracking-wide">MOBILITY EXPO</span>
       </Link>
 

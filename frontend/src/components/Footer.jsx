@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logoIcon from '@/assets/logo-icon.png';
+import logoIcon from '@/assets/M-Logo.png';
 import { getRole, useIsLoggedIn } from '@/api/auth';
 import { SITE_NAME } from '@/utils/siteInfo';
 
@@ -42,7 +42,7 @@ function Footer() {
       <div className="grid gap-8 md:grid-cols-[2fr_1fr_1fr]">
         <div className="flex flex-col items-start gap-3.5">
           <div className="flex items-center gap-2.5 font-semibold text-foreground">
-            <img src={logoIcon} alt="" className="size-7 rounded-md object-cover" />
+            <img src={logoIcon} alt="" className="size-9 rounded-md object-cover" />
             <span>{SITE_NAME}</span>
           </div>
           <p className="m-0">자동차 박람회 참관객과 참가업체를 잇는 통합 플랫폼</p>

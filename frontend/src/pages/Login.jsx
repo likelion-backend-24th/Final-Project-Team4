@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/M-Logo.png";
 import heroImage from "@/assets/login-hero.png";
 import googleSymbol from "@/assets/google.png";
 import kakaoSymbol from "@/assets/kakako.png";
@@ -229,8 +229,8 @@ function Login() {
         }}
       >
         <div className="flex items-center gap-2">
-          <img src={logoIcon} alt="" className="size-8 rounded-md object-cover" />
-          <span className="text-lg font-bold tracking-wide">MOBILITY EXPO</span>
+          <img src={logoIcon} alt="" className="size-10 rounded-md object-cover" />
+          <span className="font-heading text-lg font-bold tracking-wide">MOBILITY EXPO</span>
         </div>
 
         <div className="max-w-2xl">
