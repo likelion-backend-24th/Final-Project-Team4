@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  scrollbar-gutter: stable;
 }
 
 * {

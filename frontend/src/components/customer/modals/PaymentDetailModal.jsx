@@ -63,7 +63,7 @@ function PaymentDetailModal({ ticket, onClose }) {
             닫기
           </Button>
           <Button onClick={handleDownload} disabled={!detail}>
-            다운받기
+            다운로드
           </Button>
         </>
       }
