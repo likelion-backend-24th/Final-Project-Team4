@@ -2,10 +2,7 @@
 
 멋사 백엔드 24기 심화 프로젝트입니다. Agile과 MSA로 4주간(2026.08.31 ~ 09.30) 진행한 모빌리티 쇼(자동차 박람회) 예약, 참가, 사후 경험 통합 플랫폼입니다.
 
-| 구분 | 주소 |
-|---|---|
-| 서비스 (프론트엔드, Vercel) | https://mobility-expo.vercel.app |
-| API (Nginx, Oracle Cloud) | https://mobility-expo.duckdns.org |
+배포 주소: https://mobility-expo.vercel.app
 
 ## 프로젝트 개요
 
