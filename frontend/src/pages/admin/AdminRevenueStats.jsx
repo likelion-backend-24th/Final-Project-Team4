@@ -1,10 +1,13 @@
+import { ArrowLeft } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAdminExpoList } from '@/api/expo';
 import { getExpoRevenue, getPaymentStats } from '@/api/payment';
 import { toIsoDate } from '@/utils/calendar';
 import { AdminSidebarLayout } from '@/components/admin/AdminSidebarLayout';
 import { EmptyState, PageHeader } from '@/components/layout/Page';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +23,7 @@ function defaultDate(offsetDays) {
 }
 
 function AdminRevenueStats() {
+  const navigate = useNavigate();
   const [expos, setExpos] = useState([]);
   const [expoId, setExpoId] = useState('');
   const [from, setFrom] = useState(defaultDate(-29));
@@ -59,6 +63,9 @@ function AdminRevenueStats() {
 
   return (
     <AdminSidebarLayout breadcrumb="통계">
+      <Button type="button" variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => navigate('/admin/stats')}>
+        <ArrowLeft /> 통계
+      </Button>
       <PageHeader title="결제 통계" description="박람회별 매출 현황과 일별 결제·환불 통계를 확인합니다." />
 
       <div className="flex flex-col gap-6">
