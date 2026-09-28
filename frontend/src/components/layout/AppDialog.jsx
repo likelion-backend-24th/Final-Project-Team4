@@ -31,7 +31,8 @@ export function AppDialog({
       <DialogContent
         showCloseButton={dismissible}
         className={cn('max-h-[90vh] gap-4 overflow-y-auto', SIZES[size], className)}
-        onPointerDownOutside={(e) => !dismissible && e.preventDefault()}
+        onPointerDownOutside={(e) => (!dismissible || e.target.closest('[data-slot="dialog-content"]')) && e.preventDefault()}
+        onFocusOutside={(e) => (!dismissible || e.target.closest('[data-slot="dialog-content"]')) && e.preventDefault()}
         onEscapeKeyDown={(e) => !dismissible && e.preventDefault()}
       >
         <DialogHeader className={cn(centered && 'items-center text-center')}>
