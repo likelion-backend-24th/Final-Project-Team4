@@ -19,7 +19,7 @@ public record PaymentListItemResponse(
         return new PaymentListItemResponse(
                 payment.getBookingId(),
                 payment.getExpoId(),
-                payment.getExpoId(),
+                payment.getAmount(),
                 payment.getStatus(),
                 payment.getPayMethod(),
                 payment.getApprovedAt(),
