@@ -64,12 +64,15 @@
 ```
 브라우저 -> Vercel (React 정적 배포)
    |
-   +-> Nginx :443 (HTTPS) -> Gateway :8080 -> identity     :8081  (MySQL identity, Redis)
-                                            -> expo         :8082  (MySQL expo, 업로드 볼륨)
-                                            -> payment      :8083  (MySQL payment)
-                                            -> reservation  :8084  (MySQL reservation)
-                                            -> review       :8085  (MySQL review, 업로드 볼륨)
+   +-> Nginx :443 (HTTPS) -> Gateway :8080 -> identity     :8080  (MySQL identity, Redis)
+                                            -> expo         :8080  (MySQL expo, 업로드 볼륨)
+                                            -> payment      :8080  (MySQL payment)
+                                            -> reservation  :8080  (MySQL reservation)
+                                            -> review       :8080  (MySQL review, 업로드 볼륨)
 ```
+
+서버(도커)에서는 모든 서비스가 컨테이너 안 8080으로 뜨고 `http://expo:8080`처럼 컨테이너 이름으로 호출하며, 외부에는 Nginx 80/443만 열려 있습니다.
+로컬 실행 시에는 포트가 겹치지 않도록 Gateway 8080, identity 8081, expo 8082, payment 8083, reservation 8084, review 8085를 사용합니다.
 
 | 서비스 | 책임 |
 |---|---|

@@ -46,6 +46,7 @@ services:
     env_file: .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: "8080"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
@@ -69,11 +70,12 @@ services:
     env_file: .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: "8080"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      PAYMENT_BASE_URL: http://payment:8083
-      RESERVATION_BASE_URL: http://reservation:8084
+      PAYMENT_BASE_URL: http://payment:8080
+      RESERVATION_BASE_URL: http://reservation:8080
       SPRING_JPA_SHOW_SQL: "false"
     volumes:
       - expo-uploads:/uploads
@@ -90,11 +92,12 @@ services:
     env_file: .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: "8080"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      EXPO_BASE_URL: http://expo:8082
-      IDENTITY_BASE_URL: http://identity:8081
+      EXPO_BASE_URL: http://expo:8080
+      IDENTITY_BASE_URL: http://identity:8080
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
@@ -109,11 +112,12 @@ services:
     env_file: .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: "8080"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      EXPO_BASE_URL: http://expo:8082
-      RESERVATION_BASE_URL: http://reservation:8084
+      EXPO_BASE_URL: http://expo:8080
+      RESERVATION_BASE_URL: http://reservation:8080
       SPRING_JPA_SHOW_SQL: "false"
     networks:
       - backend
@@ -128,11 +132,12 @@ services:
     env_file: .env
     environment:
       TZ: Asia/Seoul
+      SERVER_PORT: "8080"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: app
-      EXPO_BASE_URL: http://expo:8082
-      IDENTITY_BASE_URL: http://identity:8081
+      EXPO_BASE_URL: http://expo:8080
+      IDENTITY_BASE_URL: http://identity:8080
       SPRING_JPA_SHOW_SQL: "false"
     volumes:
       - review-uploads:/uploads
