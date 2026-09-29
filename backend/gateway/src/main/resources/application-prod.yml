@@ -3,47 +3,47 @@ spring:
     gateway:
       routes:
         - id: identity
-          uri: http://identity:8081
+          uri: http://identity:8080
           predicates:
             - Path=/api/auth/**
         - id: identity-oauth2
-          uri: http://identity:8081
+          uri: http://identity:8080
           predicates:
             - Path=/oauth2/**,/login/oauth2/**
         - id: payment
-          uri: http://payment:8083
+          uri: http://payment:8080
           predicates:
             - Path=/api/exhibitor/payments/**,/api/customer/admission-payments/**,/api/admin/expos/*/revenue,/api/admin/stats/**
         - id: expo-customer
-          uri: http://expo:8082
+          uri: http://expo:8080
           predicates:
               - Path=/api/customer/expos/**,/api/customer/consultations/**,/api/customer/vehicles/**,/api/customer/notifications/**
         - id: review
-          uri: http://review:8085
+          uri: http://review:8080
           predicates:
               - Path=/api/customer/booths/**,/api/customer/reviews/**
         - id: review-exhibitor
-          uri: http://review:8085
+          uri: http://review:8080
           predicates:
               - Path=/api/exhibitor/booths/*/reviews
         - id: identity-admin
-          uri: http://identity:8081
+          uri: http://identity:8080
           predicates:
             - Path=/api/admin/users/**
         - id: reservation
-          uri: http://reservation:8084
+          uri: http://reservation:8080
           predicates:
             - Path=/api/admin/reservation/**,/api/customer/**
         - id: expo
-          uri: http://expo:8082
+          uri: http://expo:8080
           predicates:
             - Path=/api/admin/**,/api/exhibitor/**
         - id: review-uploads
-          uri: http://review:8085
+          uri: http://review:8080
           predicates:
             - Path=/uploads/review/**
         - id: expo-uploads
-          uri: http://expo:8082
+          uri: http://expo:8080
           predicates:
             - Path=/uploads/**
       globalcors:

@@ -64,12 +64,15 @@
 ```
 브라우저 -> Vercel (React 정적 배포)
    |
-   +-> Nginx :443 (HTTPS) -> Gateway :8080 -> identity     :8081  (MySQL identity, Redis)
-                                            -> expo         :8082  (MySQL expo, 업로드 볼륨)
-                                            -> payment      :8083  (MySQL payment)
-                                            -> reservation  :8084  (MySQL reservation)
-                                            -> review       :8085  (MySQL review, 업로드 볼륨)
+   +-> Nginx :443 (HTTPS) -> Gateway :8080 -> identity     :8080  (MySQL identity, Redis)
+                                            -> expo         :8080  (MySQL expo, 업로드 볼륨)
+                                            -> payment      :8080  (MySQL payment)
+                                            -> reservation  :8080  (MySQL reservation)
+                                            -> review       :8080  (MySQL review, 업로드 볼륨)
 ```
+
+서버(도커)에서는 모든 서비스가 컨테이너 안 8080으로 뜨고 `http://expo:8080`처럼 컨테이너 이름으로 호출하며, 외부에는 Nginx 80/443만 열려 있습니다.
+로컬 실행 시에는 포트가 겹치지 않도록 Gateway 8080, identity 8081, expo 8082, payment 8083, reservation 8084, review 8085를 사용합니다.
 
 | 서비스 | 책임 |
 |---|---|
@@ -169,9 +172,9 @@ cd backend
 
 ## 팀 구성
 
-|이름|역할|
-|-|-|
-|김재혁|팀장|
-|김다솜|팀원|
-|이동건|팀원|
-|정의찬|팀원|
+|이름|역할|기여|
+|-|-|-|
+|김재혁|팀장|인증(identity): 회원가입, 이메일 인증, JWT 로그인과 토큰 재발급, 소셜 로그인, 비밀번호 재설정, 회원정보 수정과 탈퇴<br>Gateway: JWT 검증 필터, TraceId, 라우팅, Swagger 통합<br>박람회 수정, 삭제, 배너 이미지, 일정 변경 시 QR 정리와 알림, 실시간 알림(SSE)<br>부스 참가 취소와 참가비 환불, AI 자연어 차량 검색<br>관리자 대시보드, 매출과 입장 통계<br>배포: Dockerfile, CI(GitHub Actions), 운영 compose|
+|김다솜|팀원|결제(payment): PortOne 연동, 부스 참가비 결제, 당일 입장권 결제, 유료 입장권 환불<br>부스 배치도(다중 선택, 홀 단위 레이아웃, 신청 상태별 색상)<br>관리자 화면 사이드바 레이아웃, 참가업체 관리 화면<br>마이페이지 결제 내역 다운로드, 회원 탈퇴 시 입장권 QR 무효화|
+|이동건|팀원|박람회, 부스 도메인 설계와 박람회 등록, 공개 API<br>부스 참가 신청, 부스 콘텐츠와 전시 차량 등록 API<br>알림 도메인(부스 심사 결과, 상담 접수, 상담 확정 알림)<br>관리자 회원 관리(목록, 검색, 상세, 정지와 정지 해제)|
+|정의찬|팀원|부스 참가 신청 심사(다중 선택, 임시저장, 승인과 반려)<br>입장(reservation): 날짜별 무료 QR 예약, 체크인, 유료 입장권 다중 날짜 결제<br>상담 신청과 시간대별 정원 관리, 상담 AI 요약<br>QR 리드 확보와 AI 안내 메일 발송<br>후기(review): 상담, 부스 후기, 사진 첨부, AI 후기 초안과 문장 다듬기<br>고객 화면 구현, shadcn/ui 도입|
