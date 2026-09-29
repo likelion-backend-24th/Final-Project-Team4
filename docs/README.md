@@ -20,7 +20,7 @@
 | 실행·배포 가이드 | https://app.notion.com/p/3cd73873401a80289a67f4f0c4ad3713?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [실행,배포가이드.md](실행,배포가이드.md) |
 | 트러블슈팅 | https://app.notion.com/p/3cd73873401a8003a0f3c8ebc33151bb?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [트러블슈팅.md](트러블슈팅.md) |
 | Sprint Review | https://app.notion.com/p/Sprint-Review-3cd73873401a8035bfa5c25b45451049?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [스프린트리뷰.md](스프린트리뷰.md) |
-| Sprint Retrospective | https://app.notion.com/p/Sprint-Retrospective-3cd73873401a800780abce673be5f16d?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/retrospective.md` 생성 |
+| Sprint Retrospective | https://app.notion.com/p/Sprint-Retrospective-3cd73873401a800780abce673be5f16d?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [retrospective.md](retrospective.md) |
 
 ## 첫날 확인
 
