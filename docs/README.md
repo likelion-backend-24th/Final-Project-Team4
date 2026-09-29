@@ -18,7 +18,7 @@
 | 테스트 전략 | https://app.notion.com/p/3cd73873401a8048a40afe206d430037?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [테스트전략.md](테스트전략.md) |
 | 테스트 체크리스트 | https://app.notion.com/p/3cd73873401a80daa257c530e92a5c9a?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [테스트 체크리스트.md](테스트%20체크리스트.md) |
 | 실행·배포 가이드 | https://app.notion.com/p/3cd73873401a80289a67f4f0c4ad3713?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [실행,배포가이드.md](실행,배포가이드.md) |
-| 트러블슈팅 | https://app.notion.com/p/3cd73873401a8003a0f3c8ebc33151bb?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/트러블슈팅.md` 생성 |
+| 트러블슈팅 | https://app.notion.com/p/3cd73873401a8003a0f3c8ebc33151bb?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [트러블슈팅.md](트러블슈팅.md) |
 | Sprint Review | https://app.notion.com/p/Sprint-Review-3cd73873401a8035bfa5c25b45451049?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | [스프린트리뷰.md](스프린트리뷰.md) |
 | Sprint Retrospective | https://app.notion.com/p/Sprint-Retrospective-3cd73873401a800780abce673be5f16d?source=copy_link | 이동건, 김재혁, 정의찬, 김다솜 | 없음 — Sprint Review 뒤 `docs/retrospective.md` 생성 |
 
