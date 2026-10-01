@@ -1,12 +1,14 @@
 package com.team4.payment.repository;
 
 import com.team4.payment.entity.AdmissionPaymentTicket;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,6 +17,11 @@ public interface AdmissionPaymentTicketRepository extends JpaRepository<Admissio
     // 조회 즉시 소유자(customerId) 확인을 위해 부모 AdmissionPayment까지 같이 가져온다(N+1 방지).
     @EntityGraph(attributePaths = "admissionPayment")
     Optional<AdmissionPaymentTicket> findByTicketId(Long ticketId);
+
+    // 환불용: 티켓 행 비관적 락 - 같은 티켓의 동시 환불을 한 번에 하나씩만 처리
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM AdmissionPaymentTicket t WHERE t.ticketId = :ticketId")
+    Optional<AdmissionPaymentTicket> findByTicketIdForUpdate(@Param("ticketId") Long ticketId);
 
     // 박람회별 당일 입장권 환불 집계 - 날짜 단위 부분 환불이 반영된 금액 합
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM AdmissionPaymentTicket t WHERE t.admissionPayment.expoId = :expoId AND t.refundedAt IS NOT NULL")

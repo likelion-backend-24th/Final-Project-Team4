@@ -128,6 +128,9 @@ public class AdmissionPaymentService {
     // 이 순서를 반대로 하면(환불 먼저 처리) "환불은 됐는데 QR은 아직 살아서 입장이 되는" 사고가 날 수 있다.
     @Transactional
     public AdmissionRefundResponse refundTicket(Long customerId, Long ticketId, String reason) {
+        // 티켓 행을 먼저 잠궈 동시 환불 요청은 앞 요청이 커밋된 뒤 아래 isRefunded()에서 거절되도록 함
+        admissionPaymentTicketRepository.findByTicketIdForUpdate(ticketId);
+
         AdmissionPaymentTicket ticket = findOwnedTicket(customerId, ticketId);
         AdmissionPayment payment = ticket.getAdmissionPayment();
 
