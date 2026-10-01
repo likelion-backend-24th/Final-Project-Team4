@@ -29,7 +29,6 @@ public class PasswordResetService {
     private String frontendUrl;
 
     // 재설정 요청 - 가입 여부와 무관하게 항상 메일을 한 번 보내서 응답 시간으로 가입 여부가 새지 않게 함
-    @Transactional(readOnly = true)
     public void request(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
 

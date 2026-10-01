@@ -38,6 +38,10 @@ spring:
           auth: true
           starttls:
             enable: true
+          # SMTP 서버가 응답하지 않을 때 무한 대기하지 않도록 연결, 읽기, 쓰기 타임아웃 지정 (ms)
+          connectiontimeout: 5000
+          timeout: 10000
+          writetimeout: 10000
 
   security:
     oauth2:
