@@ -11,6 +11,7 @@ import com.team4.identity.user.domain.UserStatus;
 import com.team4.identity.user.repository.UserRepository;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -71,9 +72,19 @@ public class SignInService {
 
         Long userId = parseUserId(refreshToken);
 
+        // 이미 회전된 토큰이 다시 오면 탈취로 보고 현재 세션까지 끊음
+        if (refreshTokenStore.isReused(refreshToken)) {
+            refreshTokenStore.delete(userId);
+
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "만료된 리프레시 토큰입니다.");
+        }
+
         boolean rememberMe = refreshTokenStore.validate(userId, refreshToken).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "만료된 리프레시 토큰입니다."));
 
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.UNAUTHENTICATED, "유효하지 않은 리프레시 토큰입니다."));
+
+        // 재발급으로 회전된 토큰 기록
+        refreshTokenStore.markUsed(refreshToken, Duration.ofMillis(jwtProvider.getRefreshTokenExp()));
 
         return issue(user, rememberMe, response);
     }

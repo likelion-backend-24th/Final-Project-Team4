@@ -383,7 +383,7 @@ function EntryFlowModal({ expo, onClose }) {
     'entry-guide': '사전 체크인 완료',
     payment: '결제 수단 선택',
     'pay-done': '결제 완료',
-    'pay-issue-failed': '결제 완료 · QR 발급 실패',
+    'pay-issue-failed': paidPayment?.status === 'FAILED' ? 'QR 발급 실패, 결제 취소' : '결제 완료 · QR 발급 실패',
     'ticket-qr': '입장 준비 완료!',
     'guest-info': '박람회 정보 둘러보기',
   }[step];
@@ -457,7 +457,7 @@ function EntryFlowModal({ expo, onClose }) {
       )}
 
       {step === 'pay-issue-failed' && (
-        <PayIssueFailed amount={totalFee} payMethod={payMethod} onMyPage={goMyPage} onLookAround={goDetail} />
+        <PayIssueFailed amount={totalFee} payMethod={payMethod} refunded={paidPayment?.status === 'FAILED'} onMyPage={goMyPage} onLookAround={goDetail} />
       )}
 
       {step === 'ticket-qr' && tickets.length > 0 && (
@@ -942,14 +942,23 @@ function PayDone({ amount, payMethod, onCheckQr, onLookAround }) {
 // 결제(PAID)는 완료됐지만 Reservation 쪽 QR 발급이 실패한 예외 상황 전용 안내 화면.
 // 돈은 이미 냈으므로 "실패"가 아니라 "결제는 됐는데 QR이 아직 없다"를 정확히 전달하고,
 // 재발급 API가 따로 없어 지금은 마이페이지 재확인 + 고객센터 안내만 제공한다.
-function PayIssueFailed({ amount, payMethod, onMyPage, onLookAround }) {
+// refunded: QR 발급 실패 후 서버가 결제를 자동 취소한 경우(status FAILED). 취소까지 실패하면 PAID로 와서 기존 안내를 보여줌
+function PayIssueFailed({ amount, payMethod, refunded, onMyPage, onLookAround }) {
   return (
     <>
-      <StepIntro
-        icon={<CircleAlert className="text-destructive" />}
-        title="결제는 완료됐지만 QR 발급에 실패했어요"
-        desc="결제 금액은 정상 처리됐지만 입장권(QR) 발급 중 일시적인 오류가 발생했습니다. 잠시 후 마이페이지에서 다시 확인해주세요. 계속 보이지 않으면 고객센터로 문의해주시면 결제 내역을 확인해 QR을 재발급해드립니다."
-      />
+      {refunded ? (
+        <StepIntro
+          icon={<CircleAlert className="text-destructive" />}
+          title="QR 발급에 실패해 결제가 자동 취소됐어요"
+          desc="입장권(QR) 발급 중 일시적인 오류가 발생하여 결제가 취소되었습니다. 결제 금액은 카드사에 따라 영업일 기준 3~5일 안에 환불됩니다. 잠시 후 다시 시도해주세요."
+        />
+      ) : (
+        <StepIntro
+          icon={<CircleAlert className="text-destructive" />}
+          title="결제는 완료됐지만 QR 발급에 실패했어요"
+          desc="결제 금액은 정상 처리됐지만 입장권(QR) 발급 중 일시적인 오류가 발생했습니다. 잠시 후 마이페이지에서 다시 확인해주세요. 계속 보이지 않으면 고객센터로 문의해주시면 결제 내역을 확인해 QR을 재발급해드립니다."
+        />
+      )}
       <PaySummary amount={amount} payMethod={payMethod} />
       <StepActions>
         <Button size="lg" onClick={onMyPage}>마이페이지에서 확인하기</Button>

@@ -28,7 +28,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 // 참가업체가 부스에서 고객 QR을 스캔해 리드(연락처)를 확보 (TASK 11-2), 현장 상담 메모를 이메일 초안으로 정리 (TASK 11-3).
 @Service
@@ -42,12 +45,14 @@ public class LeadService {
     private final ReservationClient reservationClient;
     private final IdentityClient identityClient;
     private final AiSummaryClient aiSummaryClient;
+    private final TransactionTemplate tx;
 
     public LeadService(LeadRepository leadRepository, BoothRepository boothRepository,
                         BoothApplicationRepository boothApplicationRepository,
                         ConsultationRepository consultationRepository,
                         ReservationClient reservationClient, IdentityClient identityClient,
-                        AiSummaryClient aiSummaryClient) {
+                        AiSummaryClient aiSummaryClient, PlatformTransactionManager transactionManager) {
+        this.tx = new TransactionTemplate(transactionManager);
         this.leadRepository = leadRepository;
         this.boothRepository = boothRepository;
         this.boothApplicationRepository = boothApplicationRepository;
@@ -171,28 +176,44 @@ public class LeadService {
 
     // 참가업체가 확정한 이메일 본문을 고객에게 최종 발송(TASK 11-4). Identity 내부 API 호출 실패 시
     // 예외가 그대로 전파되어(fail-closed) 리드 상태를 바꾸지 않고 재시도 가능하게 둔다.
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public LeadResponse sendInfo(Long exhibitorId, Long leadId, String emailBody) {
-        Lead lead = findOwnedLead(exhibitorId, leadId);
+        // 메일 발송간 DB 커넥션을 잡지 않도록 조회, 발송, 상태 저장 분리.
 
-        if (!lead.isLeadConsent()) {
-            throw new CustomException(ErrorCode.INVALID_STATE, "고객이 연락처 제공에 동의하지 않아 발송할 수 없습니다.");
-        }
-        if (lead.getCustomerEmail() == null || lead.getCustomerEmail().isBlank()) {
-            throw new CustomException(ErrorCode.INVALID_STATE, "고객 이메일이 없어 발송할 수 없습니다. 이메일을 먼저 입력해주세요.");
-        }
+        // 1. 검증과 발송 정보 준비
+        MailTarget target = tx.execute(status -> {
+            Lead lead = findOwnedLead(exhibitorId, leadId);
 
-        identityClient.sendMail(lead.getCustomerEmail(), buildSendInfoSubject(exhibitorId, lead), emailBody);
-        lead.markSent();
+            if (!lead.isLeadConsent()) {
+                throw new CustomException(ErrorCode.INVALID_STATE, "고객이 연락처 제공에 동의하지 않아 발송할 수 없습니다.");
+            }
+            if (lead.getCustomerEmail() == null || lead.getCustomerEmail().isBlank()) {
+                throw new CustomException(ErrorCode.INVALID_STATE, "고객 이메일이 없어 발송할 수 없습니다. 이메일을 먼저 입력해주세요.");
+            }
 
-        // 발송 성공이 실제 상담 완료의 직접 증거이므로, 연결된 Consultation이 APPROVED면 방문 예정일과 무관하게
-        // 바로 COMPLETED로 전이한다(기존 completeConsultation()의 "다음날부터" 날짜 게이트와 별개 경로, 2026-09-14 확정).
-        Consultation consultation = lead.getConsultation();
-        if (consultation != null && consultation.getStatus() == ConsultationStatus.APPROVED) {
-            consultation.complete();
-        }
+            return new MailTarget(lead.getCustomerEmail(), lead.getBooth().getExpo().getTitle(), lead.getBooth().getBoothNo());
+        });
 
-        return LeadResponse.from(lead);
+        // 2. 트랜잭션 밖에서 발송
+        identityClient.sendMail(target.email(), buildSendInfoSubject(exhibitorId, target), emailBody);
+
+        // 3. 발송 결과 저장
+        return tx.execute(status -> {
+            Lead lead = findOwnedLead(exhibitorId, leadId);
+            lead.markSent();
+
+            // 발송 성공이 실제 상담 완료의 직접 증거이므로, 연결된 Consultation이 APPROVED면 방문 예정일과 무관하게
+            // 바로 COMPLETED로 전이한다(기존 completeConsultation()의 "다음날부터" 날짜 게이트와 별개 경로, 2026-09-14 확정).
+            Consultation consultation = lead.getConsultation();
+            if (consultation != null && consultation.getStatus() == ConsultationStatus.APPROVED) {
+                consultation.complete();
+            }
+
+            return LeadResponse.from(lead);
+        });
     }
+
+    private record MailTarget(String email, String expoTitle, String boothNo) {}
 
     // 워크인 리드는 스캔 시점엔 동의가 없는 상태(leadConsent=false)로 생성됨 - 참가업체가 QR 스캔 결과
     // 화면에서 고객에게 구두로 연락처 제공 동의를 확인한 뒤 체크박스로 표시하면 이 API로 확정(2026-09-18 확정).
@@ -219,14 +240,13 @@ public class LeadService {
 
     // 고객이 여러 박람회·여러 업체에서 상담을 받으면 메일 제목만 보고는 구분이 안 되던 문제(2026-09-15) -
     // 박람회명 + 참가업체명을 제목에 박아준다. 회사명 조회 실패 시엔 부스 번호로 대체(발송 자체는 막지 않음).
-    private String buildSendInfoSubject(Long exhibitorId, Lead lead) {
-        String expoTitle = lead.getBooth().getExpo().getTitle();
+    private String buildSendInfoSubject(Long exhibitorId, MailTarget target) {
         String exhibitorLabel = identityClient.getExhibitorProfile(exhibitorId)
                 .map(ExhibitorProfile::companyName)
                 .filter(name -> name != null && !name.isBlank())
-                .orElseGet(() -> lead.getBooth().getBoothNo() + " 부스");
+                .orElseGet(() -> target.boothNo() + " 부스");
 
-        return "[" + expoTitle + "] " + exhibitorLabel + " 방문 상담 내용 정리 및 안내";
+        return "[" + target.expoTitle() + "] " + exhibitorLabel + " 방문 상담 내용 정리 및 안내";
     }
 
     private Booth findOwnedBooth(Long exhibitorId, Long boothId) {

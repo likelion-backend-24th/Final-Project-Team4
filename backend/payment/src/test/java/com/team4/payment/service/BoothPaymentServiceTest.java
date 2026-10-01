@@ -62,6 +62,8 @@ public class BoothPaymentServiceTest {
                 new BookingInfoResponse("group-2", 1L, 100L, List.of(new BookingInfoResponse.BoothFeeInfo(12L, 300_000L)), false)
         ));
 
+        when(paymentGateway.requestPayment(any(), any(), anyLong())).thenReturn(PaymentGateway.PaymentGatewayResult.failure("결제 미완료"));
+
         assertThatThrownBy(() -> paymentService.pay("group-2", 100L, 300_000L, "CARD", "test-payment-2"))
                 .isInstanceOf(CustomException.class);
     }

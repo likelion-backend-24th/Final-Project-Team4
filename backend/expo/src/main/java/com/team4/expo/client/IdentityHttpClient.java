@@ -105,7 +105,7 @@ public class IdentityHttpClient implements IdentityClient {
                     .uri(URI.create(identityBaseUrl + "/internal/identity/mails"))
                     .header("Authorization", "Bearer " + serviceToken)
                     .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(Duration.ofSeconds(15))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 

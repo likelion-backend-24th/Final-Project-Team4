@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface AdmissionPaymentRepository extends JpaRepository<AdmissionPayment, Long> {
 
+    boolean existsByPortonePaymentId(String portonePaymentId);
+
     // 박람회별 당일 입장권 결제 총액(한 번이라도 결제 완료된 건 - PAID 또는 CANCELLED)
     @Query("SELECT COALESCE(SUM(a.amount), 0) FROM AdmissionPayment a WHERE a.expoId = :expoId " +
             "AND a.status IN (com.team4.payment.entity.PaymentStatus.PAID, com.team4.payment.entity.PaymentStatus.CANCELLED)")

@@ -16,6 +16,8 @@ import java.util.Optional;
 public class RefreshTokenStore {
 
     private static final String KEY_PREFIX = "refresh:";
+    private static final String USED_PREFIX = "used:refresh:";
+    private static final Duration REUSE_GRACE = Duration.ofSeconds(10);
 
     private final StringRedisTemplate redis;
 
@@ -36,6 +38,18 @@ public class RefreshTokenStore {
 
     public void delete(Long userId) {
         redis.delete(KEY_PREFIX + userId);
+    }
+
+    // 재발급에 쓰인(회전된) 토큰을 사용됨으로 기록. 값은 회전 시각(ms)
+    public void markUsed(String refreshToken, Duration ttl) {
+        redis.opsForValue().set(USED_PREFIX + hash(refreshToken), String.valueOf(System.currentTimeMillis()), ttl);
+    }
+
+    // 이미 회전된 토큰이 다시 오면 탈취로 판단
+    public boolean isReused(String refreshToken) {
+        String rotatedAt = redis.opsForValue().get(USED_PREFIX + hash(refreshToken));
+
+        return rotatedAt != null && System.currentTimeMillis() - Long.parseLong(rotatedAt) > REUSE_GRACE.toMillis();
     }
 
     private String hash(String token) {

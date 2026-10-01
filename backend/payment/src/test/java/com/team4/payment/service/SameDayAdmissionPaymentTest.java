@@ -68,6 +68,8 @@ class SameDayAdmissionPaymentTest {
 
         when(reservationClient.getAdmissionContext(100L, 1L, ONE_DATE))
                 .thenReturn(new AdmissionContext(1L, 100L, ONE_DATE, 20_000L));
+        // 결제창에서 결제가 완료되지 않은 건이라 자동 취소 대상 x
+        when(paymentGateway.requestPayment(any(), any(), anyLong())) .thenReturn(PaymentGateway.PaymentGatewayResult.failure("결제 미완료"));
 
         assertThatThrownBy(() -> service.pay(100L, 1L, ONE_DATE, 20_000L, "CARD", "test-admission-2"))
                 .isInstanceOf(CustomException.class);
