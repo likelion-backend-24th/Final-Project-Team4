@@ -9,6 +9,7 @@ import com.team4.expo.booth.domain.BoothApplication;
 import com.team4.expo.notification.domain.NotificationType;
 import com.team4.expo.booth.dto.BoothApplicationDecisionResponse;
 import com.team4.expo.booth.repository.BoothApplicationRepository;
+import com.team4.expo.booth.repository.BoothRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +23,14 @@ public class BoothApplicationReviewService {
             List.of(ApplicationStatus.PAYMENT_PENDING, ApplicationStatus.CONFIRMED);
 
     private final BoothApplicationRepository boothApplicationRepository;
+    private final BoothRepository boothRepository;
     private final NotificationService notificationService;
 
     public BoothApplicationReviewService(BoothApplicationRepository boothApplicationRepository,
+                                          BoothRepository boothRepository,
                                           NotificationService notificationService) {
         this.boothApplicationRepository = boothApplicationRepository;
+        this.boothRepository = boothRepository;
         this.notificationService = notificationService;
     }
 
@@ -39,6 +43,9 @@ public class BoothApplicationReviewService {
         if (application.getStatus() != ApplicationStatus.SUBMITTED) {
             throw new CustomException(ErrorCode.INVALID_STATE, "심사 대기 상태의 신청만 승인할 수 있습니다.");
         }
+
+        // 같은 부스의 승인을 한 번에 하나씩만 처리
+        boothRepository.findByIdForUpdate(application.getBooth().getId());
 
         boolean competingExists = boothApplicationRepository.existsByBooth_IdAndStatusIn(
                 application.getBooth().getId(), COMPETING_STATUSES);

@@ -158,6 +158,32 @@ public class BoothParticipationAcceptanceTest {
     }
 
     @Test
+    void 같은_부스의_다른_신청_두_건을_동시에_승인하면_한_건만_승인된다() throws Exception {
+        Expo expo = saveExpo();
+        Booth booth = saveBooth(expo, "A-102", 300_000);
+        BoothApplication first = saveSubmittedApplication(expo, booth, 100L);
+        BoothApplication second = saveSubmittedApplication(expo, booth, 200L);
+
+        // 두 승인 요청을 동시에 보냄
+        var r1 = httpClient.sendAsync(approveRequest(first.getId()), HttpResponse.BodyHandlers.ofString());
+        var r2 = httpClient.sendAsync(approveRequest(second.getId()), HttpResponse.BodyHandlers.ofString());
+        int ok = (r1.join().statusCode() == 200 ? 1 : 0) + (r2.join().statusCode() == 200 ? 1 : 0);
+
+        assertEquals(1, ok);
+        assertEquals(1, boothApplicationRepository.findAll().stream()
+                .filter(a -> a.getStatus() == ApplicationStatus.PAYMENT_PENDING).count());
+    }
+
+    private HttpRequest approveRequest(Long applicationId) {
+        return HttpRequest.newBuilder(URI.create(EXPO_BASE_URL + "/api/admin/booth-applications/" + applicationId + "/approve"))
+                .header("X-User-Id", "1")
+                .header("X-User-Role", "ADMIN")
+                .timeout(Duration.ofSeconds(5))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+    }
+
+    @Test
     void Admin은_접수된_신청을_반려할_수_있다() throws Exception {
         Expo expo = saveExpo();
         Booth booth = saveBooth(expo, "A-102", 300_000);
