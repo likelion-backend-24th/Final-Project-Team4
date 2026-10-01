@@ -7,6 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 public class JwtProvider {
 
@@ -50,6 +51,7 @@ public class JwtProvider {
         Date expiryDate = new Date(now.getTime() + refreshTokenExp);
 
         return Jwts.builder()
+                .id(UUID.randomUUID().toString()) // 같은 초에 발급해도 토큰이 달라지도록 jti 부여 (재사용 감지용)
                 .subject(String.valueOf(userId))
                 .issuedAt(now)
                 .expiration(expiryDate)

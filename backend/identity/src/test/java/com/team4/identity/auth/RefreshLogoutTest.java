@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,6 +54,9 @@ class RefreshLogoutTest {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    StringRedisTemplate redis;
 
     // 실제 발송 대신 목으로 바꿔서 인증 코드를 캡처함
     @MockBean
@@ -124,6 +128,36 @@ class RefreshLogoutTest {
                 .andExpect(cookie().maxAge("refreshToken", 0));
 
         mockMvc.perform(post("/api/auth/refresh").cookie(refreshCookie))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 회전된_토큰을_유예시간_안에_다시_쓰면_401이고_새_세션은_유지된다() throws Exception {
+        Cookie oldCookie = signInAndGetRefreshCookie();
+        Cookie newCookie = mockMvc.perform(post("/api/auth/refresh").cookie(oldCookie))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getCookie("refreshToken");
+
+        // 여러 탭 동시 재발급 상황: 옛 토큰은 거절되지만 세션은 끊지 않음
+        mockMvc.perform(post("/api/auth/refresh").cookie(oldCookie))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/refresh").cookie(newCookie))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void 회전된_토큰을_유예시간_이후_다시_쓰면_새_토큰까지_무효화된다() throws Exception {
+        Cookie oldCookie = signInAndGetRefreshCookie();
+        Cookie newCookie = mockMvc.perform(post("/api/auth/refresh").cookie(oldCookie))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getCookie("refreshToken");
+
+        // 유예시간이 지난 것처럼 회전 시각을 0으로 되돌림
+        redis.keys("used:refresh:*").forEach(key -> redis.opsForValue().set(key, "0"));
+
+        mockMvc.perform(post("/api/auth/refresh").cookie(oldCookie))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/auth/refresh").cookie(newCookie))
                 .andExpect(status().isUnauthorized());
     }
 
