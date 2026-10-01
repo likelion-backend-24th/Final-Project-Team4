@@ -57,12 +57,14 @@ public class PaymentService {
 
         // 3. 승인되어 결제 가능한 상태인지 확인
         if (!booking.payable()) {
+            cancelOrphanPayment(paymentId, requestedAmount);
             throw new CustomException(ErrorCode.INVALID_STATE,
                     "결제할 수 없는 신청 상태입니다. bookingId=" + bookingId);
         }
 
         // 4. 중복 결제 방지
         if (paymentRepository.existsByBookingId(bookingId)){
+            cancelOrphanPayment(paymentId, requestedAmount);
             throw new CustomException(ErrorCode.DUPLICATE,
                     "이미 결제가 완료된 신청입니다. bookingId=" + bookingId);
         }
@@ -109,6 +111,22 @@ public class PaymentService {
         }
 
         return saved;
+    }
+
+    // 고객이 결제창에서 이미 결제를 끝냈는데 신청 상태 때문에 받을 수 없는 경우(탭 두 개로 두 번 결제 등)
+    // 돈만 빠지고 기록이 안 남지 않도록 그 결제를 PortOne에서 바로 취소.
+    // DB에 이미 기록된 결제(정상 결제의 재요청)와 실제 결제 완료가 확인되지 않은 건은 그대로
+    private void cancelOrphanPayment(String paymentId, Long amount) {
+        if (paymentId == null || paymentRepository.existsByPortonePaymentId(paymentId)) {
+            return;
+        }
+        if (!paymentGateway.requestPayment(paymentId, null, amount).success()) {
+            return;
+        }
+        PaymentGateway.RefundResult result = paymentGateway.cancelPayment(paymentId, amount, "중복 결제 자동 취소");
+        if (!result.success()) {
+            log.error("중복 결제 자동 취소 실패, 포트원 콘솔에서 직접 취소 필요 paymentId={}, reason={}", paymentId, result.failureReason());
+        }
     }
 
     // 부스 참가비 환불

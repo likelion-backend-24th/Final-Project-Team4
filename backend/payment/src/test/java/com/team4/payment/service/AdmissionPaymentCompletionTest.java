@@ -81,7 +81,7 @@ class AdmissionPaymentCompletionTest {
     }
 
     @Test
-    void Reservation_티켓_발급이_실패해도_이미_완료된_결제_데이터는_그대로_유지된다() {
+    void Reservation_티켓_발급이_실패하면_결제를_자동_취소하고_FAILED로_남긴다() {
         AdmissionPaymentService service =
                 new AdmissionPaymentService(admissionPaymentRepository, admissionPaymentTicketRepository, reservationClient, paymentGateway);
 
@@ -95,11 +95,13 @@ class AdmissionPaymentCompletionTest {
         doThrow(new RuntimeException("Reservation 서버 통신 실패"))
                 .when(reservationClient).issueAdmissionTicket(any(), any(), any());
 
+        when(paymentGateway.cancelPayment(any(), any(), any())).thenReturn(PaymentGateway.RefundResult.succeeded());
+
         AdmissionPayment result = service.pay(100L, 1L, ONE_DATE, 20_000L, "CARD", "test-admission-complete-3");
 
-        // 티켓 발급이 실패해도 예외가 밖으로 안 나가고, 결제 완료 상태는 그대로 유지되어야 함
-        assertThat(result.getStatus()).isEqualTo(PaymentStatus.PAID);
-        // 티켓 정보는 비어있는 채로 저장됨 (추후 재시도 대상)
+        // 티켓이 없으면 환불도 못 하므로 결제를 바로 취소하고 FAILED로 기록
+        assertThat(result.getStatus()).isEqualTo(PaymentStatus.FAILED);
         assertThat(result.getTickets()).isEmpty();
+        verify(paymentGateway).cancelPayment(eq("test-admission-complete-3"), eq(20_000L), any());
     }
 }

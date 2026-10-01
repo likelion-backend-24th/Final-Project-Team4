@@ -57,6 +57,7 @@ public class AdmissionPaymentService {
         //    "고객당 박람회당 결제 1건"처럼 통째로 막지는 않음 — 날짜가 겹치지만 않으면 같은 박람회를
         //    여러 번에 나눠 결제하는 것도 허용(예: 오늘 하루치 사고, 나중에 나머지 날짜 추가로 결제).
         if (!context.blockedDates().isEmpty()) {
+            cancelOrphanPayment(paymentId, requestedAmount);
             throw new CustomException(ErrorCode.INVALID_STATE,
                     "이미 입장권을 보유한 날짜가 포함되어 있어 결제할 수 없습니다. blockedDates=" + context.blockedDates());
         }
@@ -106,6 +107,14 @@ public class AdmissionPaymentService {
             } catch (Exception e) {
                 log.error("Reservation 입장권 발급 실패 customerId={}, expoId={}, paymentId={}",
                         customerId, expoId, paymentId, e);
+
+                // 티켓이 없으면 환불 API로도 돌려받을 수 없으므로 결제를 바로 취소하고 실패로 기록.
+                PaymentGateway.RefundResult refund = paymentGateway.cancelPayment(paymentId, requestedAmount, "입장권 발급 실패로 결제 자동 취소");
+                if (refund.success()) {
+                    admissionPayment.fail("입장권 발급 실패로 결제 자동 취소");
+                } else {
+                    log.error("입장권 발급 실패 후 결제 자동 취소도 실패, 포트원 콘솔에서 직접 취소 필요 paymentId={}, reason={}", paymentId, refund.failureReason());
+                }
             }
         } else {
             admissionPayment.fail(result.failureReason());
@@ -174,6 +183,21 @@ public class AdmissionPaymentService {
         }
 
         return new AdmissionRefundResponse(ticketId, ticket.getAmount(), 0L, "REFUNDED", now);
+    }
+
+    // 이미 입장권이 있는 날짜를 또 결제한 경우(탭 두 개로 두 번 결제 등) 돈만 빠지지 않도록 PortOne 결제를 바로 취소.
+    // 우리 DB에 이미 기록된 결제와 실제 결제 완료가 확인되지 않은 건은 건드리지 않음
+    private void cancelOrphanPayment(String paymentId, Long amount) {
+        if (paymentId == null || admissionPaymentRepository.existsByPortonePaymentId(paymentId)) {
+            return;
+        }
+        if (!paymentGateway.requestPayment(paymentId, null, amount).success()) {
+            return;
+        }
+        PaymentGateway.RefundResult result = paymentGateway.cancelPayment(paymentId, amount, "중복 결제 자동 취소");
+        if (!result.success()) {
+            log.error("중복 결제 자동 취소 실패, 포트원 콘솔에서 직접 취소 필요 paymentId={}, reason={}", paymentId, result.failureReason());
+        }
     }
 
     private AdmissionPaymentTicket findOwnedTicket(Long customerId, Long ticketId) {
