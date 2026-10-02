@@ -54,6 +54,8 @@ services:
       REDIS_PORT: "6379"
       COOKIE_SECURE: "true"
       COOKIE_SAMESITE: None
+      RESERVATION_BASE_URL: http://reservation:8080
+      EXPO_BASE_URL: http://expo:8080
       SPRING_JPA_SHOW_SQL: "false"
     depends_on:
       mysql:
@@ -76,6 +78,7 @@ services:
       DB_USER: app
       PAYMENT_BASE_URL: http://payment:8080
       RESERVATION_BASE_URL: http://reservation:8080
+      IDENTITY_BASE_URL: http://identity:8080
       SPRING_JPA_SHOW_SQL: "false"
     volumes:
       - expo-uploads:/uploads
