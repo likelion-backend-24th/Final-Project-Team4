@@ -4,6 +4,7 @@ import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.common.jwt.JwtProvider;
 import com.team4.identity.auth.dto.TokenResponse;
+import com.team4.identity.expo.client.ExpoClient;
 import com.team4.identity.reservation.client.ReservationClient;
 import com.team4.identity.security.jwt.CookieProvider;
 import com.team4.identity.user.domain.User;
@@ -29,17 +30,19 @@ public class SignInService {
     private final RefreshTokenStore refreshTokenStore;
     private final CookieProvider cookieProvider;
     private final ReservationClient reservationClient;
+    private final ExpoClient expoClient;
     private final String dummyPasswordHash; // 타이밍 공격 방지용 더미 해시 - 가입 안 된 이메일도 이 해시로 검증하여 로그인 실패 응답 속도를 존재하는 이메일이랑 맞춤
 
     public SignInService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider,
                           RefreshTokenStore refreshTokenStore, CookieProvider cookieProvider,
-                         ReservationClient reservationClient) {
+                         ReservationClient reservationClient, ExpoClient expoClient) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
         this.refreshTokenStore = refreshTokenStore;
         this.cookieProvider = cookieProvider;
         this.reservationClient = reservationClient;
+        this.expoClient = expoClient;
         this.dummyPasswordHash = passwordEncoder.encode("dummy-password-for-timing-safety");
     }
 
@@ -107,6 +110,7 @@ public class SignInService {
         User user = userRepository.findById(userId).orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "사용자를 찾을 수 없습니다."));
 
         reservationClient.invalidateAllTickets(userId);
+        expoClient.anonymizeCustomer(userId);
 
         user.withdraw();
         refreshTokenStore.delete(userId);

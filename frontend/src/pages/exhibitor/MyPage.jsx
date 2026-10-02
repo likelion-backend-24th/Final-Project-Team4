@@ -592,7 +592,7 @@ function MyPage() {
           onClose={() => !withdrawing && setShowWithdrawModal(false)}
           dismissible={!withdrawing}
           title="회원 탈퇴"
-          description="탈퇴 시 모든 서비스 이용이 제한되며, 가입하신 이메일로는 다시 가입할 수 없습니다. 정말 탈퇴하시겠습니까?"
+          description="탈퇴 시 모든 서비스 이용이 제한되며, 회원 정보는 즉시 파기되어 복구할 수 없습니다. 정말 탈퇴하시겠습니까?"
           footer={
             <>
               <Button variant="outline" onClick={() => setShowWithdrawModal(false)} disabled={withdrawing}>
