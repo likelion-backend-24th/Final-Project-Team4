@@ -12,8 +12,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // PortOne 결제 채널 식별용 공개 ID들 (비밀값 아님 - 프론트에 그대로 둬도 되는 값).
 // 실제 카드 검증 비밀키(API Secret)는 절대 여기 두지 않고, 백엔드 환경변수(PORTONE_API_SECRET)로만 관리함.
-const PORTONE_STORE_ID = "store-9663b602-88a9-4fcf-a8b7-adad963c46e3";
-const PORTONE_CHANNEL_KEY = "channel-key-c5723eb4-9ee3-4df3-9c56-129d13d4e9d6";
+const PORTONE_STORE_ID = "store-f68096c6-337a-4f3b-bbe4-fee03d2e9030";
+const PORTONE_CHANNEL_KEY = "channel-key-7dd283de-0e30-42ba-a8c7-e79c7e85a159";
 
 const METHODS = ["신용카드", "실시간 계좌이체", "가상계좌 발급"];
 // PortOne 결제창에 넘길 결제수단 코드. 그대로 우리 서버에도 저장함.
