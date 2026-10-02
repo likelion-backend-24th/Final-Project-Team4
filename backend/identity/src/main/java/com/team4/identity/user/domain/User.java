@@ -134,9 +134,20 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    // 회원 탈퇴(soft delete)
+    // 회원 탈퇴(soft delete) + 개인정보 익명화
+    // 회사명, 업종처럼 개인정보가 아닌 값은 유지
     public void withdraw() {
         this.status = UserStatus.WITHDRAWN;
+        this.email = "withdrawn_" + id + "@deleted"; // unique 제약 때문에 null 대신 고유값으로 변경. 같은 이메일 재가입 허용
+        this.passwordHash = null;
+        this.providerId = null;
+        this.name = null;
+        this.contact = null;
+        this.businessNo = null;
+        this.managerName = null;
+        this.companyAddress = null;
+        this.representativeName = null;
+        this.companyContact = null;
     }
 
     // 관리자가 계정 정지
