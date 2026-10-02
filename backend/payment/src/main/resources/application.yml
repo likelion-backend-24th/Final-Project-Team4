@@ -5,7 +5,7 @@ spring:
   application:
     name: payment
   profiles:
-    active: reservation
+    active: reservation,portone
   datasource:
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/payment?serverTimezone=Asia%2FSeoul&characterEncoding=UTF-8&rewriteBatchedStatements=true
     username: ${DB_USER:app}
