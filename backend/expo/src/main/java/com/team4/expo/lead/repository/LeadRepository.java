@@ -5,6 +5,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface LeadRepository extends JpaRepository<Lead, Long> {
 
@@ -26,4 +29,9 @@ public interface LeadRepository extends JpaRepository<Lead, Long> {
 
     // 부스 통계(방문자 수) - 참가업체 대시보드용.
     long countByBooth_Id(Long boothId);
+
+    // 회원 탈퇴 시 개인정보 익명화
+    @Modifying
+    @Query("UPDATE Lead l SET l.customerName = '탈퇴한 회원', l.customerEmail = null, l.interestNote = null, l.emailSummary = null WHERE l.customerId = :customerId")
+    int anonymizeByCustomerId(@Param("customerId") Long customerId);
 }

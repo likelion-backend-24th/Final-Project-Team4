@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -47,4 +48,9 @@ public interface ConsultationRepository extends JpaRepository<Consultation, Long
     // 후기 작성 자격 검증 - 이 부스에서 상담을 완료(COMPLETED)한 적이 있어야 후기를 남길 수 있다.
     // 완료 후 5일 이내인지는 서비스 레이어에서 Consultation.isReviewable()로 판단(updatedAt 기준).
     List<Consultation> findByCustomerIdAndBooth_IdAndStatus(Long customerId, Long boothId, ConsultationStatus status);
+
+    // 회원 탈퇴 시 개인정보 익명화
+    @Modifying
+    @Query("UPDATE Consultation c SET c.customerName = '탈퇴한 회원', c.customerPhone = '', c.customerEmail = '', c.message = null, c.aiSummary = null WHERE c.customerId = :customerId")
+    int anonymizeByCustomerId(@Param("customerId") Long customerId);
 }

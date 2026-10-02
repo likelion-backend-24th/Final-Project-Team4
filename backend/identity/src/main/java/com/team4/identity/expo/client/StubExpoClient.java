@@ -17,4 +17,9 @@ public class StubExpoClient implements ExpoClient {
         log.info("[STUB] Expo 참가 신청 통계 연동 미구현 - 전원 신청 0건/미참가로 처리 exhibitorIds={}", exhibitorIds);
         return List.of();
     }
+
+    @Override
+    public void anonymizeCustomer(Long customerId) {
+        log.info("[STUB] Expo 개인정보 익명화 연동 미구현 - 호출 생략 customerId={}", customerId);
+    }
 }

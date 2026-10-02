@@ -46,7 +46,7 @@ class UserWithdrawTest {
 
         User withdrawn = userRepository.findById(user.getId()).orElseThrow();
         assertThat(withdrawn.getStatus()).isEqualTo(UserStatus.WITHDRAWN);
-        assertThat(withdrawn.getEmail()).isEqualTo("withdrawn_" + user.getId() + "@deleted.local");
+        assertThat(withdrawn.getEmail()).isEqualTo("withdrawn_" + user.getId() + "@deleted");
         assertThat(withdrawn.getPasswordHash()).isNull();
         assertThat(withdrawn.getContact()).isNull();
         assertThat(withdrawn.getManagerName()).isNull();

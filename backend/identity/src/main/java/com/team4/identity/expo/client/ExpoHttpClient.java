@@ -2,12 +2,15 @@ package com.team4.identity.expo.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.team4.common.error.CustomException;
+import com.team4.common.error.ErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,6 +40,32 @@ public class ExpoHttpClient implements ExpoClient {
         this.expoBaseUrl = expoBaseUrl;
         this.serviceToken = serviceToken;
         this.objectMapper = objectMapper;
+    }
+
+    // 탈퇴 시 상담,리드의 개인정보 익명 처리 실패 방지
+    @Override
+    public void anonymizeCustomer(Long customerId) {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(expoBaseUrl + "/internal/expo/customers/" + customerId + "/anonymize"))
+                    .header("Authorization", "Bearer " + serviceToken)
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() != 200) {
+                log.error("Expo 개인정보 익명화 실패 customerId={}, status={}, body={}",
+                        customerId, response.statusCode(), response.body());
+                throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                        "상담 정보를 정리할 수 없어 탈퇴를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+            }
+        } catch (IOException | InterruptedException e) {
+            log.error("Expo 서버 통신 중 오류 customerId={}: {}", customerId, e.getMessage());
+            throw new CustomException(ErrorCode.DEPENDENCY_TIMEOUT,
+                    "상담 정보를 정리할 수 없어 탈퇴를 진행할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+        }
     }
 
     // 관리자 회원(참가업체) 목록/엑셀/통계 화면 전용 - fail-open. 여기서 실패한다고 화면 자체를 막을 이유가 없어서,

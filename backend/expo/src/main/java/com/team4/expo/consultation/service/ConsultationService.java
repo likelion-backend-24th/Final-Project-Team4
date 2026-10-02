@@ -84,6 +84,12 @@ public class ConsultationService {
         this.consultationSlotService = consultationSlotService;
     }
 
+    // 회원 탈퇴 시 상담 신청, 리드 개인정보 익명화
+    public void anonymizeCustomer(Long customerId) {
+        consultationRepository.anonymizeByCustomerId(customerId);
+        leadRepository.anonymizeByCustomerId(customerId);
+    }
+
     public List<ConsultationResponse> applyConsultation(Long customerId, ConsultationRequest request) {
         if (!request.isWantsPurchase() && !request.isWantsTestDrive()) {
             throw new CustomException(ErrorCode.VALIDATION_ERROR, "구매 상담, 시승 상담 중 최소 하나는 선택해야 합니다.");
