@@ -9,7 +9,6 @@ import com.team4.expo.booth.dto.BoothApplicationGroupConfirmRequest;
 import com.team4.expo.booth.dto.BoothApplicationGroupConfirmResponse;
 import com.team4.expo.booth.dto.BoothApplicationGroupPaymentContextResponse;
 import com.team4.expo.booth.dto.BoothApplicationGroupReleaseRequest;
-import com.team4.expo.booth.dto.BoothApplicationGroupReleaseResponse;
 import com.team4.expo.booth.service.BoothApplicationPaymentService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,19 +51,6 @@ public class ExpoInternalController {
 
         return ResponseEntity.ok(ApiResponse.success(
                 boothApplicationPaymentService.confirmBoothApplicationGroup(groupId, request.getPaymentId(), request.getPaidAt())));
-    }
-
-    // Payment -> Expo. 결제 실패/시간 초과 시 호출 — 승인됐던 부스 잠금을 풀고 신청을 반려 처리.
-    @PostMapping("/{groupId}/release")
-    public ResponseEntity<ApiResponse<BoothApplicationGroupReleaseResponse>> release(
-            @RequestHeader("Authorization") String authorization,
-            @PathVariable String groupId,
-            @RequestBody(required = false) BoothApplicationGroupReleaseRequest request) {
-
-        requirePaymentService(authorization);
-
-        String reason = request != null ? request.getReason() : null;
-        return ResponseEntity.ok(ApiResponse.success(boothApplicationPaymentService.releaseBoothApplicationGroup(groupId, reason)));
     }
 
     // Payment -> Expo. 부스 참가비 환불 완료 후 호출 - 참가 확정됐던 신청을 취소하고 부스 자리 반납.

@@ -60,7 +60,7 @@ public class Booth {
         this.status = BoothStatus.ASSIGNED;
     }
 
-    // ExpoService.releaseBoothApplicationGroup()에서 결제 실패/시간초과 시 호출. RESERVED -> AVAILABLE(잠금 해제).
+    // 결제 기한 초과 자동 반려, 참가 확정 취소 시 호출. RESERVED/ASSIGNED -> AVAILABLE(잠금 해제).
     public void release() {
         this.status = BoothStatus.AVAILABLE;
     }

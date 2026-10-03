@@ -267,25 +267,6 @@ class ApproveConfirmAcceptanceTest {
         assertThat(applicationStatus(second)).isEqualTo(ApplicationStatus.SUBMITTED);
     }
 
-    @Test
-    @DisplayName("결제 실패 release 콜백이 오면 부스는 AVAILABLE 로 풀리고 신청은 REJECTED")
-    void 결제실패_release_부스_AVAILABLE_신청_REJECTED() throws Exception {
-        Expo expo = openExpo();
-        Booth booth = saveBooth(expo, "A-101");
-        BoothApplicationGroup group = saveGroup(expo, EXHIBITOR_ID);
-        long applicationId = saveSubmitted(group, booth);
-        approve(applicationId); // booth RESERVED
-
-        mockMvc.perform(post("/internal/expo/booth-application-groups/{groupId}/release", group.getId())
-                        .header(HttpHeaders.AUTHORIZATION, SVC_TOKEN)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(java.util.Map.of("reason", "결제 기한 초과"))))
-                .andExpect(status().isOk());
-
-        assertThat(applicationStatus(applicationId)).isEqualTo(ApplicationStatus.REJECTED);
-        assertThat(boothStatus(booth.getId())).isEqualTo(BoothStatus.AVAILABLE);
-    }
-
     // ---------------------------------------------------------------------
     // 결제 컨텍스트 (Payment -> Expo)
     // ---------------------------------------------------------------------
