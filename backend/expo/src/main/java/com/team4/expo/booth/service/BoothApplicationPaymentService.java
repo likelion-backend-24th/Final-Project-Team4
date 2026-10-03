@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class BoothApplicationPaymentService {
+
+    private static final int PAYMENT_DEADLINE_DAYS = 3; // 승인 후 결제하지 않을때 반려할 기준 일 수 (3일)
 
     private final BoothApplicationGroupRepository boothApplicationGroupRepository;
     private final BoothApplicationRepository boothApplicationRepository;
@@ -110,6 +113,23 @@ public class BoothApplicationPaymentService {
         }
 
         return new BoothApplicationGroupReleaseResponse(groupId, results);
+    }
+
+    // 승인 후 3일 안에 결제하지 않은 신청 자동 반려 (매시 정각에 체크)
+    @Scheduled(cron = "0 0 * * * *")
+    public void releaseExpiredApplications() {
+        LocalDateTime approvedBefore = LocalDateTime.now().minusDays(PAYMENT_DEADLINE_DAYS);
+        List<BoothApplication> expired = boothApplicationRepository.findByStatusAndApprovedAtBefore(ApplicationStatus.PAYMENT_PENDING, approvedBefore);
+
+        for (BoothApplication application : expired) {
+            Booth booth = application.getBooth();
+
+            if (booth.getStatus() == BoothStatus.RESERVED) {
+                booth.release();
+            }
+
+            application.reject("결제 기한 초과로 자동 반려되었습니다.");
+        }
     }
 
     // Payment의 환불 처리 완료 후 호출. 참가 확정됐던 신청 취소하고 배정됐던 부스 자리를 반납 (ASSIGNED -> AVAILABLE)

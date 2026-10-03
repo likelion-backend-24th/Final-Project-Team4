@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,4 +50,7 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
     @Query("SELECT DISTINCT ba.exhibitorId FROM BoothApplication ba "
             + "WHERE ba.exhibitorId IN :exhibitorIds AND ba.status = com.team4.expo.booth.domain.ApplicationStatus.CONFIRMED")
     List<Long> findExhibitorIdsWithConfirmedApplication(@Param("exhibitorIds") List<Long> exhibitorIds);
+
+    // 결제 기한 초과 자동 반려 대상 - 승인 시각이 기준 시각보다 이전인 신청
+    List<BoothApplication> findByStatusAndApprovedAtBefore(ApplicationStatus status, LocalDateTime approvedAt);
 }
