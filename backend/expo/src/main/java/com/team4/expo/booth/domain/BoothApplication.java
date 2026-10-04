@@ -40,6 +40,9 @@ public class BoothApplication {
 
     private LocalDateTime submittedAt;
 
+    // 승인 시각
+    private LocalDateTime approvedAt;
+
     // ExpoService.applyBooth()에서 호출. saveMode에 따라 DRAFT 또는 SUBMITTED로 생성됨.
     public BoothApplication(Booth booth, BoothApplicationGroup group, Long exhibitorId, ApplicationStatus status) {
         this.booth = booth;
@@ -63,6 +66,7 @@ public class BoothApplication {
     // approveBoothApplication()에서 호출. SUBMITTED -> PAYMENT_PENDING (서비스 레이어에서 상태·경쟁신청 검증).
     public void approve() {
         this.status = ApplicationStatus.PAYMENT_PENDING;
+        this.approvedAt = LocalDateTime.now();
     }
 
     // rejectBoothApplication()에서 호출. SUBMITTED -> REJECTED (서비스 레이어에서 상태 검증).

@@ -16,11 +16,11 @@ function OAuth2Redirect() {
     const error = searchParams.get("error");
 
     if (error) {
-      alert(
-        error === "DUPLICATE"
-          ? "이미 참가업체로 가입된 이메일입니다."
-          : "소셜 로그인에 실패했습니다.",
-      );
+      const messages = {
+        DUPLICATE: "이미 참가업체로 가입된 이메일입니다.",
+        UNAUTHENTICATED: "정지되었거나 탈퇴한 계정입니다.", // 정지, 탈퇴 계정 소셜 로그인 차단
+      };
+      alert(messages[error] ?? "소셜 로그인에 실패했습니다.");
       navigate("/login", { replace: true });
       return;
     }

@@ -7,6 +7,7 @@ import com.team4.identity.security.jwt.CookieProvider;
 import com.team4.identity.user.domain.AuthProvider;
 import com.team4.identity.user.domain.Role;
 import com.team4.identity.user.domain.User;
+import com.team4.identity.user.domain.UserStatus;
 import com.team4.identity.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -87,6 +88,10 @@ public class SocialLoginService {
     private User checkLinkable(User user) {
         if (user.getRole() == Role.EXHIBITOR) {
             throw new CustomException(ErrorCode.DUPLICATE, "이미 참가업체로 가입된 이메일입니다.");
+        }
+        // 정지, 탈퇴 계정은 소셜 로그인 차단
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new CustomException(ErrorCode.UNAUTHENTICATED, "로그인할 수 없는 계정입니다.");
         }
         return user;
     }

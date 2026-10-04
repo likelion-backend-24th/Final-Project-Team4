@@ -11,13 +11,13 @@ import com.team4.expo.booth.domain.BoothStatus;
 import com.team4.expo.booth.dto.BoothApplicationGroupCancelResponse;
 import com.team4.expo.booth.dto.BoothApplicationGroupConfirmResponse;
 import com.team4.expo.booth.dto.BoothApplicationGroupPaymentContextResponse;
-import com.team4.expo.booth.dto.BoothApplicationGroupReleaseResponse;
 import com.team4.expo.booth.repository.BoothApplicationGroupRepository;
 import com.team4.expo.booth.repository.BoothApplicationRepository;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class BoothApplicationPaymentService {
+
+    private static final int PAYMENT_DEADLINE_DAYS = 3; // 승인 후 결제하지 않을때 반려할 기준 일 수 (3일)
 
     private final BoothApplicationGroupRepository boothApplicationGroupRepository;
     private final BoothApplicationRepository boothApplicationRepository;
@@ -83,33 +85,21 @@ public class BoothApplicationPaymentService {
         return new BoothApplicationGroupConfirmResponse(groupId, results);
     }
 
-    // 결제 실패/시간 초과 시 호출. 승인(PAYMENT_PENDING)됐던 부스를 다시 풀어줘서
-    // (RESERVED -> AVAILABLE) 다른 업체가 재신청할 수 있게 하고, 신청은 REJECTED로 되돌림.
-    // 이미 CONFIRMED/REJECTED 등 최종 상태인 건은 건드리지 않음(멱등).
-    public BoothApplicationGroupReleaseResponse releaseBoothApplicationGroup(String groupId, String reason) {
-        BoothApplicationGroup group = boothApplicationGroupRepository.findById(groupId)
-                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "신청 그룹을 찾을 수 없습니다."));
-        List<BoothApplication> applications = boothApplicationRepository.findByGroup_Id(groupId);
+    // 승인 후 3일 안에 결제하지 않은 신청 자동 반려 (매시 정각에 체크)
+    @Scheduled(cron = "0 0 * * * *")
+    public void releaseExpiredApplications() {
+        LocalDateTime approvedBefore = LocalDateTime.now().minusDays(PAYMENT_DEADLINE_DAYS);
+        List<BoothApplication> expired = boothApplicationRepository.findByStatusAndApprovedAtBefore(ApplicationStatus.PAYMENT_PENDING, approvedBefore);
 
-        String releaseReason = (reason == null || reason.isBlank()) ? "결제 기한 초과로 자동 반려되었습니다." : reason;
-
-        List<BoothApplicationGroupReleaseResponse.Result> results = new ArrayList<>();
-        for (BoothApplication application : applications) {
-            if (application.getStatus() != ApplicationStatus.PAYMENT_PENDING) {
-                continue; // DRAFT/SUBMITTED/REJECTED/CONFIRMED 등은 결제 실패 통보 대상이 아니므로 건드리지 않음
-            }
-
+        for (BoothApplication application : expired) {
             Booth booth = application.getBooth();
+
             if (booth.getStatus() == BoothStatus.RESERVED) {
                 booth.release();
             }
-            application.reject(releaseReason);
 
-            results.add(new BoothApplicationGroupReleaseResponse.Result(
-                    application.getId(), booth.getId(), application.getStatus()));
+            application.reject("결제 기한 초과로 자동 반려되었습니다.");
         }
-
-        return new BoothApplicationGroupReleaseResponse(groupId, results);
     }
 
     // Payment의 환불 처리 완료 후 호출. 참가 확정됐던 신청 취소하고 배정됐던 부스 자리를 반납 (ASSIGNED -> AVAILABLE)
