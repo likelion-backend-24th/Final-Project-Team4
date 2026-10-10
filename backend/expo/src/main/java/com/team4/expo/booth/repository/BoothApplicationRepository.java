@@ -19,6 +19,9 @@ public interface BoothApplicationRepository extends JpaRepository<BoothApplicati
     // 부스에 배정 확정된(CONFIRMED) 신청 1건 조회 - 부스 상세에 참가업체 정보를 붙일 때 사용
     Optional<BoothApplication> findByBooth_IdAndStatus(Long boothId, ApplicationStatus status);
 
+    // 여러 부스의 확정 신청을 한 번에 조회 - 목록 화면에서 부스마다 위 메서드를 부르면 N+1이 된다
+    List<BoothApplication> findByBooth_IdInAndStatus(List<Long> boothIds, ApplicationStatus status);
+
     // 그룹에 속한 모든 부스 신청 조회 (제출/취소 시 그룹 단위 처리에 사용)
     List<BoothApplication> findByGroup_Id(String groupId);
 

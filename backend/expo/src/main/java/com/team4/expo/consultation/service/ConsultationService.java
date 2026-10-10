@@ -29,8 +29,10 @@ import com.team4.expo.lead.repository.LeadRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -152,9 +154,30 @@ public class ConsultationService {
 
     @Transactional(readOnly = true)
     public List<ConsultationResponse> listMyConsultations(Long customerId) {
-        return consultationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId).stream()
-                .map(c -> ConsultationResponse.from(c, companyNameOf(c.getBooth())))
+        List<Consultation> consultations = consultationRepository.findByCustomerIdOrderByCreatedAtDesc(customerId);
+        Map<Long, String> companyNames = companyNamesOf(consultations.stream()
+                .map(c -> c.getBooth().getId())
+                .distinct()
+                .toList());
+        return consultations.stream()
+                .map(c -> ConsultationResponse.from(c, companyNames.get(c.getBooth().getId())))
                 .collect(Collectors.toList());
+    }
+
+    // 목록용 업체명 조회 - 부스별로 확정 신청을 하나씩 조회하면 상담 건수만큼 쿼리가 나가므로(N+1)
+    // 확정 신청은 IN 한 번으로 가져오고, identity 호출은 참가업체 단위로 한 번씩만 한다.
+    private Map<Long, String> companyNamesOf(List<Long> boothIds) {
+        if (boothIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, String> nameByExhibitor = new HashMap<>();
+        Map<Long, String> nameByBooth = new HashMap<>();
+        for (BoothApplication application : boothApplicationRepository.findByBooth_IdInAndStatus(boothIds, ApplicationStatus.CONFIRMED)) {
+            String name = nameByExhibitor.computeIfAbsent(application.getExhibitorId(), id ->
+                    identityClient.getExhibitorProfile(id).map(ExhibitorProfile::companyName).orElse(null));
+            nameByBooth.putIfAbsent(application.getBooth().getId(), name);
+        }
+        return nameByBooth;
     }
 
     // post(부스 소개 콘텐츠)와 동일한 방식으로 업체명 조회, 실패 시 null(화면에서 부스 번호로 폴백)
