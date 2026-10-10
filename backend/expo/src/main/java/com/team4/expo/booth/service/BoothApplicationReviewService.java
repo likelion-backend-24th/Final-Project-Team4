@@ -5,7 +5,9 @@ import com.team4.expo.notification.service.NotificationService;
 import com.team4.common.error.CustomException;
 import com.team4.common.error.ErrorCode;
 import com.team4.expo.booth.domain.ApplicationStatus;
+import com.team4.expo.booth.domain.Booth;
 import com.team4.expo.booth.domain.BoothApplication;
+import com.team4.expo.booth.domain.BoothStatus;
 import com.team4.expo.notification.domain.NotificationType;
 import com.team4.expo.booth.dto.BoothApplicationDecisionResponse;
 import com.team4.expo.booth.repository.BoothApplicationRepository;
@@ -44,8 +46,14 @@ public class BoothApplicationReviewService {
             throw new CustomException(ErrorCode.INVALID_STATE, "심사 대기 상태의 신청만 승인할 수 있습니다.");
         }
 
-        // 같은 부스의 승인을 한 번에 하나씩만 처리
-        boothRepository.findByIdForUpdate(application.getBooth().getId());
+        // 같은 부스의 승인을 한 번에 하나씩만 처리.
+        // MySQL REPEATABLE READ에서는 위 findById 시점의 스냅샷이 유지돼, 락을 기다린 뒤의 일반 SELECT(existsBy...)는
+        // 먼저 커밋된 다른 승인을 보지 못한다. 그래서 락을 잡으며 최신 값으로 읽은 부스 상태로 판정한다.
+        Booth booth = boothRepository.findByIdForUpdate(application.getBooth().getId())
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND, "부스를 찾을 수 없습니다."));
+        if (booth.getStatus() != BoothStatus.AVAILABLE) {
+            throw new CustomException(ErrorCode.INVALID_STATE, "이미 다른 신청이 같은 부스에 승인 진행 중이거나 확정되었습니다.");
+        }
 
         boolean competingExists = boothApplicationRepository.existsByBooth_IdAndStatusIn(
                 application.getBooth().getId(), COMPETING_STATUSES);
